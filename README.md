@@ -8,11 +8,11 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–2 are implemented locally: the repository now has a reproducible engineering foundation, idempotent source ingestion, a leased transactional worker, strict structured candidate extraction, deterministic write/sensitivity policy, content-safe quarantine, and an atomic downstream materialization intent. Feature 3 is next. There is **no canonical memory version lifecycle or formal benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–2 are implemented and published: the repository now has a reproducible engineering foundation, idempotent source ingestion, a leased transactional worker, strict structured candidate extraction, deterministic write/sensitivity policy, content-safe quarantine, and an atomic downstream materialization intent. Feature 3 is next. There is **no canonical memory version lifecycle or formal benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 3 next (`Features 0–1: published`; `Feature 2: DONE locally, publication pending`)
+- MVP implementation: `DOING` — Feature 3 next (`Features 0–2: published`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - GitHub publication: `DONE`

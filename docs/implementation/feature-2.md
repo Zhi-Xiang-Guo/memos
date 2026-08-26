@@ -1,6 +1,6 @@
 # Feature 2 — candidate extraction and write policy
 
-Status: `DONE LOCALLY` on 2026-08-27; repository publication is the remaining administrative gate. This note records implemented behavior and executed evidence.
+Status: `DONE` and published on 2026-08-27. The coherent implementation commit is `6292b150851218fe6ab480115bde24a214b4d411`; this note records implemented behavior and executed evidence.
 
 Feature 2 consumes the durable source jobs established by [Feature 1](feature-1.md). It covers provider-neutral structured candidate proposals, strict validation, deterministic write policy, sensitivity/trust handling, review/quarantine outcomes, authoritative candidate persistence, and a downstream materialization intent. Versioned fixtures live in the [write-policy v1 fixture directory](../../benchmark/fixtures/write-policy/v1/README.md).
 
@@ -168,6 +168,6 @@ Feature 2 does not claim or implement:
 | Python verification | locked sync, Ruff format/lint, and pytest | `PASS` — 6 tests |
 | Runtime smoke | Default fake requires no paid API and reaches the expected job status | `PASS` — source job succeeds and candidate-materialization intent remains `PENDING` |
 | Markdown links | `python3 scripts/check_markdown_links.py` | `PASS` — 37 Markdown files |
-| Git publication | coherent Feature 2 commit pushed; local `HEAD` equals `origin/main` | `PENDING` |
+| Git publication | coherent Feature 2 commit pushed; local `HEAD` equals `origin/main` | `PASS` — implementation commit `6292b150851218fe6ab480115bde24a214b4d411` |
 
 Feature 2 may be marked `DONE` only after the Java/provider/persistence implementation and fault suite pass, the fixture report is generated from observed predictions, every applicable gate is updated with actual evidence, the coherent commit is pushed, and local `HEAD` matches `origin/main`.

@@ -12,7 +12,7 @@ Phase 1 — research, problem definition, architecture selection, and benchmark 
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 2 next (`Features 0–1: DONE locally`)
+- MVP implementation: `DOING` — Feature 2 next (`Features 0–1: DONE and published`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - GitHub publication: `DONE`

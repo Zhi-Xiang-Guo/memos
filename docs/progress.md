@@ -26,7 +26,7 @@ Status: `DOING` — Feature 2 next
 
 - Phase 1 was reviewed and the active project goal authorizes Features 0–6.
 - Feature 0 engineering foundation is `DONE`: local Maven/Testcontainers, pgvector migration, architecture, Python, documentation, and API/worker smoke gates passed. The GitHub workflow is published but has no hosted-run record yet.
-- Feature 1 is `DONE LOCALLY`: source-event receipt and outbox commit atomically; claim/lease/fencing/retry/dead/replay and a payload-free logical-effect ledger passed PostgreSQL fault/concurrency tests and runtime smoke. Publication is the remaining gate.
+- Feature 1 is `DONE` and published: source-event receipt and outbox commit atomically; claim/lease/fencing/retry/dead/replay and a payload-free logical-effect ledger passed PostgreSQL fault/concurrency tests and runtime smoke.
 - Feature 2 is next: structured candidate extraction and deterministic write policy.
 
 ## Advanced Memory
@@ -79,4 +79,4 @@ Status: `TODO`
 
 ## Next phase
 
-Publish Feature 1, then implement Feature 2's structured candidate proposal, schema validation, deterministic write policy, quarantine, and versioned policy fixtures.
+Implement Feature 2's structured candidate proposal, schema validation, deterministic write policy, quarantine, and versioned policy fixtures.

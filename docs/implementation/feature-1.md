@@ -1,6 +1,6 @@
 # Feature 1 — idempotent source ingestion and transactional outbox
 
-Status: `DONE LOCALLY` on 2026-08-27; repository publication is the remaining administrative gate. The verification matrix below records the executed evidence rather than intended tests.
+Status: `DONE` and published on 2026-08-27. The verification matrix below records executed evidence rather than intended tests.
 
 Feature 1 is the first business slice after the [engineering foundation](feature-0.md). It implements the source-acceptance and durable-work boundary described by the [problem definition](../architecture/01-problem-definition.md), [recommended architecture](../architecture/03-recommended-architecture.md), [MVP plan](../architecture/04-mvp-plan.md), and [ADR-0003](../adr/0003-transactional-outbox.md).
 
@@ -212,6 +212,6 @@ Feature 1 does not implement or claim:
 | Python workspace | locked sync, format, lint, and tests | `PASS` |
 | Runtime smoke | ingest while worker stopped, recover, succeed, and inspect status | `PASS` — `scripts/smoke-feature1.sh` |
 | Markdown links | `python3 scripts/check_markdown_links.py` | `PASS` |
-| Git publication | coherent Feature 1 commit pushed; local `HEAD` equals `origin/main` | `PENDING` |
+| Git publication | coherent Feature 1 commit pushed; local `HEAD` equals `origin/main` | `PASS` — implementation commit `01f017d9058db911277dd7c055ebd02e3d36826c` was pushed and verified against `origin/main` |
 
 Feature 1 may be marked `DONE` only after the fault suite demonstrates no lost committed source and no duplicate logical effect, every applicable gate above is updated with actual evidence, the coherent commit is pushed, and local `HEAD` matches `origin/main`.

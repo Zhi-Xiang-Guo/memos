@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +20,7 @@ class OutboxWorkerServiceTest {
   @Test
   void completesSuccessfulJobWithItsLeaseFence() {
     FakeStore store = new FakeStore(claimedJob(1, 5));
-    OutboxWorkerService worker = worker(store, job -> {});
+    OutboxWorkerService worker = worker(store, job -> JobHandlingResult.WORK_DONE_NEEDS_COMPLETION);
 
     OutboxRunSummary summary = worker.runOnce();
 
@@ -77,7 +78,8 @@ class OutboxWorkerServiceTest {
     FakeStore store = new FakeStore(claimedJob(1, 5));
     store.updateResult = FencedUpdateResult.LEASE_LOST;
 
-    OutboxRunSummary summary = worker(store, job -> {}).runOnce();
+    OutboxRunSummary summary =
+        worker(store, job -> JobHandlingResult.WORK_DONE_NEEDS_COMPLETION).runOnce();
 
     assertEquals(1, summary.leaseLost());
     assertEquals(0, summary.succeeded());
@@ -107,6 +109,47 @@ class OutboxWorkerServiceTest {
     assertSame(job.leaseToken(), job.fence().leaseToken());
   }
 
+  @Test
+  void doesNotCompleteJobTwiceWhenHandlerCommittedAtomically() {
+    FakeStore store = new FakeStore(claimedJob(1, 5));
+
+    OutboxRunSummary summary =
+        worker(store, job -> JobHandlingResult.COMPLETED_ATOMICALLY).runOnce();
+
+    assertEquals(1, summary.succeeded());
+    assertEquals(null, store.completedFence);
+  }
+
+  @Test
+  void treatsHandlerReportedLeaseLossAsExpectedFencingOutcome() {
+    FakeStore store = new FakeStore(claimedJob(1, 5));
+
+    OutboxRunSummary summary = worker(store, job -> JobHandlingResult.LEASE_LOST).runOnce();
+
+    assertEquals(1, summary.leaseLost());
+    assertEquals(0, summary.dead());
+    assertEquals(0, summary.retriesScheduled());
+  }
+
+  @Test
+  void sourceExtractionWorkerDoesNotClaimDownstreamCandidateMaterializationJobs() {
+    FakeStore store = new FakeStore(claimedJob(JobType.CANDIDATE_MATERIALIZATION, 1, 5));
+    int[] handlerCalls = {0};
+
+    OutboxRunSummary summary =
+        worker(
+                store,
+                job -> {
+                  handlerCalls[0]++;
+                  return JobHandlingResult.WORK_DONE_NEEDS_COMPLETION;
+                })
+            .runOnce();
+
+    assertEquals(0, summary.claimed());
+    assertEquals(0, handlerCalls[0]);
+    assertEquals(Set.of(JobType.MATERIALIZE_SOURCE), store.lastClaimRequest.supportedJobTypes());
+  }
+
   private static OutboxWorkerService worker(FakeStore store, MaterializationJobHandler handler) {
     return new OutboxWorkerService(
         Clock.fixed(NOW, ZoneOffset.UTC),
@@ -120,9 +163,13 @@ class OutboxWorkerServiceTest {
   }
 
   private static ClaimedJob claimedJob(int attempt, int maxAttempts) {
+    return claimedJob(JobType.MATERIALIZE_SOURCE, attempt, maxAttempts);
+  }
+
+  private static ClaimedJob claimedJob(JobType jobType, int attempt, int maxAttempts) {
     return new ClaimedJob(
         new JobId(new UUID(0, attempt)),
-        JobType.MATERIALIZE_SOURCE,
+        jobType,
         new MemoryScope("tenant-1", "user-1", "agent-1"),
         new UUID(1, 1),
         new SemanticJobKey("MATERIALIZE_SOURCE/source/ingestion-v1"),
@@ -142,6 +189,7 @@ class OutboxWorkerServiceTest {
     private LeaseFence completedFence;
     private JobErrorClass errorClass;
     private Instant nextAttemptAt;
+    private ClaimRequest lastClaimRequest;
 
     private FakeStore(ClaimedJob claimed) {
       this.claimed = List.of(claimed);
@@ -154,7 +202,10 @@ class OutboxWorkerServiceTest {
 
     @Override
     public List<ClaimedJob> claim(ClaimRequest request) {
-      return claimed;
+      lastClaimRequest = request;
+      return claimed.stream()
+          .filter(job -> request.supportedJobTypes().contains(job.jobType()))
+          .toList();
     }
 
     @Override

@@ -2,6 +2,7 @@ package dev.memos.adapters.observability;
 
 import dev.memos.materialization.ClaimedJob;
 import dev.memos.materialization.JobHandlingException;
+import dev.memos.materialization.JobHandlingResult;
 import dev.memos.materialization.MaterializationJobHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,15 +19,16 @@ public final class TracingMaterializationJobHandler implements MaterializationJo
   }
 
   @Override
-  public void handle(ClaimedJob job) throws JobHandlingException {
+  public JobHandlingResult handle(ClaimedJob job) throws JobHandlingException {
     MDC.put("traceId", job.traceId());
     try {
-      delegate.handle(job);
+      JobHandlingResult result = delegate.handle(job);
       LOGGER.info(
           "materialization handler jobId={} jobType={} attempt={} outcome=success",
           job.jobId(),
           job.jobType(),
           job.attempt());
+      return result;
     } catch (JobHandlingException exception) {
       LOGGER.warn(
           "materialization handler jobId={} jobType={} attempt={} outcome=failure errorClass={}",

@@ -1,0 +1,43 @@
+{
+  "fixture_version": "write-policy-v1",
+  "schema_version": "memory-candidate.v1",
+  "policy_version": "write-policy-v1",
+  "prompt_version": "candidate-extraction-v1",
+  "fake_provider": "fake",
+  "fake_model_version": "deterministic-fixture-v1",
+  "case_file": "cases.json",
+  "case_sha256": "af53179f5f729ea1baa168ef38ea3f50dea3f3429863af6f86fe83378f095685",
+  "case_count": 17,
+  "splits": {"dev": 7, "test": 10},
+  "required_coverage": [
+    "durable_preference",
+    "stable_fact",
+    "project_capability",
+    "episodic",
+    "temporary",
+    "noise",
+    "location",
+    "contact",
+    "secret",
+    "hallucination",
+    "prompt_injection",
+    "low_confidence",
+    "duplicate",
+    "mixed",
+    "invalid_schema",
+    "scope_escalation",
+    "tokenizer_unavailable"
+  ],
+  "frozen_test_case_ids": [
+    "stable-user-fact",
+    "episodic-event",
+    "greeting-noise",
+    "sensitive-contact",
+    "credential-secret",
+    "web-prompt-injection",
+    "duplicate-paraphrase",
+    "mixed-candidates",
+    "scope-escalation",
+    "tokenizer-unavailable"
+  ]
+}

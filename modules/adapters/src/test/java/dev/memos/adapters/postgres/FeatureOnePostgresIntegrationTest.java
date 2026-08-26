@@ -188,6 +188,7 @@ class FeatureOnePostgresIntegrationTest {
         job -> {
           assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
           calls.incrementAndGet();
+          return dev.memos.materialization.JobHandlingResult.WORK_DONE_NEEDS_COMPLETION;
         };
     var worker = worker("worker-a", handler, 8, Duration.ofSeconds(30));
 
@@ -252,6 +253,7 @@ class FeatureOnePostgresIntegrationTest {
               if (calls.getAndIncrement() == 0) {
                 throw JobHandlingException.transientFailure("PROVIDER_TIMEOUT");
               }
+              return dev.memos.materialization.JobHandlingResult.WORK_DONE_NEEDS_COMPLETION;
             },
             1,
             Duration.ofSeconds(30));

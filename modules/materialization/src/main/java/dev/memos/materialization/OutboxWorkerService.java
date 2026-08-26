@@ -59,7 +59,22 @@ public final class OutboxWorkerService {
 
   private void process(ClaimedJob job, MutableSummary summary) {
     try {
-      handler.handle(job);
+      JobHandlingResult handlingResult =
+          Objects.requireNonNull(handler.handle(job), "handler result must not be null");
+      if (handlingResult == JobHandlingResult.COMPLETED_ATOMICALLY) {
+        summary.succeeded++;
+        telemetry.succeeded(job.jobType());
+        return;
+      }
+      if (handlingResult == JobHandlingResult.DEAD_ATOMICALLY) {
+        summary.dead++;
+        telemetry.dead(job.jobType());
+        return;
+      }
+      if (handlingResult == JobHandlingResult.LEASE_LOST) {
+        recordLeaseLost(job, summary);
+        return;
+      }
       FencedUpdateResult result = store.markSucceeded(job.fence(), clock.instant());
       if (result == FencedUpdateResult.UPDATED) {
         summary.succeeded++;

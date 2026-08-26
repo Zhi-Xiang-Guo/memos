@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memos.dev/schema/memory-candidate.v1.schema.json",
+  "title": "MemOS bounded memory candidate proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidates"],
+  "properties": {
+    "schema_version": {"const": "memory-candidate.v1"},
+    "candidates": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/candidate"}
+    }
+  },
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "label"],
+      "properties": {
+        "kind": {"enum": ["USER", "PROJECT", "AGENT"]},
+        "label": {"type": ["string", "null"], "minLength": 1, "maxLength": 500}
+      }
+    },
+    "time": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["original_text", "start", "end", "precision", "confidence"],
+      "properties": {
+        "original_text": {"type": ["string", "null"], "minLength": 1, "maxLength": 256},
+        "start": {"type": ["string", "null"], "format": "date-time", "maxLength": 64},
+        "end": {"type": ["string", "null"], "format": "date-time", "maxLength": 64},
+        "precision": {"enum": ["EXACT", "DAY", "MONTH", "YEAR", "UNKNOWN"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "target_subject", "target_predicate"],
+      "properties": {
+        "type": {"enum": ["DUPLICATES", "REINFORCES", "SUPERSEDES", "COEXISTS", "CONFLICTS"]},
+        "target_subject": {"type": "string", "minLength": 1, "maxLength": 256},
+        "target_predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,127}$"}
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposed_decision",
+        "memory_type",
+        "subject",
+        "predicate",
+        "value",
+        "normalized_content",
+        "event_time",
+        "valid_interval",
+        "importance",
+        "confidence",
+        "sensitivity",
+        "candidate_relations"
+      ],
+      "properties": {
+        "proposed_decision": {"enum": ["REMEMBER", "IGNORE", "REVIEW"]},
+        "memory_type": {"enum": ["WORKING", "SEMANTIC", "EPISODIC", "PROCEDURAL"]},
+        "subject": {"$ref": "#/$defs/subject"},
+        "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]{0,127}$"},
+        "value": {"type": ["string", "boolean", "number"], "maxLength": 4096},
+        "normalized_content": {"type": "string", "minLength": 1, "maxLength": 8192},
+        "event_time": {"$ref": "#/$defs/time"},
+        "valid_interval": {"$ref": "#/$defs/time"},
+        "importance": {"type": "number", "minimum": 0, "maximum": 1},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "sensitivity": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"enum": ["NONE", "LOCATION", "CONTACT", "AUTH_SECRET", "CREDENTIAL", "HEALTH", "FINANCIAL", "IDENTITY", "BIOMETRIC"]}
+        },
+        "candidate_relations": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/relation"}
+        }
+      }
+    }
+  }
+}

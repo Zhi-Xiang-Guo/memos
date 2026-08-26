@@ -22,12 +22,13 @@ Status: `DONE` for Phase 1 design; ADRs remain `PROPOSED`
 
 ## MVP
 
-Status: `DOING` — Feature 2 next
+Status: `DOING` — Feature 3 next
 
 - Phase 1 was reviewed and the active project goal authorizes Features 0–6.
 - Feature 0 engineering foundation is `DONE`: local Maven/Testcontainers, pgvector migration, architecture, Python, documentation, and API/worker smoke gates passed. The GitHub workflow is published but has no hosted-run record yet.
 - Feature 1 is `DONE` and published: source-event receipt and outbox commit atomically; claim/lease/fencing/retry/dead/replay and a payload-free logical-effect ledger passed PostgreSQL fault/concurrency tests and runtime smoke.
-- Feature 2 is next: structured candidate extraction and deterministic write policy.
+- Feature 2 is `DONE LOCALLY`: provider-neutral strict extraction, deterministic trust/sensitivity/write policy, sanitized candidate/quarantine persistence, lease-fenced atomic completion, optional real-provider adapter, 17-case conformance fixture, and runtime smoke passed. Publication is the remaining gate.
+- Feature 3 is next: versioned temporal memory and deterministic transition semantics.
 
 ## Advanced Memory
 
@@ -79,4 +80,4 @@ Status: `TODO`
 
 ## Next phase
 
-Implement Feature 2's structured candidate proposal, schema validation, deterministic write policy, quarantine, and versioned policy fixtures.
+Publish Feature 2, then implement Feature 3's versioned temporal memory, provenance, transitions, conflict semantics, and memory inspection APIs.

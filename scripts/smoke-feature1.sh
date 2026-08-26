@@ -5,6 +5,9 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd -- "$script_dir/.." && pwd)
 cd "$repo_root"
 
+java_bin=java
+if [[ -n ${JAVA_HOME:-} ]]; then java_bin="$JAVA_HOME/bin/java"; fi
+
 ./mvnw -B -ntp -DskipTests package
 
 api_jar=$(find applications/memos-api/target -name '*-exec.jar' -print -quit)
@@ -26,7 +29,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-java -jar "$api_jar" >"$api_log" 2>&1 &
+"$java_bin" -jar "$api_jar" >"$api_log" 2>&1 &
 api_pid=$!
 
 for _ in {1..120}; do
@@ -82,7 +85,7 @@ scope_headers=(-H 'X-Tenant-Id: smoke-tenant' -H 'X-User-Id: smoke-user' -H 'X-A
 pending=$(curl --fail --silent "${scope_headers[@]}" "$job_url")
 python3 -c 'import json,sys; assert json.loads(sys.argv[1])["state"] == "PENDING"' "$pending"
 
-java -jar "$worker_jar" >"$worker_log" 2>&1 &
+"$java_bin" -jar "$worker_jar" >"$worker_log" 2>&1 &
 worker_pid=$!
 for _ in {1..120}; do
   state=$(curl --fail --silent "${scope_headers[@]}" "$job_url" | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')

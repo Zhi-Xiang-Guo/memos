@@ -14,6 +14,15 @@ memos:
     policy-version: ${MEMOS_INGESTION_POLICY_VERSION:ingestion-v1}
     model-version: ${MEMOS_MATERIALIZATION_MODEL_VERSION:deterministic-fake-v1}
     max-attempts: ${MEMOS_MATERIALIZATION_MAX_ATTEMPTS:5}
+  extraction:
+    provider: ${MEMOS_EXTRACTION_PROVIDER:fake}
+    base-url: ${MEMOS_EXTRACTION_BASE_URL:}
+    api-key: ${MEMOS_EXTRACTION_API_KEY:}
+    model-version: ${MEMOS_EXTRACTION_MODEL_VERSION:deterministic-fixture-v1}
+    prompt-version: ${MEMOS_EXTRACTION_PROMPT_VERSION:candidate-extraction-v1}
+    schema-version: ${MEMOS_EXTRACTION_SCHEMA_VERSION:memory-candidate.v1}
+    policy-version: ${MEMOS_EXTRACTION_POLICY_VERSION:write-policy-v1}
+    timeout: ${MEMOS_EXTRACTION_TIMEOUT:30s}
   worker:
     enabled: true
     worker-id: ${MEMOS_WORKER_ID:}

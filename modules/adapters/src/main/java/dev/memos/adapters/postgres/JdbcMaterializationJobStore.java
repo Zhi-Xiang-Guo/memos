@@ -67,13 +67,15 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
                         ON source.tenant_id = job.tenant_id
                        AND source.source_event_id = job.source_event_id
                      WHERE (
-                         job.state IN ('PENDING', 'RETRY_WAIT')
-                         AND job.next_attempt_at <= clock_timestamp()
-                     ) OR (
-                         job.state = 'CLAIMED'
-                         AND job.lease_expires_at <= clock_timestamp()
-                         AND job.attempt < job.max_attempts
-                     )
+                         (
+                             job.state IN ('PENDING', 'RETRY_WAIT')
+                             AND job.next_attempt_at <= clock_timestamp()
+                         ) OR (
+                             job.state = 'CLAIMED'
+                             AND job.lease_expires_at <= clock_timestamp()
+                             AND job.attempt < job.max_attempts
+                         )
+                     ) AND job.job_type = ANY (string_to_array(?, ','))
                      ORDER BY COALESCE(job.next_attempt_at, job.lease_expires_at),
                               job.created_at, job.job_id
                      FOR UPDATE OF job SKIP LOCKED
@@ -100,6 +102,10 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
                           job.lease_token, job.lease_expires_at, job.trace_id
                 """,
                 (result, row) -> mapClaimed(result),
+                request.supportedJobTypes().stream()
+                    .map(Enum::name)
+                    .sorted()
+                    .collect(java.util.stream.Collectors.joining(",")),
                 request.batchSize(),
                 request.workerId().value(),
                 leaseMilliseconds));

@@ -8,11 +8,11 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). There is **no runnable MVP and no benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). MVP implementation is active: Feature 0 provides the reproducible Java/Python build, API/worker entry points, PostgreSQL/pgvector migration, provider fakes, architecture tests, and CI foundation. There is **no memory lifecycle API and no benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `TODO`
+- MVP implementation: `DOING` — Feature 0
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - GitHub publication: `DONE`
@@ -58,7 +58,7 @@ flowchart LR
 
 The current recommendation is a **Java modular monolith with an asynchronous memory worker and PostgreSQL as the source of truth**:
 
-- Java 21+ and Spring Boot, with exact versions pinned when implementation starts;
+- Java 25 LTS and Spring Boot 4.1.1 in a Maven multi-module build;
 - PostgreSQL for transactional state, temporal/version records, audit data, full-text search, and job/outbox coordination;
 - `pgvector` as a derived semantic index, not the authority for memory truth;
 - a transactional outbox and idempotent worker for at-least-once extraction;
@@ -113,7 +113,7 @@ Coverage includes simple and multi-session recall, preference recall, update, te
 
 ## Technology Choices
 
-- **Java/Spring Boot** for the production domain and API/worker roles; exact versions are pinned only when Feature 0 begins.
+- **Java 25.0.4.1 LTS / Spring Boot 4.1.1 / Maven 3.9.16** for the production domain and separate API/worker artifacts.
 - **PostgreSQL + pgvector + FTS** for one transactional authority and rebuildable semantic/lexical projections.
 - **Python** only for portable benchmark adapters and analysis, not a second implementation of truth semantics.
 - **Provider ports** for LLM, embedding, and reranking so model choice does not own the domain.
@@ -142,14 +142,35 @@ Coverage includes simple and multi-session recall, preference recall, update, te
 
 ## Quick Start
 
-There is intentionally no application quick start in Phase 1. To review the project today:
+Prerequisites are Git, a Java 25 JDK, and a Docker-compatible runtime with Compose. The Maven Wrapper and deterministic fake providers mean no system Maven or paid model credential is required.
+
+```bash
+cp .env.example .env
+docker compose up -d --wait postgres
+./mvnw -B -ntp clean verify
+./scripts/smoke.sh
+```
+
+The API listens on `8080`, the worker management endpoint on `8081`, and both expose `/livez` and `/readyz`. Liveness excludes the database; readiness includes it. To verify the separate benchmark workspace:
+
+```bash
+cd benchmark
+uv sync --locked --python 3.14.7
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+```
+
+See the [Feature 0 implementation note](docs/implementation/feature-0.md) for the module graph, pinned toolchain, local profiles, migration behavior, and operational caveats.
+
+To review the design before running it:
 
 1. Read the [problem definition](docs/architecture/01-problem-definition.md).
 2. Review the [competitive matrix](docs/research/08-competitive-matrix.md).
 3. Challenge the [recommended architecture](docs/architecture/03-recommended-architecture.md) against the alternatives.
 4. Inspect the [MVP plan](docs/architecture/04-mvp-plan.md) and [open questions](docs/open-questions.md).
 
-Runnable local infrastructure, API examples, migrations, and reproducible benchmark commands will be added only when the MVP phase begins.
+Feature 1 adds the first business API: atomic source-event receipt and transactional outbox processing.
 
 ## Design principles
 
@@ -165,4 +186,4 @@ Runnable local infrastructure, API examples, migrations, and reproducible benchm
 
 `Research → Problem Definition → Competitor Analysis → Architecture → MVP → Advanced Memory → Evaluation → Optimization → Documentation → Resume → Interview Preparation`
 
-The repository stops at each phase boundary for review. Phase 1 does not authorize large-scale coding.
+Each feature remains a separately tested, documented, committed, and pushed unit. The active project goal authorizes Features 0–6 without a new phase prompt.

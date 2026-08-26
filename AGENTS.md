@@ -37,6 +37,15 @@ Prefer official documentation, original papers, official repositories, and pinne
 - Add infrastructure only after a measured need and an ADR.
 - Test tenant isolation, concurrency, duplicate delivery, partial failure, retry, and deletion resurrection for affected features.
 
+## Implementation discipline
+
+- Compile production code for Java 25 with the checked-in Maven 3.9.16 Wrapper; do not rely on a system Maven installation.
+- Keep `memory-domain` free of Spring, JDBC, persistence annotations, and provider SDKs.
+- Define ports in the module that consumes them; adapters implement ports and must not own domain policy.
+- Inject `java.time.Clock`, ID generation, extraction, embeddings, and reranking. Deterministic fakes are the default for tests and local startup.
+- Run `./mvnw -B -ntp clean verify`, the Python workspace checks, and the Markdown link checker before a feature commit.
+- Never log raw memory content, request bodies, credentials, or provider secrets by default.
+
 ## Completion discipline
 
 For every completed phase or feature:

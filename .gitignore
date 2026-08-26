@@ -6,15 +6,22 @@
 # Java
 .gradle/
 build/
+**/build/
 target/
+**/target/
 out/
 
 # Python benchmark tooling
 .venv/
+benchmark/.venv/
+benchmark/.python-version
 __pycache__/
+benchmark/**/__pycache__/
 *.py[cod]
 .pytest_cache/
+benchmark/.pytest_cache/
 .ruff_cache/
+benchmark/.ruff_cache/
 
 # Runtime data and secrets
 .env

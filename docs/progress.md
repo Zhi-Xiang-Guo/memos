@@ -22,9 +22,11 @@ Status: `DONE` for Phase 1 design; ADRs remain `PROPOSED`
 
 ## MVP
 
-Status: `TODO`
+Status: `DOING` — Feature 0
 
-- Coding is intentionally blocked until Phase 1 is reviewed.
+- Phase 1 was reviewed and the active project goal authorizes Features 0–6.
+- Feature 0 engineering foundation is being implemented and verified as an independent commit.
+- Feature 1 is next: atomic source-event receipt and a durable transactional outbox.
 
 ## Advanced Memory
 
@@ -67,7 +69,7 @@ Status: `TODO`
 
 | Topic | Current decision | Fact grade | Evidence / follow-up |
 |---|---|---:|---|
-| Phase boundary | Research and architecture only; no full implementation | `CONFIRMED` | Project execution brief |
+| Phase boundary | MVP Features 0–6 are authorized under one continuous goal | `CONFIRMED` | Active project goal |
 | System of record | PostgreSQL; vector/FTS indexes are projections | `HYPOTHESIS` | Validate in MVP benchmark |
 | Topology | Modular monolith plus asynchronous worker/outbox | `HYPOTHESIS` | Failure-recovery spike in MVP |
 | Retrieval | Hybrid candidate generation and measured fusion | `HYPOTHESIS` | Tune only on benchmark dev split |
@@ -76,4 +78,4 @@ Status: `TODO`
 
 ## Next phase
 
-After Phase 1 review, implement the smallest vertical slice: idempotent message ingestion → outbox → candidate extraction adapter → versioned PostgreSQL write → vector/lexical retrieval → evidence-bearing API response, with deterministic tests and metrics from day one.
+Complete and publish Feature 0, then implement Feature 1's smallest reliable slice: idempotent source-event ingestion → atomic outbox → leased worker → retry/dead-letter state with deterministic fault tests and metrics.

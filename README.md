@@ -8,11 +8,11 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Feature 0 is complete: the reproducible Java/Python build, API/worker entry points, PostgreSQL/pgvector migration, provider fakes, architecture tests, and CI configuration have passed their local gates. Feature 1 is the active implementation slice. There is **no memory lifecycle API and no benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0 and 1 are implemented: the repository now has a reproducible engineering foundation plus an idempotent source-ingestion API, atomic PostgreSQL outbox, leased worker, retry/dead/replay state, and deterministic fault tests. Feature 2 is next. There is **no canonical memory lifecycle or benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 1 (`Feature 0: DONE`)
+- MVP implementation: `DOING` — Feature 2 next (`Features 0–1: DONE locally`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - GitHub publication: `DONE`
@@ -170,7 +170,27 @@ To review the design before running it:
 3. Challenge the [recommended architecture](docs/architecture/03-recommended-architecture.md) against the alternatives.
 4. Inspect the [MVP plan](docs/architecture/04-mvp-plan.md) and [open questions](docs/open-questions.md).
 
-Feature 1 adds the first business API: atomic source-event receipt and transactional outbox processing.
+Feature 1 provides the first business API. Scope headers represent a trusted-upstream boundary for the reference implementation; they demonstrate tenant/user/agent isolation but are not production authentication.
+
+```bash
+curl --request POST http://localhost:8080/v1/source-events \
+  --header 'Content-Type: application/json' \
+  --header 'Idempotency-Key: message-123' \
+  --header 'X-Tenant-Id: tenant-a' \
+  --header 'X-User-Id: user-a' \
+  --header 'X-Agent-Id: agent-a' \
+  --data '{
+    "sourceId":"message-123",
+    "sessionId":"session-a",
+    "actorType":"USER",
+    "sourceType":"CONVERSATION_MESSAGE",
+    "trustLevel":"DIRECT_USER",
+    "occurredAt":"2026-08-27T00:00:00Z",
+    "payload":{"content":"I prefer concise answers."}
+  }'
+```
+
+The `202 Accepted` receipt contains stable source-event and materialization-job IDs. Inspect `GET /v1/materialization-jobs/{jobId}` with the same three scope headers, or explicitly replay eligible incomplete work with `POST /v1/materialization-jobs/{jobId}/replay`. See the [Feature 1 implementation note](docs/implementation/feature-1.md) for conflict, lease, and failure semantics.
 
 ## Design principles
 

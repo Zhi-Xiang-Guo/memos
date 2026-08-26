@@ -36,3 +36,5 @@ Use option 2 for the MVP. Atomically persist source evidence and an outbox/mater
 ## Validation
 
 Fault tests kill the process before/after source commit, claim, provider response, version commit, and projection commit. The invariant is no lost committed source, no duplicate logical version, visible incomplete state, and safe replay.
+
+Feature 1 validates the ingestion half of this decision: atomic source/outbox commit, concurrent idempotency, `SKIP LOCKED` claims, lease-token fencing, transient/dead/replay paths, handler execution outside a transaction, and one payload-free logical effect under reclaim all pass against PostgreSQL 18. The ADR remains `PROPOSED` until Features 3–4 validate authoritative version and projection completion transactions; Feature 1 does not claim those later boundaries.

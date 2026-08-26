@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -14,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class TraceIdFilter extends OncePerRequestFilter {
   static final String TRACE_ID_KEY = "traceId";
   private static final String TRACE_ID_HEADER = "X-Trace-Id";
+  private static final Pattern SAFE_TRACE_ID = Pattern.compile("[A-Za-z0-9._:-]{1,128}");
 
   @Override
   protected void doFilterInternal(
@@ -21,7 +23,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     String requestedTraceId = request.getHeader(TRACE_ID_HEADER);
     String traceId =
-        requestedTraceId == null || requestedTraceId.isBlank()
+        requestedTraceId == null || !SAFE_TRACE_ID.matcher(requestedTraceId).matches()
             ? UUID.randomUUID().toString()
             : requestedTraceId;
     MDC.put(TRACE_ID_KEY, traceId);

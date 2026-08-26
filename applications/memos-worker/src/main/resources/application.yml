@@ -9,6 +9,19 @@ spring:
     default-schema: public
     clean-disabled: true
     validate-migration-naming: true
+memos:
+  ingestion:
+    policy-version: ${MEMOS_INGESTION_POLICY_VERSION:ingestion-v1}
+    model-version: ${MEMOS_MATERIALIZATION_MODEL_VERSION:deterministic-fake-v1}
+    max-attempts: ${MEMOS_MATERIALIZATION_MAX_ATTEMPTS:5}
+  worker:
+    enabled: true
+    worker-id: ${MEMOS_WORKER_ID:}
+    poll-delay: ${MEMOS_WORKER_POLL_DELAY:1s}
+    batch-size: ${MEMOS_WORKER_BATCH_SIZE:16}
+    lease-duration: ${MEMOS_WORKER_LEASE_DURATION:30s}
+    backoff-base: ${MEMOS_WORKER_BACKOFF_BASE:1s}
+    backoff-cap: ${MEMOS_WORKER_BACKOFF_CAP:60s}
 server:
   port: ${MEMOS_WORKER_PORT:8081}
 management:

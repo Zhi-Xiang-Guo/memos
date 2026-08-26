@@ -6,7 +6,7 @@ ADRs capture consequential choices as `Problem → Options → Decision → Why 
 - `ACCEPTED`: implemented and verified against stated checks.
 - `SUPERSEDED`: replaced by a later ADR; historical rationale remains.
 
-Current records remain `PROPOSED` because Phase 1 contains no MVP code or performance evidence.
+Current records remain `PROPOSED`. Features 0–1 now provide implementation evidence for the modular topology and the ingestion half of ADR-0003, but later version/projection and benchmark gates remain open; each ADR records its precise validation boundary.
 
 - [ADR-0001: Java modular monolith with Python benchmark tooling](0001-java-modular-monolith.md)
 - [ADR-0002: PostgreSQL plus pgvector and FTS](0002-postgresql-pgvector-system-of-record.md)

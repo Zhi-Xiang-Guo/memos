@@ -59,5 +59,6 @@ jobs:
           java-version: '25.0.4.1'
       - run: docker compose up -d --wait postgres
       - run: ./scripts/smoke.sh
+      - run: ./scripts/smoke-feature1.sh
       - if: always()
         run: docker compose down --volumes

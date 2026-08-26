@@ -15,7 +15,7 @@ services:
       timeout: 3s
       retries: 30
     volumes:
-      - memos-postgres:/var/lib/postgresql/data
+      - memos-postgres:/var/lib/postgresql
 
 volumes:
   memos-postgres:

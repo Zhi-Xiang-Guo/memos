@@ -1,6 +1,6 @@
 # Feature 0 — engineering foundation
 
-Status: `IN PROGRESS` on 2026-08-26. This note becomes `DONE` only after the full local/CI verification and push gates succeed.
+Status: `DONE` on 2026-08-27. The local build, migration, integration, architecture, Python, documentation, and runtime smoke gates passed; the published GitHub workflow is configured, but GitHub had not produced a hosted run record at closure time.
 
 ## Pinned toolchain
 
@@ -45,7 +45,7 @@ API errors use RFC 9457 `ProblemDetail` plus stable `code` and `traceId` propert
 
 ## Persistence and migration
 
-`compose.yaml` starts only the infrastructure needed by the MVP: the pinned pgvector image with a persistent volume and `pg_isready` health check. `V001__bootstrap.sql` creates the `vector` extension and authoritative `memos` schema from an empty database. It deliberately creates no speculative Feature 1 tables.
+`compose.yaml` starts only the infrastructure needed by the MVP: the pinned pgvector image with a persistent PostgreSQL 18 volume mounted at `/var/lib/postgresql` and a `pg_isready` health check. `V001__bootstrap.sql` creates the `vector` extension and authoritative `memos` schema from an empty database. Flyway keeps its history in `public`; business objects remain in `memos`. The migration deliberately creates no speculative Feature 1 tables.
 
 Flyway clean is disabled. The Testcontainers test migrates an empty database, validates migration metadata, and checks that pgvector 0.8.6 is installed. A production operator may need a DBA to install the extension before the application role runs migrations.
 
@@ -65,13 +65,26 @@ uv run ruff check .
 uv run pytest
 ```
 
-`scripts/smoke.sh` packages and starts both executable artifacts, waits for liveness/readiness, and verifies that the worker does not expose a business memory route.
+The build retains thin JARs for architecture inspection and emits `-exec.jar` Spring Boot artifacts for runtime use. `scripts/smoke.sh` starts both executable artifacts, waits for liveness/readiness, and verifies that the worker does not expose a business memory route.
 
 ## Profiles and configuration
 
 Configuration is environment-based and uses safe local defaults only. `.env.example` documents database URL/user/password, ports, and the image digest; `.env` is ignored. Production credentials must come from the deployment secret mechanism and must not be committed.
 
 The current profiles are intentionally minimal: the artifact selects the API or worker role, while the same configuration keys work in local, test, and production environments. Later feature-specific provider profiles must preserve the deterministic fake as the test default.
+
+## Private test deployment
+
+The repository root now contains a multi-stage `Dockerfile` for the `memos-api` artifact. It builds with the checked-in Maven Wrapper on JDK 25 and copies only the executable JAR into a JRE 25 runtime image. JDK 21 is not usable for this repository because the parent POM compiles with `release 25` and enforces Java `[25,27)`. The container runs as an unprivileged user and exposes port `8080`; runtime database credentials remain external configuration.
+
+For the private Windows-hosted Linux test VM, `scripts/deploy-to-winvm.sh` validates the application name and port, requires a root `Dockerfile`, excludes VCS/build/dependency directories, and streams the project to the pre-existing receiver over the `winvm` SSH host. It does not contain a password or change remote network policy.
+
+```bash
+./scripts/deploy-to-winvm.sh memos-api 18080
+curl --fail --show-error http://windows-dev-vm:18080/livez
+```
+
+The remote receiver, container runtime, and health URL must be verified over Tailscale before this path is marked operational.
 
 ## Verification record
 
@@ -81,8 +94,10 @@ The current profiles are intentionally minimal: the artifact selects the API or 
 | Architecture boundary tests | `PASS` locally |
 | Python lock, format, lint, unit tests | `PASS` locally |
 | Markdown relative-file and anchor links | `PASS` locally |
-| Testcontainers migration/pgvector | `PENDING` until local Docker runtime finishes provisioning |
-| Compose API/worker smoke | `PENDING` until local Docker runtime finishes provisioning |
-| GitHub CI | `PENDING` until commit/push |
+| Testcontainers migration/pgvector | `PASS` locally against PostgreSQL 18.6 + pgvector 0.8.6 |
+| Compose API/worker smoke | `PASS` locally against the Compose database |
+| GitHub CI | `CONFIGURED / NOT RUN`; workflow is published, but GitHub exposed no hosted-run record at closure time |
+
+The local Docker gate used Lima's rootless socket. In that setup Testcontainers also required `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/run/user/502/docker.sock`; ordinary Docker Desktop installations do not normally need that override.
 
 No benchmark quality, latency, cost, scale, or production-readiness result is produced by Feature 0.

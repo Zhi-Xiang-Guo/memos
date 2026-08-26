@@ -6,8 +6,8 @@ cd "$repo_root"
 
 ./mvnw -B -ntp -DskipTests package
 
-api_jar="$(find applications/memos-api/target -name '*.jar' ! -name '*.original' -print -quit)"
-worker_jar="$(find applications/memos-worker/target -name '*.jar' ! -name '*.original' -print -quit)"
+api_jar="$(find applications/memos-api/target -name '*-exec.jar' -print -quit)"
+worker_jar="$(find applications/memos-worker/target -name '*-exec.jar' -print -quit)"
 
 java -jar "$api_jar" >build-api.log 2>&1 &
 api_pid=$!

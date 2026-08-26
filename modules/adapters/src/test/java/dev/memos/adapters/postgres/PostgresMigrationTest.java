@@ -29,6 +29,7 @@ class PostgresMigrationTest {
     Flyway flyway =
         Flyway.configure()
             .dataSource(DATABASE.getJdbcUrl(), DATABASE.getUsername(), DATABASE.getPassword())
+            .defaultSchema("public")
             .cleanDisabled(true)
             .validateMigrationNaming(true)
             .load();

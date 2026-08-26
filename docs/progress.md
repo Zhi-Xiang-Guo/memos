@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-08-26 (Asia/Shanghai)
+Last updated: 2026-08-27 (Asia/Shanghai)
 
 ## Research
 
@@ -22,11 +22,11 @@ Status: `DONE` for Phase 1 design; ADRs remain `PROPOSED`
 
 ## MVP
 
-Status: `DOING` — Feature 0
+Status: `DOING` — Feature 1
 
 - Phase 1 was reviewed and the active project goal authorizes Features 0–6.
-- Feature 0 engineering foundation is being implemented and verified as an independent commit.
-- Feature 1 is next: atomic source-event receipt and a durable transactional outbox.
+- Feature 0 engineering foundation is `DONE`: local Maven/Testcontainers, pgvector migration, architecture, Python, documentation, and API/worker smoke gates passed. The GitHub workflow is published but has no hosted-run record yet.
+- Feature 1 is active: atomic source-event receipt and a durable transactional outbox.
 
 ## Advanced Memory
 
@@ -78,4 +78,4 @@ Status: `TODO`
 
 ## Next phase
 
-Complete and publish Feature 0, then implement Feature 1's smallest reliable slice: idempotent source-event ingestion → atomic outbox → leased worker → retry/dead-letter state with deterministic fault tests and metrics.
+Implement and publish Feature 1's smallest reliable slice: idempotent source-event ingestion → atomic outbox → leased worker → retry/dead-letter state with deterministic fault tests and metrics.

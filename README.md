@@ -8,11 +8,11 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). MVP implementation is active: Feature 0 provides the reproducible Java/Python build, API/worker entry points, PostgreSQL/pgvector migration, provider fakes, architecture tests, and CI foundation. There is **no memory lifecycle API and no benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Feature 0 is complete: the reproducible Java/Python build, API/worker entry points, PostgreSQL/pgvector migration, provider fakes, architecture tests, and CI configuration have passed their local gates. Feature 1 is the active implementation slice. There is **no memory lifecycle API and no benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 0
+- MVP implementation: `DOING` — Feature 1 (`Feature 0: DONE`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - GitHub publication: `DONE`

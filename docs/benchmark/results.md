@@ -2,7 +2,7 @@
 
 Status: **NOT RUN**
 
-No MemOS implementation or benchmark execution exists in Phase 1. This file intentionally contains no synthetic, borrowed, or estimated quality number.
+No eligible formal benchmark execution exists yet. Features 0–3 include deterministic conformance fixtures, integration tests, and runtime smoke checks, but those are implementation evidence rather than benchmark results. This file intentionally contains no synthetic, borrowed, or estimated quality number.
 
 ## Result gate
 

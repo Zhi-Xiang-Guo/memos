@@ -2,5 +2,6 @@ package dev.memos.materialization;
 
 public enum JobType {
   MATERIALIZE_SOURCE,
-  CANDIDATE_MATERIALIZATION
+  CANDIDATE_MATERIALIZATION,
+  PROJECTION_BUILD
 }

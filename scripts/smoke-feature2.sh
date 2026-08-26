@@ -76,13 +76,19 @@ db_query() {
 test "$(db_query "SELECT count(*) FROM memos.extraction_run WHERE extraction_job_id = '$job_id'::uuid")" = 1
 test "$(db_query "SELECT count(*) FROM memos.memory_candidate candidate JOIN memos.extraction_run run USING (tenant_id, run_id) WHERE run.extraction_job_id = '$job_id'::uuid AND candidate.content_state = 'AVAILABLE'")" = 1
 test "$(db_query "SELECT count(*) FROM memos.candidate_policy_decision decision JOIN memos.extraction_run run USING (tenant_id, run_id) WHERE run.extraction_job_id = '$job_id'::uuid AND decision.decision = 'REMEMBER'")" = 1
-test "$(db_query "SELECT count(*) FROM memos.outbox_job WHERE job_type = 'CANDIDATE_MATERIALIZATION' AND state = 'PENDING' AND source_event_id = (SELECT source_event_id FROM memos.outbox_job WHERE job_id = '$job_id'::uuid)")" = 1
-
-sleep 1
-test "$(db_query "SELECT count(*) FROM memos.outbox_job WHERE job_type = 'CANDIDATE_MATERIALIZATION' AND state = 'PENDING' AND source_event_id = (SELECT source_event_id FROM memos.outbox_job WHERE job_id = '$job_id'::uuid)")" = 1
+candidate_job_id=$(db_query "SELECT job_id FROM memos.outbox_job WHERE job_type = 'CANDIDATE_MATERIALIZATION' AND source_event_id = (SELECT source_event_id FROM memos.outbox_job WHERE job_id = '$job_id'::uuid)")
+test -n "$candidate_job_id"
+candidate_state=PENDING
+for _ in {1..120}; do
+  candidate_state=$(db_query "SELECT state FROM memos.outbox_job WHERE job_id = '$candidate_job_id'::uuid")
+  if [[ $candidate_state = SUCCEEDED ]]; then break; fi
+  sleep 0.25
+done
+test "$candidate_state" = SUCCEEDED
+test "$(db_query "SELECT count(*) FROM memos.memory_version version JOIN memos.memory_source source USING (tenant_id, memory_id, version_id) WHERE source.source_event_id = (SELECT source_event_id FROM memos.outbox_job WHERE job_id = '$job_id'::uuid) AND version.content_state = 'AVAILABLE'")" = 1
 if grep -Fq 'I prefer a dark editor theme.' "$api_log" "$worker_log"; then
   echo 'Application logs leaked source or candidate content.' >&2
   exit 1
 fi
 
-echo "Feature 2 extraction, policy, atomic candidate commit, and deferred downstream intent smoke passed."
+echo "Feature 2 extraction, policy, atomic candidate commit, and compatible downstream processing smoke passed."

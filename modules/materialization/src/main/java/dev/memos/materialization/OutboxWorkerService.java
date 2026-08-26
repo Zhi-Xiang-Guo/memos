@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public final class OutboxWorkerService {
   private final Clock clock;
@@ -15,6 +16,7 @@ public final class OutboxWorkerService {
   private final WorkerId workerId;
   private final int batchSize;
   private final Duration leaseDuration;
+  private final Set<JobType> supportedJobTypes;
 
   public OutboxWorkerService(
       Clock clock,
@@ -25,6 +27,28 @@ public final class OutboxWorkerService {
       WorkerId workerId,
       int batchSize,
       Duration leaseDuration) {
+    this(
+        clock,
+        store,
+        handler,
+        backoffPolicy,
+        telemetry,
+        workerId,
+        batchSize,
+        leaseDuration,
+        Set.of(JobType.MATERIALIZE_SOURCE));
+  }
+
+  public OutboxWorkerService(
+      Clock clock,
+      MaterializationJobStore store,
+      MaterializationJobHandler handler,
+      ExponentialBackoffPolicy backoffPolicy,
+      OutboxWorkerTelemetry telemetry,
+      WorkerId workerId,
+      int batchSize,
+      Duration leaseDuration,
+      Set<JobType> supportedJobTypes) {
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.store = Objects.requireNonNull(store, "store must not be null");
     this.handler = Objects.requireNonNull(handler, "handler must not be null");
@@ -40,6 +64,11 @@ public final class OutboxWorkerService {
       throw new IllegalArgumentException("leaseDuration must be positive");
     }
     this.leaseDuration = leaseDuration;
+    this.supportedJobTypes =
+        Set.copyOf(Objects.requireNonNull(supportedJobTypes, "supportedJobTypes must not be null"));
+    if (this.supportedJobTypes.isEmpty()) {
+      throw new IllegalArgumentException("supportedJobTypes must not be empty");
+    }
   }
 
   public OutboxRunSummary runOnce() {
@@ -47,7 +76,10 @@ public final class OutboxWorkerService {
     int expiredExhausted = store.deadLetterExpiredExhaustedJobs(claimTime);
     telemetry.expiredExhausted(expiredExhausted);
     List<ClaimedJob> jobs =
-        List.copyOf(store.claim(new ClaimRequest(workerId, batchSize, claimTime, leaseDuration)));
+        List.copyOf(
+            store.claim(
+                new ClaimRequest(
+                    workerId, batchSize, claimTime, leaseDuration, supportedJobTypes)));
     telemetry.claimed(jobs.size());
 
     MutableSummary summary = new MutableSummary(jobs.size(), expiredExhausted);

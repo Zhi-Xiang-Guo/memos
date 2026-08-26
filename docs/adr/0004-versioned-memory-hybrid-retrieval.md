@@ -35,3 +35,9 @@ Use option 2. Model a stable memory lineage with append-only assertion versions 
 ## Validation
 
 Use held-out benchmark cases for update, temporal, contradiction, exact identifier, semantic paraphrase, noise, and abstention. Compare vector-only, vector+lexical, +temporal/state, RRF, calibrated weighting, and optional reranking. Report quality, latency, tokens, and storage together.
+
+## Implementation evidence
+
+Feature 3 validates the versioned-memory half of this proposed decision: PostgreSQL 18 migrations enforce scoped lineages, immutable retained versions, append-only transitions/provenance, monotonic locks, and a rebuildable current projection. Pure planner tests, nine PostgreSQL integration/fault tests, thirteen API tests, a 14-case deterministic temporal fixture, and an API→worker→database restart smoke exercise create/reinforce/supersede/coexist/conflict/correct/invalidate, replay, scope isolation, lease fencing, projection-intent rollback, correction persistence, concurrent mutation idempotency, and authoritative candidate-to-job binding.
+
+The ADR remains `PROPOSED` because Feature 4 has not implemented or evaluated the hybrid retrieval half, and Feature 6 has not run held-out benchmarks. Deterministic conformance is implementation evidence, not retrieval or model-quality evidence.

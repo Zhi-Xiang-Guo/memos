@@ -9,13 +9,20 @@ import dev.memos.adapters.observability.TracingMaterializationJobHandler;
 import dev.memos.adapters.postgres.JdbcExtractionCommitStore;
 import dev.memos.adapters.postgres.JdbcMaterializationJobStore;
 import dev.memos.adapters.postgres.JdbcSourceExtractionStore;
+import dev.memos.adapters.postgres.JdbcTemporalMemoryAuthority;
 import dev.memos.adapters.system.DeterministicExtractionIdentifierGenerator;
+import dev.memos.adapters.system.RandomTemporalIdentityGenerator;
+import dev.memos.adapters.system.RandomTemporalLineageIdentifier;
+import dev.memos.domain.temporal.NormalizedAssertionDeduplication;
+import dev.memos.domain.temporal.TemporalIdentityGenerator;
+import dev.memos.domain.temporal.TemporalTransitionPlanner;
 import dev.memos.governance.CandidateWritePolicy;
 import dev.memos.governance.DeterministicCandidateWritePolicy;
 import dev.memos.governance.WritePolicyConfiguration;
 import dev.memos.materialization.CandidateExtractionJobHandler;
 import dev.memos.materialization.CandidateExtractionService;
 import dev.memos.materialization.CandidateProposalDecoder;
+import dev.memos.materialization.ConfiguredPredicateCardinalityPolicy;
 import dev.memos.materialization.ExponentialBackoffPolicy;
 import dev.memos.materialization.ExtractionCommitStore;
 import dev.memos.materialization.ExtractionIdentifierGenerator;
@@ -24,9 +31,13 @@ import dev.memos.materialization.MaterializationJobHandler;
 import dev.memos.materialization.MaterializationJobStore;
 import dev.memos.materialization.OutboxWorkerService;
 import dev.memos.materialization.OutboxWorkerTelemetry;
+import dev.memos.materialization.RoutedMaterializationJobHandler;
 import dev.memos.materialization.SourceExtractionStore;
 import dev.memos.materialization.StrictCandidateProposalDecoder;
 import dev.memos.materialization.StructuredCandidateExtractionPort;
+import dev.memos.materialization.TemporalCandidateMaterializationJobHandler;
+import dev.memos.materialization.TemporalCandidateMaterializationStore;
+import dev.memos.materialization.TemporalLineageIdentifier;
 import dev.memos.materialization.WorkerId;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.net.InetAddress;
@@ -34,7 +45,9 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.time.Clock;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -44,7 +57,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({WorkerProperties.class, ExtractionProperties.class})
+@EnableConfigurationProperties({
+  WorkerProperties.class,
+  ExtractionProperties.class,
+  TemporalMemoryProperties.class
+})
 public class MaterializationConfiguration {
   @Bean
   MaterializationJobStore materializationJobStore(
@@ -130,7 +147,7 @@ public class MaterializationConfiguration {
 
   @Bean
   @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
-  MaterializationJobHandler materializationJobHandler(
+  MaterializationJobHandler sourceExtractionJobHandler(
       Clock clock,
       SourceExtractionStore sourceStore,
       ExtractionCommitStore commitStore,
@@ -154,6 +171,62 @@ public class MaterializationConfiguration {
   }
 
   @Bean
+  TemporalIdentityGenerator temporalIdentityGenerator() {
+    return new RandomTemporalIdentityGenerator();
+  }
+
+  @Bean
+  TemporalTransitionPlanner temporalTransitionPlanner(TemporalIdentityGenerator identifiers) {
+    return new TemporalTransitionPlanner(new NormalizedAssertionDeduplication(), identifiers);
+  }
+
+  @Bean
+  JdbcTemporalMemoryAuthority jdbcTemporalMemoryAuthority(
+      JdbcTemplate jdbc,
+      PlatformTransactionManager transactionManager,
+      TemporalTransitionPlanner planner) {
+    return new JdbcTemporalMemoryAuthority(
+        jdbc, new TransactionTemplate(transactionManager), planner);
+  }
+
+  @Bean
+  @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
+  TemporalLineageIdentifier temporalLineageIdentifier() {
+    return new RandomTemporalLineageIdentifier();
+  }
+
+  @Bean
+  @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
+  MaterializationJobHandler temporalCandidateJobHandler(
+      Clock clock,
+      TemporalCandidateMaterializationStore store,
+      TemporalTransitionPlanner planner,
+      TemporalLineageIdentifier lineageIdentifier,
+      TemporalMemoryProperties properties) {
+    return new TemporalCandidateMaterializationJobHandler(
+        clock,
+        store,
+        planner,
+        new ConfiguredPredicateCardinalityPolicy(properties.setValuedPredicates()),
+        lineageIdentifier,
+        required(properties.projectionPolicyVersion(), "memos.temporal.projection-policy-version"));
+  }
+
+  @Bean
+  @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
+  RoutedMaterializationJobHandler routedMaterializationJobHandler(
+      @Qualifier("sourceExtractionJobHandler") MaterializationJobHandler sourceExtractionJobHandler,
+      @Qualifier("temporalCandidateJobHandler")
+          MaterializationJobHandler temporalCandidateJobHandler) {
+    return new RoutedMaterializationJobHandler(
+        Map.of(
+            dev.memos.materialization.JobType.MATERIALIZE_SOURCE,
+            sourceExtractionJobHandler,
+            dev.memos.materialization.JobType.CANDIDATE_MATERIALIZATION,
+            temporalCandidateJobHandler));
+  }
+
+  @Bean
   @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
   OutboxWorkerTelemetry outboxWorkerTelemetry(MeterRegistry registry) {
     return new MicrometerOutboxWorkerTelemetry(registry);
@@ -164,7 +237,7 @@ public class MaterializationConfiguration {
   OutboxWorkerService outboxWorkerService(
       Clock clock,
       MaterializationJobStore store,
-      MaterializationJobHandler handler,
+      RoutedMaterializationJobHandler handler,
       OutboxWorkerTelemetry telemetry,
       WorkerProperties properties) {
     return new OutboxWorkerService(
@@ -175,7 +248,8 @@ public class MaterializationConfiguration {
         telemetry,
         new WorkerId(effectiveWorkerId(properties.workerId())),
         properties.batchSize(),
-        properties.leaseDuration());
+        properties.leaseDuration(),
+        handler.supportedJobTypes());
   }
 
   private static String effectiveWorkerId(String configured) {

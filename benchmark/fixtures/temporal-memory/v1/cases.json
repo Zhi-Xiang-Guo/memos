@@ -1,0 +1,347 @@
+{
+  "fixture_version": "temporal-memory-v1",
+  "cases": [
+    {
+      "case_id": "residence-shanghai-to-hangzhou",
+      "split": "dev",
+      "coverage": ["residence_change", "current", "former", "change_time", "as_of", "diff"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "residence-1", "transaction_time": "2026-01-02T00:00:00Z", "value": "Shanghai", "valid_from": "2025-01-01T00:00:00Z", "valid_to": "2026-05-01T00:00:00Z", "source_id": "source-shanghai"},
+          {"operation": "MATERIALIZE", "idempotency_key": "residence-2", "transaction_time": "2026-05-02T00:00:00Z", "value": "Hangzhou", "valid_from": "2026-05-01T00:00:00Z", "valid_to": null, "source_id": "source-hangzhou"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "APPLIED"],
+        "transition_operations": ["CREATE", "SUPERSEDE"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "HISTORICAL", "2": "CURRENT"},
+        "current_values": ["Hangzhou"],
+        "former_values": ["Shanghai"],
+        "as_of": [
+          {"at": "2026-04-30T23:59:59Z", "values": ["Shanghai"]},
+          {"at": "2026-05-01T00:00:00Z", "values": ["Shanghai"]},
+          {"at": "2026-05-02T00:00:00Z", "values": ["Hangzhou"]}
+        ],
+        "valid_change_times": ["2026-05-01T00:00:00Z"],
+        "transaction_change_times": ["2026-05-02T00:00:00Z"],
+        "diff": {"from_exclusive": "2026-05-01T23:59:59Z", "to_inclusive": "2026-05-02T00:00:00Z", "changed_fields": ["status", "value", "validity"], "before_value": "Shanghai", "after_value": "Hangzhou"},
+        "provenance_source_ids": ["source-hangzhou", "source-shanghai"]
+      }
+    },
+    {
+      "case_id": "coffee-three-paraphrases",
+      "split": "test",
+      "coverage": ["paraphrase_dedup", "provenance"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "coffee-1", "transaction_time": "2026-02-01T00:00:00Z", "raw_text": "I like coffee.", "normalized_value": "coffee", "source_id": "source-coffee-1"},
+          {"operation": "MATERIALIZE", "idempotency_key": "coffee-2", "transaction_time": "2026-02-02T00:00:00Z", "raw_text": "Coffee is my preferred drink.", "normalized_value": "coffee", "source_id": "source-coffee-2"},
+          {"operation": "MATERIALIZE", "idempotency_key": "coffee-3", "transaction_time": "2026-02-03T00:00:00Z", "raw_text": "I prefer drinking coffee.", "normalized_value": "coffee", "source_id": "source-coffee-3"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "REINFORCED", "REINFORCED"],
+        "transition_operations": ["CREATE", "REINFORCE", "REINFORCE"],
+        "lineage_count": 1,
+        "assertion_version_count": 1,
+        "final_lock_version": 3,
+        "status_by_version": {"1": "CURRENT"},
+        "current_values": ["coffee"],
+        "provenance_source_ids": ["source-coffee-1", "source-coffee-2", "source-coffee-3"]
+      }
+    },
+    {
+      "case_id": "overlapping-residence-contradiction",
+      "split": "test",
+      "coverage": ["overlapping_contradiction", "conflict"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "overlap-1", "transaction_time": "2026-03-01T00:00:00Z", "value": "Shanghai", "valid_from": "2026-01-01T00:00:00Z", "valid_to": "2026-12-31T00:00:00Z", "source_id": "source-overlap-1"},
+          {"operation": "MATERIALIZE", "idempotency_key": "overlap-2", "transaction_time": "2026-03-02T00:00:00Z", "value": "Hangzhou", "valid_from": "2026-02-01T00:00:00Z", "valid_to": "2026-11-01T00:00:00Z", "source_id": "source-overlap-2"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "CONFLICT_RECORDED"],
+        "transition_operations": ["CREATE", "CONFLICT"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "CONFLICTED", "2": "CONFLICTED"},
+        "current_values": [],
+        "conflicted_values": ["Hangzhou", "Shanghai"],
+        "provenance_source_ids": ["source-overlap-1", "source-overlap-2"]
+      }
+    },
+    {
+      "case_id": "non-overlapping-employment-history",
+      "split": "dev",
+      "coverage": ["non_overlap_history", "former", "current"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "employer-1", "transaction_time": "2026-04-01T00:00:00Z", "value": "Acme", "valid_from": "2024-01-01T00:00:00Z", "valid_to": "2025-01-01T00:00:00Z", "source_id": "source-employer-1"},
+          {"operation": "MATERIALIZE", "idempotency_key": "employer-2", "transaction_time": "2026-04-02T00:00:00Z", "value": "Globex", "valid_from": "2025-01-01T00:00:00Z", "valid_to": null, "source_id": "source-employer-2"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "APPLIED"],
+        "transition_operations": ["CREATE", "SUPERSEDE"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "HISTORICAL", "2": "CURRENT"},
+        "current_values": ["Globex"],
+        "former_values": ["Acme"],
+        "conflicted_values": []
+      }
+    },
+    {
+      "case_id": "set-valued-cuisine-preference",
+      "split": "test",
+      "coverage": ["set_valued_preference", "cardinality"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SET",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "cuisine-1", "transaction_time": "2026-05-01T00:00:00Z", "value": "Sichuan", "source_id": "source-cuisine-1"},
+          {"operation": "MATERIALIZE", "idempotency_key": "cuisine-2", "transaction_time": "2026-05-02T00:00:00Z", "value": "Italian", "source_id": "source-cuisine-2"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "COEXISTS"],
+        "transition_operations": ["CREATE", "COEXIST"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "CURRENT", "2": "CURRENT"},
+        "current_values": ["Italian", "Sichuan"],
+        "conflicted_values": []
+      }
+    },
+    {
+      "case_id": "late-backfill-valid-time",
+      "split": "test",
+      "coverage": ["late_backfill", "valid_time", "transaction_time"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "backfill-current", "transaction_time": "2026-08-01T00:00:00Z", "value": "Hangzhou", "valid_from": "2026-05-01T00:00:00Z", "valid_to": null, "source_id": "source-backfill-current"},
+          {"operation": "MATERIALIZE", "idempotency_key": "backfill-former", "transaction_time": "2026-08-02T00:00:00Z", "value": "Shanghai", "valid_from": "2025-01-01T00:00:00Z", "valid_to": "2026-05-01T00:00:00Z", "source_id": "source-backfill-former"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "BACKFILLED"],
+        "transition_operations": ["CREATE", "SUPERSEDE"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "CURRENT", "2": "HISTORICAL"},
+        "current_values": ["Hangzhou"],
+        "former_values": ["Shanghai"],
+        "valid_time_order": ["Shanghai", "Hangzhou"],
+        "transaction_time_order": ["Hangzhou", "Shanghai"]
+      }
+    },
+    {
+      "case_id": "uncertain-month-date",
+      "split": "dev",
+      "coverage": ["uncertain_date", "temporal_precision"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "uncertain-1", "transaction_time": "2026-06-15T00:00:00Z", "value": "Hangzhou", "original_time_text": "around May 2026", "valid_from": "2026-05-01T00:00:00Z", "valid_to": "2026-06-01T00:00:00Z", "precision": "MONTH", "temporal_confidence": 0.65, "source_id": "source-uncertain"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED"],
+        "transition_operations": ["CREATE"],
+        "lineage_count": 1,
+        "assertion_version_count": 1,
+        "final_lock_version": 1,
+        "status_by_version": {"1": "CURRENT"},
+        "current_values": ["Hangzhou"],
+        "preserved_time": {"original_time_text": "around May 2026", "precision": "MONTH", "temporal_confidence": 0.65}
+      }
+    },
+    {
+      "case_id": "concurrent-correction-precondition",
+      "split": "test",
+      "coverage": ["concurrent", "optimistic_precondition"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "concurrent-base", "transaction_time": "2026-07-01T00:00:00Z", "value": "Shanghai", "source_id": "source-concurrent-base"},
+          {"operation": "CORRECT", "idempotency_key": "concurrent-a", "expected_lock_version": 1, "transaction_time": "2026-07-02T00:00:00Z", "value": "Hangzhou", "source_id": "source-concurrent-a"},
+          {"operation": "CORRECT", "idempotency_key": "concurrent-b", "expected_lock_version": 1, "transaction_time": "2026-07-02T00:00:00Z", "value": "Suzhou", "source_id": "source-concurrent-b"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "APPLIED", "PRECONDITION_FAILED"],
+        "transition_operations": ["CREATE", "INVALIDATE", "NONE"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "INVALIDATED", "2": "CURRENT"},
+        "current_values": ["Hangzhou"],
+        "provenance_source_ids": ["source-concurrent-a", "source-concurrent-base"]
+      }
+    },
+    {
+      "case_id": "idempotent-correction-replay",
+      "split": "test",
+      "coverage": ["replay", "idempotency"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "replay-base", "transaction_time": "2026-07-10T00:00:00Z", "value": "Shanghai", "source_id": "source-replay-base"},
+          {"operation": "CORRECT", "idempotency_key": "replay-correction", "expected_lock_version": 1, "transaction_time": "2026-07-11T00:00:00Z", "value": "Hangzhou", "source_id": "source-replay-correction"},
+          {"operation": "CORRECT", "idempotency_key": "replay-correction", "expected_lock_version": 1, "transaction_time": "2026-07-12T00:00:00Z", "value": "Hangzhou", "source_id": "source-replay-correction"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "APPLIED", "IDEMPOTENT_REPLAY"],
+        "transition_operations": ["CREATE", "INVALIDATE", "NONE"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "transition_count": 2,
+        "status_by_version": {"1": "INVALIDATED", "2": "CURRENT"},
+        "current_values": ["Hangzhou"]
+      }
+    },
+    {
+      "case_id": "invalid-temporal-interval",
+      "split": "dev",
+      "coverage": ["invalid", "atomic_rejection"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "invalid-interval", "transaction_time": "2026-07-20T00:00:00Z", "value": "Hangzhou", "valid_from": "2026-08-01T00:00:00Z", "valid_to": "2026-07-01T00:00:00Z", "source_id": "source-invalid"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["INVALID_REQUEST"],
+        "transition_operations": ["NONE"],
+        "lineage_count": 0,
+        "assertion_version_count": 0,
+        "final_lock_version": null,
+        "status_by_version": {},
+        "current_values": [],
+        "error_code": "INVALID_TEMPORAL_INTERVAL"
+      }
+    },
+    {
+      "case_id": "provenance-retained-across-correction",
+      "split": "test",
+      "coverage": ["provenance", "correction"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "provenance-base", "transaction_time": "2026-07-21T00:00:00Z", "value": "Shangahi", "source_id": "source-typo"},
+          {"operation": "CORRECT", "idempotency_key": "provenance-correction", "expected_lock_version": 1, "transaction_time": "2026-07-22T00:00:00Z", "value": "Shanghai", "source_id": "source-correction", "reason": "USER_CORRECTION"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "APPLIED"],
+        "transition_operations": ["CREATE", "INVALIDATE"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "INVALIDATED", "2": "CURRENT"},
+        "current_values": ["Shanghai"],
+        "provenance_by_version": {"1": ["source-typo"], "2": ["source-correction"]},
+        "transition_reasons": ["FIRST_ASSERTION", "CORRECTION:USER_CORRECTION"]
+      }
+    },
+    {
+      "case_id": "projection-rebuild-equivalence",
+      "split": "test",
+      "coverage": ["rebuild", "projection_equivalence"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "rebuild-base", "transaction_time": "2026-07-25T00:00:00Z", "value": "Shanghai", "source_id": "source-rebuild-base"},
+          {"operation": "CORRECT", "idempotency_key": "rebuild-correction", "expected_lock_version": 1, "transaction_time": "2026-07-26T00:00:00Z", "value": "Hangzhou", "source_id": "source-rebuild-correction"},
+          {"operation": "REBUILD_CURRENT_PROJECTION", "transaction_time": "2026-07-27T00:00:00Z"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "APPLIED", "REBUILT"],
+        "transition_operations": ["CREATE", "INVALIDATE", "REBUILD"],
+        "lineage_count": 1,
+        "assertion_version_count": 2,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "INVALIDATED", "2": "CURRENT"},
+        "current_values": ["Hangzhou"],
+        "projection_matches_authoritative_replay": true,
+        "rebuild_changed_authoritative_history": false
+      }
+    },
+    {
+      "case_id": "explicit-invalidation",
+      "split": "dev",
+      "coverage": ["invalidation", "history"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "invalidate-base", "transaction_time": "2026-08-10T00:00:00Z", "value": "Shanghai", "source_id": "source-invalidate-base"},
+          {"operation": "INVALIDATE", "idempotency_key": "invalidate-action", "expected_lock_version": 1, "transaction_time": "2026-08-11T00:00:00Z", "reason": "USER_DISPUTED", "source_id": "source-invalidate-action"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "APPLIED"],
+        "transition_operations": ["CREATE", "INVALIDATE"],
+        "lineage_count": 1,
+        "assertion_version_count": 1,
+        "final_lock_version": 2,
+        "status_by_version": {"1": "INVALIDATED"},
+        "current_values": [],
+        "invalidated_values": ["Shanghai"],
+        "transition_reasons": ["FIRST_ASSERTION", "USER_DISPUTED"]
+      }
+    },
+    {
+      "case_id": "scope-isolation-not-found",
+      "split": "test",
+      "coverage": ["scope_isolation", "content_safe_not_found"],
+      "scenario": {
+        "scope": {"tenant_id": "tenant-a", "user_id": "user-a", "agent_id": "agent-a"},
+        "foreign_scope": {"tenant_id": "tenant-b", "user_id": "user-a", "agent_id": "agent-a"},
+        "predicate_cardinality": "SINGLE",
+        "commands": [
+          {"operation": "MATERIALIZE", "idempotency_key": "scope-base", "transaction_time": "2026-08-20T00:00:00Z", "value": "Shanghai", "source_id": "source-scope-base"},
+          {"operation": "INSPECT_AS_FOREIGN_SCOPE", "transaction_time": "2026-08-21T00:00:00Z"}
+        ]
+      },
+      "expected": {
+        "command_outcomes": ["APPLIED", "NOT_FOUND"],
+        "transition_operations": ["CREATE", "NONE"],
+        "lineage_count": 1,
+        "assertion_version_count": 1,
+        "final_lock_version": 1,
+        "status_by_version": {"1": "CURRENT"},
+        "current_values": ["Shanghai"],
+        "foreign_scope_error_code": "MEMORY_NOT_FOUND",
+        "foreign_scope_content_disclosed": false
+      }
+    }
+  ]
+}

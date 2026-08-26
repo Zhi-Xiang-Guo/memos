@@ -1,6 +1,7 @@
 package dev.memos.api.http;
 
 import dev.memos.ingestion.IngestionConflictException;
+import dev.memos.materialization.TemporalMutationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.MDC;
@@ -59,6 +60,52 @@ public class ApiExceptionHandler {
         request);
   }
 
+  @ExceptionHandler(MemoryNotFoundException.class)
+  ProblemDetail handleMemoryNotFound(
+      MemoryNotFoundException exception, HttpServletRequest request) {
+    return problem(
+        HttpStatus.NOT_FOUND,
+        "Memory not found",
+        "MEMORY_NOT_FOUND",
+        "The memory was not found.",
+        request);
+  }
+
+  @ExceptionHandler(TemporalMutationException.class)
+  ProblemDetail handleTemporalMutation(
+      TemporalMutationException exception, HttpServletRequest request) {
+    return switch (exception.kind()) {
+      case NOT_FOUND ->
+          problem(
+              HttpStatus.NOT_FOUND,
+              "Memory not found",
+              "MEMORY_NOT_FOUND",
+              "The memory or scoped mutation evidence was not found.",
+              request);
+      case STALE_PRECONDITION ->
+          problem(
+              HttpStatus.PRECONDITION_FAILED,
+              "Memory precondition failed",
+              "STALE_MEMORY_VERSION",
+              "The memory changed after the supplied entity tag.",
+              request);
+      case IDEMPOTENCY_CONFLICT ->
+          problem(
+              HttpStatus.CONFLICT,
+              "Mutation conflict",
+              "MUTATION_IDEMPOTENCY_CONFLICT",
+              "The idempotency key is already bound to different immutable input.",
+              request);
+      case INVALID_TRANSITION ->
+          problem(
+              HttpStatus.CONFLICT,
+              "Invalid memory transition",
+              "INVALID_MEMORY_TRANSITION",
+              "The requested memory transition is not allowed.",
+              request);
+    };
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   ProblemDetail handleIllegalArgument(
       IllegalArgumentException exception, HttpServletRequest request) {
@@ -66,7 +113,7 @@ public class ApiExceptionHandler {
         HttpStatus.BAD_REQUEST,
         "Invalid request",
         "INVALID_REQUEST",
-        exception.getMessage(),
+        "The request could not be validated.",
         request);
   }
 

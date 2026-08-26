@@ -54,6 +54,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -71,7 +72,8 @@ class JdbcExtractionCommitStoreIntegrationTest {
       new PostgreSQLContainer(IMAGE)
           .withDatabaseName("memos")
           .withUsername("memos")
-          .withPassword("memos-test");
+          .withPassword("memos-test")
+          .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(1)));
 
   private static JdbcTemplate jdbc;
   private static TransactionTemplate transactions;

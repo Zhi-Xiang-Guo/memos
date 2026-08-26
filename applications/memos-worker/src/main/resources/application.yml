@@ -23,6 +23,9 @@ memos:
     schema-version: ${MEMOS_EXTRACTION_SCHEMA_VERSION:memory-candidate.v1}
     policy-version: ${MEMOS_EXTRACTION_POLICY_VERSION:write-policy-v1}
     timeout: ${MEMOS_EXTRACTION_TIMEOUT:30s}
+  temporal:
+    projection-policy-version: ${MEMOS_PROJECTION_POLICY_VERSION:projection-v1}
+    set-valued-predicates: ${MEMOS_SET_VALUED_PREDICATES:preference.coffee,preference.cuisine}
   worker:
     enabled: true
     worker-id: ${MEMOS_WORKER_ID:}

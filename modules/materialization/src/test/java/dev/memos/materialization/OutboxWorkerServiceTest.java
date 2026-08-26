@@ -150,6 +150,30 @@ class OutboxWorkerServiceTest {
     assertEquals(Set.of(JobType.MATERIALIZE_SOURCE), store.lastClaimRequest.supportedJobTypes());
   }
 
+  @Test
+  void explicitlyConfiguredWorkerClaimsOnlyItsRoutedJobTypes() {
+    FakeStore store = new FakeStore(claimedJob(JobType.CANDIDATE_MATERIALIZATION, 1, 5));
+    OutboxWorkerService worker =
+        new OutboxWorkerService(
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            store,
+            job -> JobHandlingResult.COMPLETED_ATOMICALLY,
+            new ExponentialBackoffPolicy(Duration.ofSeconds(1), Duration.ofMinutes(1)),
+            OutboxWorkerTelemetry.NOOP,
+            new WorkerId("worker-1"),
+            10,
+            Duration.ofSeconds(30),
+            Set.of(JobType.MATERIALIZE_SOURCE, JobType.CANDIDATE_MATERIALIZATION));
+
+    OutboxRunSummary summary = worker.runOnce();
+
+    assertEquals(1, summary.claimed());
+    assertEquals(1, summary.succeeded());
+    assertEquals(
+        Set.of(JobType.MATERIALIZE_SOURCE, JobType.CANDIDATE_MATERIALIZATION),
+        store.lastClaimRequest.supportedJobTypes());
+  }
+
   private static OutboxWorkerService worker(FakeStore store, MaterializationJobHandler handler) {
     return new OutboxWorkerService(
         Clock.fixed(NOW, ZoneOffset.UTC),

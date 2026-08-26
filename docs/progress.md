@@ -10,6 +10,7 @@ Status: `DONE`
 - Primary-source studies cover Mem0, Letta/LangGraph, Zep/Graphiti, frameworks, and three memory benchmarks.
 - Mem0, Letta, LangGraph, and Graphiti source paths are pinned to full commit SHAs with call-chain audits.
 - The evidence-graded competitive matrix and cross-system design lessons are complete.
+- Initial Phase 1 snapshot `183d876` was pushed to `origin/main`; remote publication is verified.
 
 ## Architecture
 
@@ -60,7 +61,7 @@ Status: `TODO`
 - [x] Problem definition, architecture candidates, trade-offs, and recommendation complete.
 - [x] MVP scope, benchmark plan, open questions, and next phase gate complete.
 - [x] Documentation link check and unsupported-claim audit pass.
-- [ ] Initial commit pushed to a GitHub remote.
+- [x] Initial commit pushed to a GitHub remote.
 
 ## Decision log snapshot
 

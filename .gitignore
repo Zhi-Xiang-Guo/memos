@@ -1,0 +1,25 @@
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Java
+.gradle/
+build/
+target/
+out/
+
+# Python benchmark tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Runtime data and secrets
+.env
+.env.*
+!.env.example
+data/
+logs/
+*.log

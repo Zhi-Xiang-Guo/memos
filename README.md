@@ -8,14 +8,14 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–2 are published and Feature 3 is implemented and locally verified: the repository now has a reproducible engineering foundation, durable asynchronous ingestion/extraction, deterministic write policy, versioned temporal memory, append-only transitions, provenance, optimistic correction/invalidation, and scope-bound inspection APIs. Feature 3 publication is the remaining gate before Feature 4. There is **no hybrid retrieval implementation or formal benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–3 are published: the repository now has a reproducible engineering foundation, durable asynchronous ingestion/extraction, deterministic write policy, versioned temporal memory, append-only transitions, provenance, optimistic correction/invalidation, and scope-bound inspection APIs. Feature 4 hybrid retrieval is now the active implementation stage. There is **no hybrid retrieval implementation or formal benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 3 publication gate (`Features 0–2: published`)
+- MVP implementation: `DOING` — Feature 4 (`Features 0–3: published`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
-- Initial repository and Features 0–2 publication: `DONE`; Feature 3: `PENDING`
+- Initial repository and Features 0–3 publication: `DONE`
 
 See [progress](docs/progress.md), [open questions](docs/open-questions.md), and [benchmark results](docs/benchmark/results.md).
 

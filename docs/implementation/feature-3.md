@@ -1,7 +1,7 @@
 # Feature 3 — versioned temporal memory
 
-Status: `IMPLEMENTED / VERIFIED / PUBLICATION PENDING`. Feature 3's local implementation and
-verification gates passed on 2026-08-27; the Git publication gate remains pending.
+Status: `DONE / PUBLISHED`. Feature 3's implementation and verification gates passed on
+2026-08-27 and commit `5ff32fda451f3923e4130e309e5c19167e84905d` was pushed to `origin/main`.
 
 Feature 3 consumes sanitized `REMEMBER` candidates and the durable
 `CANDIDATE_MATERIALIZATION` intent created by [Feature 2](feature-2.md). It creates authoritative
@@ -235,7 +235,7 @@ Feature 3 does not claim or implement:
 | Python verification | locked sync, Ruff format/lint, and pytest | `PASS` — 12 tests |
 | Runtime smoke | Routed source/candidate jobs create inspectable memory; correction/replay/stale ETag/as-of/diff work; scoped current state survives API restart | `PASS` — `smoke-feature3.sh` |
 | Markdown links | `python3 scripts/check_markdown_links.py` | `PASS` — 39 files |
-| Git publication | Coherent Feature 3 commit pushed and local `HEAD` equals `origin/main` | `PENDING` |
+| Git publication | Coherent Feature 3 commit pushed and local `HEAD` equals `origin/main` | `PASS` — `5ff32fda451f3923e4130e309e5c19167e84905d` |
 
 Feature 3 may be marked `DONE` only after the authoritative implementation, integration/fault
 tests, public API, fixture observations, runtime smoke, documentation, and publication gates have

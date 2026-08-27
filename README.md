@@ -130,6 +130,7 @@ Coverage includes simple and multi-session recall, preference recall, update, te
 
 ## Research map
 
+- [半年学习、项目深化与面试路线](docs/learning-roadmap.md)
 - [Memory landscape](docs/research/01-memory-landscape.md)
 - [Mem0](docs/research/02-mem0-analysis.md)
 - [MemGPT / Letta](docs/research/03-memgpt-letta-analysis.md)

@@ -46,11 +46,15 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   [run #24](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33273671807) passed Java 25,
   PostgreSQL/compose regression, Python, and docs gates. No baseline run, quality score, latency
   result, or cost result exists yet.
-- Feature 6 run-package core is locally implemented and awaiting publication: immutable file-set
-  hashing, split-membership/config identity, full execution-row accounting, mechanically
-  regenerated answer/retrieval/abstention/track/latency metrics, usage totals, and content-safe
-  failure summaries pass 28 Python tests. The current v1 candidate also pins Java extraction
-  prompt/schema hashes and forbidden-context labels. This is harness evidence, not a baseline run.
+- Feature 6 run-package core is `DONE / PUBLISHED` through
+  `afcabe79670344dab8ed1500eb59b3a17f293842`: immutable file-set hashing,
+  split-membership/config identity, full execution-row accounting, mechanically regenerated
+  answer/retrieval/abstention/track/latency metrics, usage totals, and content-safe failure
+  summaries pass 28 Python tests. The current v1 candidate also pins Java extraction prompt/schema
+  hashes and forbidden-context labels. GitHub Actions
+  [run #26](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33274839393) passed Java 25,
+  PostgreSQL/compose regression, Python, and docs gates. This is harness evidence, not a baseline
+  run.
 
 ## Advanced Memory
 

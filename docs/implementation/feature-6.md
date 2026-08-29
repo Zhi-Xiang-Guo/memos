@@ -4,8 +4,9 @@ Status: `DOING`. The initial product workload and smoke contract were published 
 `4120144` and
 [GitHub Actions run #24](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33273671807). The
 current v1 contract additionally pins Java extraction resources and forbidden-context labels; the
-run-package/metrics core is locally verified and awaiting publication. No four-baseline result has
-been published yet.
+run-package/metrics core is `DONE / PUBLISHED` through commit `afcabe7` and
+[GitHub Actions run #26](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33274839393). No
+four-baseline result has been published yet.
 
 ## Product workload
 
@@ -102,3 +103,7 @@ The deterministic metrics currently include:
 Local-model monetary and energy cost remain `N/E`; the usage report emits `null`, not a fabricated
 zero-dollar claim. The runner, live provider calls, Java API ingestion/retrieval, storage readings,
 and final Markdown/table generation remain to be implemented before a smoke result is eligible.
+
+Publication verification for this core passed Java 25, PostgreSQL/compose regression, a clean
+Python 3.14.7 install with 28 tests, and the Markdown gate in run `#26`. These gates establish
+implementation integrity only; they contain no model-dependent answer or retrieval score.

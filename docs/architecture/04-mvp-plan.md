@@ -93,6 +93,10 @@ Exit gate: cross-tenant test has zero leakage, deletion completes across all pro
 
 ## Feature 6 — reproducible benchmark and baseline report
 
+Implementation status: `DOING`. The workload, v1 synthetic smoke dataset, license/attribution,
+prompt hashes, local model IDs, and four-baseline parity declaration are frozen and locally
+verified. Harness execution and all result packages remain `NOT RUN`.
+
 Deliver:
 
 - dataset adapters permitted by upstream licenses;

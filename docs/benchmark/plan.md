@@ -1,6 +1,14 @@
 # Benchmark plan
 
-Status: design only. No result has been generated.
+Status: protocol and first smoke contract frozen; harness execution `NOT RUN`. No result has been
+generated.
+
+The Feature 6 v1 contract is
+`benchmark/datasets/memos-assistant-smoke/v1/manifest.json`: a versioned, synthetic bilingual
+personal/project-assistant dataset with isolated scenario families, frozen test IDs, exact content
+and prompt hashes, a complete CC BY 4.0 license/attribution boundary, fixed local model IDs, and an
+equal-budget four-baseline declaration. The repository verifier checks this contract before a run;
+its successful verification is not an answer-quality, latency, scale, cost, or safety result.
 
 ## Questions
 

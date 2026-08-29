@@ -55,5 +55,9 @@ evidence.
 Feature 5 implements the governed-erasure exception: retained versions/candidates and selected
 transition metadata can change only inside a currently claimed, unexpired erasure transaction;
 lineages become `ERASED`, rebuildable projections are deleted, and opaque append-only tombstones
-block resurrection. Remote PostgreSQL/publication verification remains pending, and the ADR still
-requires Feature 6 quality validation.
+block resurrection. GitHub Actions run `#22` verified the PostgreSQL and publication gates.
+
+Feature 6 has frozen a 13-scenario/15-question synthetic bilingual smoke contract covering update,
+temporal, contradiction, exact/project facts, semantic/bilingual recall, noise, abstention,
+multi-hop, and poisoning cases under four declared baselines. This is protocol evidence only: no
+baseline has run, so the ADR still requires held-out quality, latency, token, and storage evidence.

@@ -10,6 +10,9 @@ uv run ruff format --check .
 uv run ruff check .
 uv run pytest
 uv run memos-benchmark --base-url http://localhost:8080
+uv run memos-dataset-verify \
+  --manifest datasets/memos-assistant-smoke/v1/manifest.json
 ```
 
-No paid model or provider credential is required.
+No paid model or provider credential is required. Feature 6 uses the versioned smoke dataset and
+an explicitly verified local Ollama model path before any external benchmark campaign.

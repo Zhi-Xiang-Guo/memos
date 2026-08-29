@@ -1,0 +1,64 @@
+{
+  "dataset_version": "memos-assistant-smoke-v1",
+  "dataset_kind": "SYNTHETIC_FOUR_BASELINE_SMOKE",
+  "workload": "bilingual-personal-project-assistant",
+  "license": "CC-BY-4.0",
+  "license_file": "LICENSE.txt",
+  "license_sha256": "9e5f1b3c610b9c2da5c313bf81d577a7d1acec686bdb0384edefa6df0f90cd94",
+  "notice_file": "NOTICE.md",
+  "notice_sha256": "e7e0b4b56c28086ef65b5ae18795e320edffb432d4c89d75daa192de00db45c9",
+  "text_hash_mode": "sha256-utf8-lf-v1",
+  "contains_real_personal_data": false,
+  "case_file": "cases.json",
+  "case_sha256": "8e17c24e93660ddec6e5f650d32e426955f5f32c686e07c22d8c3dfcc4e89ff3",
+  "scenario_count": 13,
+  "question_count": 15,
+  "splits": {
+    "train": {"scenarios": 2, "questions": 2},
+    "dev": {"scenarios": 3, "questions": 3},
+    "test": {"scenarios": 8, "questions": 10}
+  },
+  "required_tracks": [
+    "abstention",
+    "bilingual",
+    "contradiction",
+    "long_term",
+    "multi_hop",
+    "multi_session",
+    "noise",
+    "poisoning",
+    "preference",
+    "project_fact",
+    "simple_recall",
+    "temporal",
+    "update"
+  ],
+  "frozen_test_scenario_ids": [
+    "test-bilingual-region",
+    "test-database-decision",
+    "test-noise-retention",
+    "test-poisoned-web",
+    "test-port-conflict",
+    "test-project-multihop",
+    "test-residence-history",
+    "test-work-preferences"
+  ],
+  "prompts": {
+    "answer_file": "../../../prompts/v1/answer.txt",
+    "answer_sha256": "7686f1a41e6abca1253775248a36b72db8b032c5058e48ceab2dd6b5079bf50b",
+    "summary_file": "../../../prompts/v1/summary.txt",
+    "summary_sha256": "bee4171f10e480f286ac38662c15063860b07a3b20b693d1f5f783c0a23729aa"
+  },
+  "selected_models": {
+    "extractor": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcda"},
+    "summary": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcda"},
+    "answer": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcda"},
+    "embedding": {"tag": "qwen3-embedding:0.6b", "ollama_model_id": "ac6da0dfba84"},
+    "reranker": null,
+    "judge": null
+  },
+  "sampling": {"temperature": 0, "seed": 42, "smoke_repetitions": 1, "formal_test_repetitions": 3},
+  "limits": {"evidence_tokens": 1200, "summary_recent_turns": 2, "vector_top_k": 8, "retrieval_limit": 8},
+  "baselines": ["full_history", "rolling_summary", "raw_turn_vector", "memos"],
+  "system_tracks_exercised_elsewhere": ["idempotency_concurrency", "privacy_deletion"]
+}

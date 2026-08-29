@@ -12,7 +12,8 @@ Phase 1 — research, problem definition, architecture selection, and benchmark 
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs 0001–0004 remain `PROPOSED`; the narrower Feature 5 implementation gate accepted ADR-0005)
-- MVP implementation: `DOING` — Features 0–5 are `DONE / PUBLISHED`; Feature 6 evaluation is next
+- MVP implementation: `DOING` — Features 0–5 are `DONE / PUBLISHED`; Feature 6's workload and
+  smoke contract are frozen, while harness execution remains `NOT RUN`
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - Initial repository and Features 0–4 publication: `DONE`
@@ -202,6 +203,11 @@ Feature 3 consumes accepted candidates into a PostgreSQL authority with stable l
 Feature 4 asynchronously turns the latest authoritative transition into a rebuildable pgvector/FTS projection, then exposes `POST /v1/retrieval` for hybrid evidence and token-budgeted context. `POST /v1/retrieval/trace` exposes component diagnostics only to a verified `OPERATOR` role and writes a content-safe access audit. The default hashing embedding validates local plumbing only. See the [Feature 4 implementation note](docs/implementation/feature-4.md).
 
 Feature 5 replaces forgeable scope headers and the temporary operator key with signed JWT claim validation and `USER`, `OPERATOR`, and `PRIVACY_ADMIN` roles. It adds memory/user erasure workflows, immediate projection hiding, lease-fenced retry/dead/requeue processing, opaque append-only tombstones, replay/resurrection guards, and a deterministic hostile-memory rendering fixture. The local HS256 secret is a development/reference mode, not a production identity-provider or key-rotation claim. See the [Feature 5 implementation note](docs/implementation/feature-5.md).
+
+Feature 6 has frozen a versioned, synthetic bilingual personal/project-assistant smoke dataset,
+license/attribution boundary, prompt and content hashes, four-baseline parity contract, and exact
+local Ollama model IDs. The integrity verifier is implemented, but no baseline execution or score
+exists yet. See the [Feature 6 implementation note](docs/implementation/feature-6.md).
 
 ## Design principles
 

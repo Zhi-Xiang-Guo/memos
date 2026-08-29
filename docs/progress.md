@@ -22,7 +22,7 @@ Status: `DONE` for Phase 1 design; ADRs 0001–0004 remain `PROPOSED`, ADR-0005 
 
 ## MVP
 
-Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 is next
+Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in progress
 
 - Phase 1 was reviewed and the active project goal authorizes Features 0–6.
 - Feature 0 engineering foundation is `DONE`: local Maven/Testcontainers, pgvector migration, architecture, Python, documentation, and API/worker smoke gates passed. The workflow is published and exercised by green GitHub Actions run `#17`.
@@ -38,6 +38,11 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 is next
   [run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267) passed Java 25,
   PostgreSQL migration/fault/concurrency tests, Python, docs, and the full Feature 0–5 compose
   smoke. This is implementation evidence, not formal security effectiveness or model-quality data.
+- Feature 6's first contract gate is locally complete but not yet published: the bounded bilingual
+  personal/project-assistant workload, 13-scenario/15-question synthetic smoke dataset, frozen
+  train/dev/test IDs, CC BY 4.0 license and attribution, answer/summary prompt hashes, equal-budget
+  four-baseline contract, and exact local Ollama model IDs are machine-verified. No baseline run,
+  quality score, latency result, or cost result exists yet.
 
 ## Advanced Memory
 
@@ -47,9 +52,11 @@ Status: `TODO`
 
 ## Benchmark
 
-Status: `TODO` for execution; research/protocol `DONE`
+Status: `DOING` for Feature 6 harness; research/protocol and smoke contract `DONE`; execution `NOT RUN`
 
 - LoCoMo, LongMemEval, and BEAM research plus the experiment protocol are complete.
+- `memos-assistant-smoke-v1` freezes the first license-compatible local evaluation contract; its
+  verifier rejects case, prompt, license, notice, split, count, family, or evidence-cutoff drift.
 - No experiment has run; [results](benchmark/results.md) intentionally contain no scores.
 
 ## Optimization
@@ -86,10 +93,11 @@ Status: `TODO`
 | Retrieval | Hybrid candidate generation and measured fusion | `HYPOTHESIS` | Tune only on benchmark dev split |
 | Graph database | Not in MVP | `HYPOTHESIS` | Add only if entity/multi-hop ablation proves value |
 | Benchmark scores | None available | `CONFIRMED` | No run has been executed |
+| Initial workload | Bilingual personal/project assistant | `CONFIRMED` | Frozen Feature 6 v1 smoke manifest and cases |
 
 ## Next phase
 
-Start Feature 6 reproducible evaluation without entering Advanced Memory: freeze the representative
-workload, dataset/license boundary, model snapshots, baseline parity, and immutable run manifest
-before executing the smoke campaign. The legacy trusted scope headers and temporary operator key
-are removed and must not be reintroduced.
+Continue Feature 6 without entering Advanced Memory: implement the four-baseline black-box harness,
+immutable run manifest, raw artifact integrity checks, and mechanically generated metrics against
+the frozen v1 smoke contract before executing any campaign. The legacy trusted scope headers and
+temporary operator key are removed and must not be reintroduced.

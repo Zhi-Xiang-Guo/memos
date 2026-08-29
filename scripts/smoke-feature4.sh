@@ -164,10 +164,15 @@ wrong_trace_status=$(curl --silent --output /dev/null --write-out '%{http_code}'
   http://localhost:8080/v1/retrieval/trace)
 test "$wrong_trace_status" = 403
 
-curl --fail --silent --output "$trace_file" \
+trace_status=$(curl --silent --show-error --output "$trace_file" --write-out '%{http_code}' \
   -H 'Content-Type: application/json' -H 'X-MemOS-Operator-Key: local-operator-key' \
   "${scope_headers[@]}" --data "$trace_body" \
-  http://localhost:8080/v1/retrieval/trace
+  http://localhost:8080/v1/retrieval/trace)
+if [[ $trace_status != 200 ]]; then
+  trace_error_code=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("code", "UNKNOWN"))' "$trace_file" 2>/dev/null || echo UNKNOWN)
+  echo "Trace retrieval returned HTTP $trace_status code=$trace_error_code" >&2
+  exit 1
+fi
 python3 - "$trace_file" <<'PY'
 import json
 import sys

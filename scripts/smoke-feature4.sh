@@ -114,6 +114,7 @@ test "$(db_query "SELECT projected_version_count FROM memos.memory_projection_ch
 test "$(db_query "SELECT count(*) FROM memos.memory_search_projection WHERE tenant_id = '$tenant_id' AND user_id = '$user_id' AND agent_id = '$agent_id' AND truth_status = 'CURRENT'")" = 1
 
 retrieval_body='{"query":"Which editor theme do I prefer?","mode":"HYBRID","predicate":"preference.editor.theme","limit":5,"maxTokens":800}'
+trace_body='{"query":"dark editor theme","mode":"HYBRID","predicate":"preference.editor.theme","limit":5,"maxTokens":800}'
 curl --fail --silent --output "$retrieval_file" \
   -H 'Content-Type: application/json' "${scope_headers[@]}" \
   --data "$retrieval_body" http://localhost:8080/v1/retrieval
@@ -159,13 +160,13 @@ PY
 
 wrong_trace_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
   -H 'Content-Type: application/json' -H 'X-MemOS-Operator-Key: wrong' \
-  "${scope_headers[@]}" --data "$retrieval_body" \
+  "${scope_headers[@]}" --data "$trace_body" \
   http://localhost:8080/v1/retrieval/trace)
 test "$wrong_trace_status" = 403
 
 curl --fail --silent --output "$trace_file" \
   -H 'Content-Type: application/json' -H 'X-MemOS-Operator-Key: local-operator-key' \
-  "${scope_headers[@]}" --data "$retrieval_body" \
+  "${scope_headers[@]}" --data "$trace_body" \
   http://localhost:8080/v1/retrieval/trace
 python3 - "$trace_file" <<'PY'
 import json

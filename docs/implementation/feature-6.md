@@ -6,7 +6,9 @@ Status: `DOING`. The initial product workload and smoke contract were published 
 current v1 contract additionally pins Java extraction resources and forbidden-context labels; the
 run-package/metrics core is `DONE / PUBLISHED` through commit `afcabe7` and
 [GitHub Actions run #26](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33274839393). No
-four-baseline result has been published yet.
+four-baseline result has been published yet. Provider and non-MemOS baseline primitives are
+`DONE / PUBLISHED` through commit `367e0fa` and
+[GitHub Actions run #28](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33276271008).
 
 ## Product workload
 
@@ -108,9 +110,9 @@ Publication verification for this core passed Java 25, PostgreSQL/compose regres
 Python 3.14.7 install with 28 tests, and the Markdown gate in run `#26`. These gates establish
 implementation integrity only; they contain no model-dependent answer or retrieval score.
 
-## Candidate provider and non-MemOS baseline primitives
+## Provider and non-MemOS baseline primitives
 
-The current Feature 6 candidate adds a bounded Ollama client that verifies the server
+The published Feature 6 implementation adds a bounded Ollama client that verifies the server
 version, full model digests, declared capabilities, and structured chat/embedding response shapes.
 It records wall latency, provider total/load duration, input/output/embedding tokens, and model
 calls without retaining provider error bodies.
@@ -122,6 +124,9 @@ declared recent-event allowance; raw-turn vector embeds source turns without imp
 truth-state policy. Every final rendered context, including its envelope and separators, is
 measured through the pinned embedding-model tokenizer before it is admitted under the shared
 evidence budget. These are runner primitives and do not constitute an executed baseline result.
+
+Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
+documentation gates in GitHub Actions run `#28`.
 
 ### Provider-contract spike
 

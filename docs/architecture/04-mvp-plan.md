@@ -96,7 +96,8 @@ Exit gate: cross-tenant test has zero leakage, deletion completes across all pro
 Implementation status: `DOING`. The workload, v1 synthetic smoke dataset, license/attribution,
 prompt hashes, local model IDs, and four-baseline parity declaration are frozen and locally
 verified through commit `4120144` and GitHub Actions run `#24`. Harness execution and all result
-packages remain `NOT RUN`.
+packages remain `NOT RUN`. The run-package core and provider/non-MemOS baseline primitives are
+published through commit `367e0fa` and GitHub Actions run `#28`.
 
 Deliver:
 

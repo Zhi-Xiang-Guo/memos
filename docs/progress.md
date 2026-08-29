@@ -55,6 +55,14 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   [run #26](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33274839393) passed Java 25,
   PostgreSQL/compose regression, Python, and docs gates. This is harness evidence, not a baseline
   run.
+- Feature 6 provider/baseline primitives are `DONE / PUBLISHED` through
+  `367e0fa5d5232793e297ea007324ba144cd660f5`: full Ollama digest/capability verification,
+  structured chat and embedding accounting, strict answer/summary schemas, exact rendered-context
+  token budgeting, and the full-history, rolling-summary, and raw-turn-vector context builders pass
+  40 Python tests. GitHub Actions
+  [run #28](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33276271008) passed Java 25,
+  PostgreSQL/compose regression, Python, and docs gates. The Java MemOS runner and all result rows
+  remain `NOT RUN`.
 
 ## Advanced Memory
 

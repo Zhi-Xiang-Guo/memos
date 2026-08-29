@@ -206,8 +206,9 @@ Feature 5 replaces forgeable scope headers and the temporary operator key with s
 
 Feature 6 has frozen a versioned, synthetic bilingual personal/project-assistant smoke dataset,
 license/attribution boundary, prompt and content hashes, four-baseline parity contract, and exact
-local Ollama model IDs. The integrity verifier is implemented, but no baseline execution or score
-exists yet. See the [Feature 6 implementation note](docs/implementation/feature-6.md).
+local Ollama model IDs. Its bounded Ollama client, strict answer/summary schemas, and three
+non-MemOS baseline context builders are published, but the unified runner and every baseline score
+remain incomplete. See the [Feature 6 implementation note](docs/implementation/feature-6.md).
 
 ## Design principles
 

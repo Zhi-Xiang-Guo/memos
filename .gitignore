@@ -22,6 +22,7 @@ benchmark/**/__pycache__/
 benchmark/.pytest_cache/
 .ruff_cache/
 benchmark/.ruff_cache/
+benchmark-artifacts/
 
 # Runtime data and secrets
 .env

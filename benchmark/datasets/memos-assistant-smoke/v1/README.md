@@ -22,3 +22,6 @@ uv run memos-dataset-verify \
 Changing cases, prompts, split membership, model selection, or budgets requires a new version or a
 manifest update before any run. A post-result edit to the v1 test split makes the original result
 ineligible rather than silently replacing it.
+
+The prompt boundary includes the answer and rolling-summary prompts plus the Java MemOS extraction
+prompt and strict output schema. The latter two remain repository code, not CC BY dataset material.

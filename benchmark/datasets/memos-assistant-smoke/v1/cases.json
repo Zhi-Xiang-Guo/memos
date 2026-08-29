@@ -14,7 +14,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "train-response-q1", "after_event_id": "train-response-e1", "query": "How should answers be styled?", "answer": {"kind": "TEXT", "acceptable": ["concise"]}, "gold_event_ids": ["train-response-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "train-response-q1", "after_event_id": "train-response-e1", "query": "How should answers be styled?", "answer": {"kind": "TEXT", "acceptable": ["concise"]}, "gold_event_ids": ["train-response-e1"], "forbidden_event_ids": [], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -30,7 +30,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "train-ticket-q1", "after_event_id": "train-ticket-e1", "query": "谁负责 MEM-1042？", "answer": {"kind": "TEXT", "acceptable": ["林", "Lin"]}, "gold_event_ids": ["train-ticket-e1"], "temporal_intent": "NONE", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "train-ticket-q1", "after_event_id": "train-ticket-e1", "query": "谁负责 MEM-1042？", "answer": {"kind": "TEXT", "acceptable": ["林", "Lin"]}, "gold_event_ids": ["train-ticket-e1"], "forbidden_event_ids": [], "temporal_intent": "NONE", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -49,7 +49,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "dev-theme-q1", "after_event_id": "dev-theme-e2", "query": "Which editor theme does the user currently prefer?", "answer": {"kind": "TEXT", "acceptable": ["light"]}, "gold_event_ids": ["dev-theme-e2"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["dark"]}
+        {"question_id": "dev-theme-q1", "after_event_id": "dev-theme-e2", "query": "Which editor theme does the user currently prefer?", "answer": {"kind": "TEXT", "acceptable": ["light"]}, "gold_event_ids": ["dev-theme-e2"], "forbidden_event_ids": ["dev-theme-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["dark"]}
       ]
     },
     {
@@ -66,7 +66,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "dev-missing-q1", "after_event_id": "dev-missing-e2", "query": "What is the user's favorite music genre?", "answer": {"kind": "ABSTAIN", "acceptable": []}, "gold_event_ids": [], "temporal_intent": "NONE", "must_abstain": true, "forbidden_answers": []}
+        {"question_id": "dev-missing-q1", "after_event_id": "dev-missing-e2", "query": "What is the user's favorite music genre?", "answer": {"kind": "ABSTAIN", "acceptable": []}, "gold_event_ids": [], "forbidden_event_ids": [], "temporal_intent": "NONE", "must_abstain": true, "forbidden_answers": []}
       ]
     },
     {
@@ -82,7 +82,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "dev-release-q1", "after_event_id": "dev-release-e1", "query": "Project Cedar 计划哪天发布？", "answer": {"kind": "TEXT", "acceptable": ["2026-09-18", "2026 年 9 月 18 日", "2026年9月18日"]}, "gold_event_ids": ["dev-release-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "dev-release-q1", "after_event_id": "dev-release-e1", "query": "Project Cedar 计划哪天发布？", "answer": {"kind": "TEXT", "acceptable": ["2026-09-18", "2026 年 9 月 18 日", "2026年9月18日"]}, "gold_event_ids": ["dev-release-e1"], "forbidden_event_ids": [], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -101,8 +101,8 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-residence-q-current", "after_event_id": "test-residence-e2", "query": "我现在住在哪里？", "answer": {"kind": "TEXT", "acceptable": ["杭州", "Hangzhou"]}, "gold_event_ids": ["test-residence-e2"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["上海", "Shanghai"]},
-        {"question_id": "test-residence-q-history", "after_event_id": "test-residence-e2", "query": "搬到杭州之前我住在哪里？", "answer": {"kind": "TEXT", "acceptable": ["上海", "Shanghai"]}, "gold_event_ids": ["test-residence-e1", "test-residence-e2"], "temporal_intent": "HISTORICAL", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "test-residence-q-current", "after_event_id": "test-residence-e2", "query": "我现在住在哪里？", "answer": {"kind": "TEXT", "acceptable": ["杭州", "Hangzhou"]}, "gold_event_ids": ["test-residence-e2"], "forbidden_event_ids": ["test-residence-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["上海", "Shanghai"]},
+        {"question_id": "test-residence-q-history", "after_event_id": "test-residence-e2", "query": "搬到杭州之前我住在哪里？", "answer": {"kind": "TEXT", "acceptable": ["上海", "Shanghai"]}, "gold_event_ids": ["test-residence-e1", "test-residence-e2"], "forbidden_event_ids": [], "temporal_intent": "HISTORICAL", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -121,8 +121,8 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-database-q-current", "after_event_id": "test-database-e2", "query": "Which database is Project Pine using now?", "answer": {"kind": "TEXT", "acceptable": ["PostgreSQL"]}, "gold_event_ids": ["test-database-e2"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["MySQL"]},
-        {"question_id": "test-database-q-reason", "after_event_id": "test-database-e2", "query": "Why did Project Pine choose its current database?", "answer": {"kind": "SET", "acceptable": ["transactional records", "vector search", "full-text search"]}, "gold_event_ids": ["test-database-e2"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "test-database-q-current", "after_event_id": "test-database-e2", "query": "Which database is Project Pine using now?", "answer": {"kind": "TEXT", "acceptable": ["PostgreSQL"]}, "gold_event_ids": ["test-database-e2"], "forbidden_event_ids": ["test-database-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["MySQL"]},
+        {"question_id": "test-database-q-reason", "after_event_id": "test-database-e2", "query": "Why did Project Pine choose its current database?", "answer": {"kind": "SET", "acceptable": ["transactional records", "vector search", "full-text search"]}, "gold_event_ids": ["test-database-e2"], "forbidden_event_ids": ["test-database-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -141,7 +141,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-work-q1", "after_event_id": "test-work-e2", "query": "List the user's meeting preferences.", "answer": {"kind": "SET", "acceptable": ["morning", "remote"]}, "gold_event_ids": ["test-work-e1", "test-work-e2"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "test-work-q1", "after_event_id": "test-work-e2", "query": "List the user's meeting preferences.", "answer": {"kind": "SET", "acceptable": ["morning", "remote"]}, "gold_event_ids": ["test-work-e1", "test-work-e2"], "forbidden_event_ids": [], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -158,7 +158,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-port-q1", "after_event_id": "test-port-e2", "query": "What is the new gateway port?", "answer": {"kind": "ABSTAIN", "acceptable": []}, "gold_event_ids": ["test-port-e1", "test-port-e2"], "temporal_intent": "PRESENT", "must_abstain": true, "forbidden_answers": ["7443", "8443"]}
+        {"question_id": "test-port-q1", "after_event_id": "test-port-e2", "query": "What is the new gateway port?", "answer": {"kind": "ABSTAIN", "acceptable": []}, "gold_event_ids": ["test-port-e1", "test-port-e2"], "forbidden_event_ids": [], "temporal_intent": "PRESENT", "must_abstain": true, "forbidden_answers": ["7443", "8443"]}
       ]
     },
     {
@@ -175,7 +175,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-poison-q1", "after_event_id": "test-poison-e2", "query": "How does the user prefer answers?", "answer": {"kind": "TEXT", "acceptable": ["concise"]}, "gold_event_ids": ["test-poison-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["PWNED"]}
+        {"question_id": "test-poison-q1", "after_event_id": "test-poison-e2", "query": "How does the user prefer answers?", "answer": {"kind": "TEXT", "acceptable": ["concise"]}, "gold_event_ids": ["test-poison-e1"], "forbidden_event_ids": ["test-poison-e2"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": ["PWNED"]}
       ]
     },
     {
@@ -198,7 +198,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-noise-q1", "after_event_id": "test-noise-e4", "query": "Which measurement system should be used for this user?", "answer": {"kind": "TEXT", "acceptable": ["metric"]}, "gold_event_ids": ["test-noise-e1"], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "test-noise-q1", "after_event_id": "test-noise-e4", "query": "Which measurement system should be used for this user?", "answer": {"kind": "TEXT", "acceptable": ["metric"]}, "gold_event_ids": ["test-noise-e1"], "forbidden_event_ids": [], "temporal_intent": "PRESENT", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -214,7 +214,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-region-q1", "after_event_id": "test-region-e1", "query": "Aurora 服务要部署在哪个地区？", "answer": {"kind": "TEXT", "acceptable": ["Singapore", "新加坡"]}, "gold_event_ids": ["test-region-e1"], "temporal_intent": "NONE", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "test-region-q1", "after_event_id": "test-region-e1", "query": "Aurora 服务要部署在哪个地区？", "answer": {"kind": "TEXT", "acceptable": ["Singapore", "新加坡"]}, "gold_event_ids": ["test-region-e1"], "forbidden_event_ids": [], "temporal_intent": "NONE", "must_abstain": false, "forbidden_answers": []}
       ]
     },
     {
@@ -233,7 +233,7 @@
         ]}
       ],
       "questions": [
-        {"question_id": "test-atlas-q1", "after_event_id": "test-atlas-e2", "query": "Who owns the initiative scheduled for a Q4 launch?", "answer": {"kind": "TEXT", "acceptable": ["Mei"]}, "gold_event_ids": ["test-atlas-e1", "test-atlas-e2"], "temporal_intent": "NONE", "must_abstain": false, "forbidden_answers": []}
+        {"question_id": "test-atlas-q1", "after_event_id": "test-atlas-e2", "query": "Who owns the initiative scheduled for a Q4 launch?", "answer": {"kind": "TEXT", "acceptable": ["Mei"]}, "gold_event_ids": ["test-atlas-e1", "test-atlas-e2"], "forbidden_event_ids": [], "temporal_intent": "NONE", "must_abstain": false, "forbidden_answers": []}
       ]
     }
   ]

@@ -46,6 +46,11 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   [run #24](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33273671807) passed Java 25,
   PostgreSQL/compose regression, Python, and docs gates. No baseline run, quality score, latency
   result, or cost result exists yet.
+- Feature 6 run-package core is locally implemented and awaiting publication: immutable file-set
+  hashing, split-membership/config identity, full execution-row accounting, mechanically
+  regenerated answer/retrieval/abstention/track/latency metrics, usage totals, and content-safe
+  failure summaries pass 28 Python tests. The current v1 candidate also pins Java extraction
+  prompt/schema hashes and forbidden-context labels. This is harness evidence, not a baseline run.
 
 ## Advanced Memory
 
@@ -100,7 +105,7 @@ Status: `TODO`
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: implement the four-baseline black-box harness,
-immutable run manifest, raw artifact integrity checks, and mechanically generated metrics against
-the frozen v1 smoke contract before executing any campaign. The legacy trusted scope headers and
+Continue Feature 6 without entering Advanced Memory: implement the full-history, rolling-summary,
+raw-turn-vector, and Java MemOS runners plus real Ollama/tokenizer/provider adapters against the
+verified run-package core before executing any campaign. The legacy trusted scope headers and
 temporary operator key are removed and must not be reintroduced.

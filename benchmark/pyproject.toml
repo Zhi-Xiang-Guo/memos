@@ -18,6 +18,7 @@ memos-retrieval-conformance-report = "memos_benchmark.retrieval_conformance_repo
 memos-temporal-conformance-report = "memos_benchmark.temporal_conformance_report:main"
 memos-write-policy-report = "memos_benchmark.write_policy_report:main"
 memos-dataset-verify = "memos_benchmark.dataset:main"
+memos-benchmark-verify = "memos_benchmark.artifacts:main"
 
 [build-system]
 requires = ["hatchling==1.27.0"]

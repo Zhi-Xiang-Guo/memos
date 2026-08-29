@@ -25,6 +25,24 @@ def _copy_dataset(tmp_path: Path) -> tuple[Path, dict[str, object], dict[str, ob
         )
     manifest["prompts"]["answer_file"] = "../prompts/v1/answer.txt"  # type: ignore[index]
     manifest["prompts"]["summary_file"] = "../prompts/v1/summary.txt"  # type: ignore[index]
+    source_extraction = (
+        Path(__file__).parents[2]
+        / "modules"
+        / "adapters"
+        / "src"
+        / "main"
+        / "resources"
+        / "providers"
+        / "openai-compatible"
+    )
+    for name in ("candidate-extraction-v1.txt", "memory-candidate-v1.schema.json"):
+        (target / name).write_text(
+            (source_extraction / name).read_text(encoding="utf-8"), encoding="utf-8"
+        )
+    manifest["prompts"]["extraction_file"] = "candidate-extraction-v1.txt"  # type: ignore[index]
+    manifest["prompts"]["extraction_schema_file"] = (  # type: ignore[index]
+        "memory-candidate-v1.schema.json"
+    )
     for name in ("LICENSE.txt", "NOTICE.md"):
         (target / name).write_text(
             (DATASET_DIR / name).read_text(encoding="utf-8"), encoding="utf-8"
@@ -74,6 +92,15 @@ def test_license_notice_drift_fails_closed(tmp_path: Path) -> None:
         load_dataset(manifest_path)
 
 
+def test_extraction_prompt_drift_fails_closed(tmp_path: Path) -> None:
+    target, manifest, cases = _copy_dataset(tmp_path)
+    manifest_path = _write_copy(target, manifest, cases)
+    (target / "candidate-extraction-v1.txt").write_text("changed prompt\n", encoding="utf-8")
+
+    with pytest.raises(BenchmarkDatasetError, match="prompts.extraction SHA-256 mismatch"):
+        load_dataset(manifest_path)
+
+
 def test_family_leakage_and_future_evidence_fail_closed(tmp_path: Path) -> None:
     target, manifest, cases = _copy_dataset(tmp_path)
     scenarios = cases["scenarios"]  # type: ignore[index]
@@ -86,7 +113,7 @@ def test_family_leakage_and_future_evidence_fail_closed(tmp_path: Path) -> None:
     scenario = cases["scenarios"][5]  # type: ignore[index]
     scenario["questions"][0]["after_event_id"] = scenario["sessions"][0]["events"][0]["event_id"]
     manifest_path = _write_copy(target, manifest, cases)
-    with pytest.raises(BenchmarkDatasetError, match="future/unknown evidence"):
+    with pytest.raises(BenchmarkDatasetError, match="future/unknown gold evidence"):
         load_dataset(manifest_path)
 
 

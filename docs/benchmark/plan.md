@@ -208,7 +208,8 @@ Hosted model aliases that can drift are called out explicitly; a date is not pro
 
 ## Harness artifacts
 
-Planned generated layout:
+The v1 immutable layout and verifier are implemented; the real runner that populates this layout
+is still in progress:
 
 ```text
 benchmark-artifacts/<run-id>/
@@ -221,13 +222,17 @@ benchmark-artifacts/<run-id>/
   costs.json
   metrics.json
   failures.md
+  integrity.json
 ```
 
 Only small, license-compatible artifacts are committed. Large/upstream datasets are fetched or referenced according to license.
 
 ## Integrity rules
 
-- `docs/benchmark/results.md` is generated or mechanically verified from `metrics.json` once tooling exists.
+- `metrics.json`, `costs.json`, and `failures.md` are mechanically regenerated from raw rows; the
+  result-table renderer remains pending.
+- `integrity.json` pins every raw and derived artifact; checksum updates alone cannot bypass the
+  independent regeneration checks.
 - Missing values render as `NOT RUN`, never zero.
 - Failed and excluded cases include an explicit reason and remain counted.
 - Manual corrections require a review log and do not overwrite raw outputs.

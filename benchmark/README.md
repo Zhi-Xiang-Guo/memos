@@ -12,7 +12,15 @@ uv run pytest
 uv run memos-benchmark --base-url http://localhost:8080
 uv run memos-dataset-verify \
   --manifest datasets/memos-assistant-smoke/v1/manifest.json
+uv run memos-benchmark-verify \
+  --run-dir ../benchmark-artifacts/<run-id> \
+  --dataset-manifest datasets/memos-assistant-smoke/v1/manifest.json
 ```
 
 No paid model or provider credential is required. Feature 6 uses the versioned smoke dataset and
 an explicitly verified local Ollama model path before any external benchmark campaign.
+
+The run-package verifier rejects dirty-worktree manifests, dataset/model/prompt/config drift,
+missing baseline-question-repetition rows, artifact hash changes, manually edited metrics or usage
+totals, and failure summaries that differ from raw status rows. The real four-baseline runner is
+still under Feature 6 construction; a verifier command is not a benchmark result.

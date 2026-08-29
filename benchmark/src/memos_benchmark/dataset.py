@@ -152,7 +152,7 @@ def _validate_prompt_hashes(manifest_path: Path, manifest: dict[str, Any]) -> No
     prompts = manifest["prompts"]
     if not isinstance(prompts, dict):
         raise BenchmarkDatasetError("prompts must be an object")
-    for name in ("answer", "summary"):
+    for name in ("extraction", "extraction_schema", "answer", "summary"):
         _validate_hashed_file(
             manifest_path,
             prompts.get(f"{name}_file"),
@@ -259,21 +259,34 @@ def _validate_scenario_content(
         if cutoff not in event_positions:
             raise BenchmarkDatasetError(f"question {question_id} cutoff is not in its scenario")
         _validate_answer(question_id, question)
-        gold = question.get("gold_event_ids")
-        if not isinstance(gold, list) or len(gold) != len(set(gold)):
-            raise BenchmarkDatasetError(f"question {question_id} has invalid gold_event_ids")
-        future = [
-            event_id
-            for event_id in gold
-            if event_id not in event_positions
-            or event_positions[event_id] > event_positions[cutoff]
-        ]
-        if future:
-            raise BenchmarkDatasetError(
-                f"question {question_id} references future/unknown evidence"
-            )
+        gold = _validate_event_ids(question_id, question, "gold_event_ids")
+        forbidden = _validate_event_ids(question_id, question, "forbidden_event_ids")
+        if set(gold) & set(forbidden):
+            raise BenchmarkDatasetError(f"question {question_id} gold/forbidden evidence overlaps")
+        for field, values in (("gold", gold), ("forbidden", forbidden)):
+            future = [
+                event_id
+                for event_id in values
+                if event_id not in event_positions
+                or event_positions[event_id] > event_positions[cutoff]
+            ]
+            if future:
+                raise BenchmarkDatasetError(
+                    f"question {question_id} references future/unknown {field} evidence"
+                )
     _require_unique(question_ids, f"scenario {scenario_id} question_id")
     return ordered_events, question_ids
+
+
+def _validate_event_ids(question_id: str, question: dict[str, Any], field: str) -> list[str]:
+    values = question.get(field)
+    if (
+        not isinstance(values, list)
+        or any(not isinstance(value, str) or not value for value in values)
+        or len(values) != len(set(values))
+    ):
+        raise BenchmarkDatasetError(f"question {question_id} has invalid {field}")
+    return values
 
 
 def _validate_event(scenario_id: str, event: Any) -> None:

@@ -1,9 +1,11 @@
 # Feature 6 - reproducible evaluation and evidence package
 
-Status: `DOING`. The product workload and first smoke contract are `DONE / PUBLISHED` through
-commit `4120144` and
-[GitHub Actions run #24](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33273671807). No
-four-baseline result has been published yet.
+Status: `DOING`. The initial product workload and smoke contract were published through commit
+`4120144` and
+[GitHub Actions run #24](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33273671807). The
+current v1 contract additionally pins Java extraction resources and forbidden-context labels; the
+run-package/metrics core is locally verified and awaiting publication. No four-baseline result has
+been published yet.
 
 ## Product workload
 
@@ -36,9 +38,10 @@ contains no real user records or credentials. Scenario families stay in one spli
 IDs are frozen, questions are withheld from the ingestion/extraction path, and gold evidence may
 not point past the declared question cutoff.
 
-The manifest pins the cases, answer/summary prompts, complete CC BY 4.0 license, and attribution
-notice with SHA-256 over UTF-8 text after LF normalization. The dataset license applies only to
-the files named in its notice; it does not imply a license for unrelated repository material.
+The manifest pins the cases, answer/summary prompts, Java extraction prompt/schema, complete CC BY
+4.0 license, and attribution notice with SHA-256 over UTF-8 text after LF normalization. The
+dataset license applies only to the files named in its notice; it does not imply a license for the
+Java extraction resources or unrelated repository material.
 
 The dataset covers simple and multi-session recall, preferences, updates, temporal questions,
 unresolved contradiction, multi-hop linking, abstention, noise retention, bilingual retrieval,
@@ -73,3 +76,29 @@ A Feature 6 result is eligible only when the verifier confirms:
 - a baseline-parity report and no inspection-driven edit to the frozen test split.
 
 Until that gate passes, `docs/benchmark/results.md` remains `NOT RUN`.
+
+## Implemented run-package core
+
+`memos_benchmark.artifacts` expands the frozen split into exactly one execution identity per
+baseline, question, and repetition. It creates a run directory only when the target does not
+exist, records a full Git SHA and dirty-worktree state, pins dataset/case/split membership hashes,
+hashes the comparison configuration, and writes an integrity manifest over every raw and derived
+artifact. A dirty worktree is recorded but remains ineligible.
+
+The package verifier requires the exact file set and rejects missing, duplicated, or unexpected
+execution rows. `FAILED` and `EXCLUDED` rows require a content-safe error class and remain in metric
+denominators. `metrics.json`, `costs.json`, and `failures.md` are independently regenerated from
+the raw rows; updating a checksum cannot legitimize a hand-edited derived result.
+
+The deterministic metrics currently include:
+
+- overall and per-track answer accuracy, with forbidden-answer leakage;
+- abstention precision/recall/F1;
+- Recall@K, complete recall, MRR, selected-evidence completeness, and context precision;
+- forbidden-context exposure for explicitly labeled stale or hostile events;
+- nearest-rank p50/p95/p99 total latency with sample counts;
+- attributable input/output/embedding tokens and model calls by baseline.
+
+Local-model monetary and energy cost remain `N/E`; the usage report emits `null`, not a fabricated
+zero-dollar claim. The runner, live provider calls, Java API ingestion/retrieval, storage readings,
+and final Markdown/table generation remain to be implemented before a smoke result is eligible.

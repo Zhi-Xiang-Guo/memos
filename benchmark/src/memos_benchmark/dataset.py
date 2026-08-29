@@ -152,7 +152,14 @@ def _validate_prompt_hashes(manifest_path: Path, manifest: dict[str, Any]) -> No
     prompts = manifest["prompts"]
     if not isinstance(prompts, dict):
         raise BenchmarkDatasetError("prompts must be an object")
-    for name in ("extraction", "extraction_schema", "answer", "summary"):
+    for name in (
+        "extraction",
+        "extraction_schema",
+        "answer",
+        "answer_schema",
+        "summary",
+        "summary_schema",
+    ):
         _validate_hashed_file(
             manifest_path,
             prompts.get(f"{name}_file"),

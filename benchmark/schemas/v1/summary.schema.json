@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["facts"],
+  "properties": {
+    "facts": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["content", "status", "time_qualifier", "evidence_ids"],
+        "properties": {
+          "content": {"type": "string", "minLength": 1, "maxLength": 2048},
+          "status": {"enum": ["CURRENT", "HISTORICAL", "CONFLICTED"]},
+          "time_qualifier": {"type": ["string", "null"], "maxLength": 256},
+          "evidence_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {"type": "string", "minLength": 1, "maxLength": 200}
+          }
+        }
+      }
+    }
+  }
+}

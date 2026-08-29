@@ -16,10 +16,14 @@ def test_perfect_dev_rows_produce_deterministic_metrics() -> None:
     for baseline in dataset_manifest["baselines"]:
         result = metrics["baselines"][baseline]
         assert result["answer"]["accuracy"] == 1.0
-        assert result["retrieval"]["recall_at_k"] == 1.0
-        assert result["retrieval"]["mrr"] == 1.0
-        assert result["retrieval"]["context_precision"] == 1.0
-        assert result["retrieval"]["forbidden_context_exposure_rate"] == 0.0
+        if baseline in {"raw_turn_vector", "memos"}:
+            assert result["retrieval"]["recall_at_k"] == 1.0
+            assert result["retrieval"]["mrr"] == 1.0
+        else:
+            assert result["retrieval"]["recall_at_k"] is None
+            assert result["retrieval"]["mrr"] is None
+        assert result["context"]["context_precision"] == 1.0
+        assert result["context"]["forbidden_context_exposure_rate"] == 0.0
         assert result["status"] == {"EXCLUDED": 0, "FAILED": 0, "SUCCESS": 3}
         assert result["answer_by_track"]["temporal"]["accuracy"] == 1.0
     assert metrics["report_kind"] == "SMOKE"
@@ -83,10 +87,11 @@ def test_failures_and_forbidden_answers_remain_in_denominators() -> None:
     assert result["answer"]["accuracy"] == 0.333333
     assert result["answer"]["forbidden_leakage_rate"] == 0.333333
     assert result["abstention"]["false_negative"] == 1
-    assert result["retrieval"]["eligible"] == 2
-    assert result["retrieval"]["recall_at_k"] == 0.5
-    assert result["retrieval"]["context_precision"] == 0.5
-    assert result["retrieval"]["forbidden_context_exposure_rate"] == 1.0
+    assert result["retrieval"]["eligible"] == 0
+    assert result["retrieval"]["recall_at_k"] is None
+    assert result["context"]["eligible"] == 2
+    assert result["context"]["context_precision"] == 0.5
+    assert result["context"]["forbidden_context_exposure_rate"] == 1.0
 
 
 def test_missing_execution_row_cannot_be_silently_excluded() -> None:

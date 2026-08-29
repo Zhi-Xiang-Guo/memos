@@ -25,8 +25,8 @@ model IDs:
 
 | Role | Model tag | Observed Ollama model ID |
 |---|---|---|
-| extraction, summary, answer | `qwen3:4b` | `359d7dd4bcda` |
-| embedding | `qwen3-embedding:0.6b` | `ac6da0dfba84` |
+| extraction, summary, answer | `qwen3:4b` | `359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7` |
+| embedding | `qwen3-embedding:0.6b` | `ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d` |
 
 The first environment observation used Ollama `0.33.2`. A run remains ineligible if its manifest
 does not record the actual version and IDs or if they differ from the selected experiment
@@ -107,3 +107,29 @@ and final Markdown/table generation remain to be implemented before a smoke resu
 Publication verification for this core passed Java 25, PostgreSQL/compose regression, a clean
 Python 3.14.7 install with 28 tests, and the Markdown gate in run `#26`. These gates establish
 implementation integrity only; they contain no model-dependent answer or retrieval score.
+
+## Candidate provider and non-MemOS baseline primitives
+
+The current Feature 6 candidate adds a bounded Ollama client that verifies the server
+version, full model digests, declared capabilities, and structured chat/embedding response shapes.
+It records wall latency, provider total/load duration, input/output/embedding tokens, and model
+calls without retaining provider error bodies.
+
+The candidate also implements the three non-MemOS context builders. Full history selects recent
+complete source events and restores chronological rendering; rolling summary updates once per
+session, rejects provenance outside the evidence observed at that point, and adds only the
+declared recent-event allowance; raw-turn vector embeds source turns without importing MemOS
+truth-state policy. Every final rendered context, including its envelope and separators, is
+measured through the pinned embedding-model tokenizer before it is admitted under the shared
+evidence budget. These are runner primitives and do not constitute an executed baseline result.
+
+### Provider-contract spike
+
+Purpose: verify that the client rejects model drift and that the selected embedding response can
+supply the exact dimension and tokenizer accounting needed by the Java migration and runner.
+
+On 2026-08-30, a direct repository-local probe against the declared Ollama endpoint reconfirmed
+server `0.33.2`, both full model digests, the required completion/embedding capabilities, and a
+1024-dimensional `qwen3-embedding:0.6b` response. The one-input probe reported seven embedding
+tokens plus provider total/load durations. This is a contract observation from one call, not a
+warm/cold latency sample or benchmark result; no quality or SLO claim follows from it.

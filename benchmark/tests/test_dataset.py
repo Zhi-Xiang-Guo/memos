@@ -25,6 +25,15 @@ def _copy_dataset(tmp_path: Path) -> tuple[Path, dict[str, object], dict[str, ob
         )
     manifest["prompts"]["answer_file"] = "../prompts/v1/answer.txt"  # type: ignore[index]
     manifest["prompts"]["summary_file"] = "../prompts/v1/summary.txt"  # type: ignore[index]
+    schemas = tmp_path / "schemas" / "v1"
+    schemas.mkdir(parents=True)
+    source_schemas = Path(__file__).parents[1] / "schemas" / "v1"
+    for name in ("answer.schema.json", "summary.schema.json"):
+        (schemas / name).write_text(
+            (source_schemas / name).read_text(encoding="utf-8"), encoding="utf-8"
+        )
+    manifest["prompts"]["answer_schema_file"] = "../schemas/v1/answer.schema.json"  # type: ignore[index]
+    manifest["prompts"]["summary_schema_file"] = "../schemas/v1/summary.schema.json"  # type: ignore[index]
     source_extraction = (
         Path(__file__).parents[2]
         / "modules"

@@ -50,14 +50,18 @@
     "extraction_schema_sha256": "5720c64894d28719cfbdf6cd58f59a81ad1b4f1463fc0627badd3c35da103531",
     "answer_file": "../../../prompts/v1/answer.txt",
     "answer_sha256": "7686f1a41e6abca1253775248a36b72db8b032c5058e48ceab2dd6b5079bf50b",
+    "answer_schema_file": "../../../schemas/v1/answer.schema.json",
+    "answer_schema_sha256": "3a8b925b8e17978a0348316f94965d3069ed494431fc3e04fad13e57409873d8",
     "summary_file": "../../../prompts/v1/summary.txt",
-    "summary_sha256": "bee4171f10e480f286ac38662c15063860b07a3b20b693d1f5f783c0a23729aa"
+    "summary_sha256": "bee4171f10e480f286ac38662c15063860b07a3b20b693d1f5f783c0a23729aa",
+    "summary_schema_file": "../../../schemas/v1/summary.schema.json",
+    "summary_schema_sha256": "235a9454298b2ed2ec7bb44cfd5c82913c19abea602d3c628f0be0b11a1d1fcc"
   },
   "selected_models": {
-    "extractor": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcda"},
-    "summary": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcda"},
-    "answer": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcda"},
-    "embedding": {"tag": "qwen3-embedding:0.6b", "ollama_model_id": "ac6da0dfba84"},
+    "extractor": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7"},
+    "summary": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7"},
+    "answer": {"tag": "qwen3:4b", "ollama_model_id": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7"},
+    "embedding": {"tag": "qwen3-embedding:0.6b", "ollama_model_id": "ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d"},
     "reranker": null,
     "judge": null
   },

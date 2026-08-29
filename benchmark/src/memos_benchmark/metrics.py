@@ -265,6 +265,7 @@ def generate_metrics(
         status_counts: Counter[str] = Counter()
         answer_evaluations: list[dict[str, bool]] = []
         retrieval_evaluations: list[dict[str, Any]] = []
+        context_evaluations: list[dict[str, Any]] = []
         expected_abstention: list[bool] = []
         predicted_abstention: list[bool] = []
         baseline_timings: list[dict[str, Any]] = []
@@ -293,30 +294,33 @@ def generate_metrics(
             if retrieval_row.get("status") == "SUCCESS":
                 evaluation = _retrieval_evaluation(question, retrieval_row)
                 if evaluation is not None:
-                    retrieval_evaluations.append(evaluation)
+                    context_evaluations.append(evaluation)
+                    if baseline in {"raw_turn_vector", "memos"}:
+                        retrieval_evaluations.append(evaluation)
             elif question["gold_event_ids"]:
-                retrieval_evaluations.append(
-                    {
-                        "hit": False,
-                        "complete": False,
-                        "reciprocal_rank": 0.0,
-                        "selected_complete": False,
-                        "selected_relevant": 0,
-                        "selected_total": 0,
-                        "forbidden_labeled": bool(question["forbidden_event_ids"]),
-                        "forbidden_exposure": False,
-                    }
-                )
+                failed_evaluation = {
+                    "hit": False,
+                    "complete": False,
+                    "reciprocal_rank": 0.0,
+                    "selected_complete": False,
+                    "selected_relevant": 0,
+                    "selected_total": 0,
+                    "forbidden_labeled": bool(question["forbidden_event_ids"]),
+                    "forbidden_exposure": False,
+                }
+                context_evaluations.append(failed_evaluation)
+                if baseline in {"raw_turn_vector", "memos"}:
+                    retrieval_evaluations.append(failed_evaluation)
 
         correct = sum(value["correct"] for value in answer_evaluations)
         forbidden = sum(value["forbidden_leakage"] for value in answer_evaluations)
         citation_valid = sum(value["citation_valid"] for value in answer_evaluations)
         citation_complete = sum(value["citation_complete"] for value in answer_evaluations)
         reciprocal_rank = sum(value["reciprocal_rank"] for value in retrieval_evaluations)
-        selected_relevant = sum(value["selected_relevant"] for value in retrieval_evaluations)
-        selected_total = sum(value["selected_total"] for value in retrieval_evaluations)
-        forbidden_labeled = sum(value["forbidden_labeled"] for value in retrieval_evaluations)
-        forbidden_exposure = sum(value["forbidden_exposure"] for value in retrieval_evaluations)
+        selected_relevant = sum(value["selected_relevant"] for value in context_evaluations)
+        selected_total = sum(value["selected_total"] for value in context_evaluations)
+        forbidden_labeled = sum(value["forbidden_labeled"] for value in context_evaluations)
+        forbidden_exposure = sum(value["forbidden_exposure"] for value in context_evaluations)
         by_baseline[baseline] = {
             "expected": len(keys),
             "status": {name: status_counts[name] for name in sorted(BASELINE_STATUS)},
@@ -352,6 +356,13 @@ def generate_metrics(
                     len(retrieval_evaluations),
                 ),
                 "mrr": _ratio(reciprocal_rank, len(retrieval_evaluations)),
+            },
+            "context": {
+                "eligible": len(context_evaluations),
+                "selected_complete_rate": _ratio(
+                    sum(value["selected_complete"] for value in context_evaluations),
+                    len(context_evaluations),
+                ),
                 "context_precision": _ratio(selected_relevant, selected_total),
                 "forbidden_context_labeled": forbidden_labeled,
                 "forbidden_context_exposure_rate": _ratio(forbidden_exposure, forbidden_labeled),

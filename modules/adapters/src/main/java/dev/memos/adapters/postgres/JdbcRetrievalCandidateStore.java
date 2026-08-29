@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Independent scoped candidate generators over the rebuildable PostgreSQL projection. */
 public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStore {
+  private static final int DEFAULT_EMBEDDING_DIMENSIONS = 1_024;
   private static final String COLUMNS =
       """
       projection.memory_id, projection.version_id, projection.memory_type,
@@ -50,9 +51,20 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
       """;
 
   private final JdbcTemplate jdbc;
+  private final int embeddingDimensions;
+  private final String vectorType;
 
   public JdbcRetrievalCandidateStore(JdbcTemplate jdbc) {
+    this(jdbc, DEFAULT_EMBEDDING_DIMENSIONS);
+  }
+
+  public JdbcRetrievalCandidateStore(JdbcTemplate jdbc, int embeddingDimensions) {
     this.jdbc = Objects.requireNonNull(jdbc, "jdbc must not be null");
+    if (embeddingDimensions < 1 || embeddingDimensions > 2_000) {
+      throw new IllegalArgumentException("embeddingDimensions must be in [1,2000]");
+    }
+    this.embeddingDimensions = embeddingDimensions;
+    this.vectorType = "vector(" + embeddingDimensions + ")";
   }
 
   @Override
@@ -75,20 +87,32 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
   }
 
   private List<ComponentCandidate> vector(CandidateStoreQuery query) {
+    if (query.embedding().dimensions() != embeddingDimensions) {
+      throw new IllegalArgumentException("retrieval embedding dimension mismatch");
+    }
     String vector = vector(query.embedding().vector());
     return jdbc.query(
         "SELECT "
             + COLUMNS
+            + ", 1.0 - ((projection.embedding::"
+            + vectorType
+            + ") <=> ?::"
+            + vectorType
+            + ") AS raw_score\n"
             + """
-            , 1.0 - (projection.embedding <=> ?::vector) AS raw_score
               FROM memos.memory_search_projection projection
              WHERE projection.tenant_id = ? AND projection.user_id = ?
                AND projection.agent_id = ?
                AND projection.embedding_model_version = ?
+               AND projection.embedding_dimensions = ?
             """
             + VISIBILITY
+            + " ORDER BY (projection.embedding::"
+            + vectorType
+            + ") <=> ?::"
+            + vectorType
+            + ", projection.version_id\n"
             + """
-             ORDER BY projection.embedding <=> ?::vector, projection.version_id
              LIMIT ?
             """,
         (result, row) -> candidate(result, CandidateSource.VECTOR, row + 1),
@@ -97,6 +121,7 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
         query.scope().userId(),
         query.scope().agentId(),
         query.embedding().modelVersion(),
+        embeddingDimensions,
         query.intent().temporal().name(),
         timestamp(query.targetTime()),
         timestamp(query.targetTime()),

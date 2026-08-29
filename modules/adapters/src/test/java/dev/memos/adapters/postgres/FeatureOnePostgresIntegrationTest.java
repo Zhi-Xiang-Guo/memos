@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.memos.adapters.json.JacksonPayloadCanonicalizer;
+import dev.memos.adapters.system.ScheduledJobLeaseHeartbeat;
 import dev.memos.adapters.system.UuidIngestionIdentifierGenerator;
 import dev.memos.governance.MemoryScope;
 import dev.memos.ingestion.ActorType;
@@ -22,12 +23,15 @@ import dev.memos.materialization.JobErrorClass;
 import dev.memos.materialization.JobHandlingException;
 import dev.memos.materialization.JobState;
 import dev.memos.materialization.JobType;
+import dev.memos.materialization.LeaseFence;
+import dev.memos.materialization.LeaseToken;
 import dev.memos.materialization.MaterializationJobHandler;
 import dev.memos.materialization.OutboxWorkerService;
 import dev.memos.materialization.OutboxWorkerTelemetry;
 import dev.memos.materialization.ReplayResult;
 import dev.memos.materialization.SourceMaterializationState;
 import dev.memos.materialization.WorkerId;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,7 +40,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
@@ -233,6 +239,8 @@ class FeatureOnePostgresIntegrationTest {
     assertThat(second.leaseToken()).isNotEqualTo(first.leaseToken());
     assertThat(jobStore.markSucceeded(first.fence(), Instant.now()))
         .isEqualTo(FencedUpdateResult.LEASE_LOST);
+    assertThat(jobStore.renewLease(first.fence(), Duration.ofMinutes(1)))
+        .isEqualTo(FencedUpdateResult.LEASE_LOST);
     assertThat(
             jobStore.scheduleRetry(
                 first.fence(), new JobErrorClass("STALE"), Instant.now(), Instant.now()))
@@ -240,6 +248,92 @@ class FeatureOnePostgresIntegrationTest {
     assertThat(jobStore.markSucceeded(second.fence(), Instant.now()))
         .isEqualTo(FencedUpdateResult.UPDATED);
     assertThat(count("memos.materialization_result")).isEqualTo(1);
+  }
+
+  @Test
+  void renewsOnlyAnUnexpiredMatchingLeaseUsingDatabaseTime() {
+    ingestionService().ingest(command("tenant-a", "source-a", "key-a", "{\"content\":\"x\"}"));
+    var claimed =
+        jobStore
+            .claim(
+                new ClaimRequest(
+                    new WorkerId("worker-a"), 1, Instant.now(), Duration.ofSeconds(30)))
+            .getFirst();
+    Instant originalExpiry =
+        jdbc.queryForObject(
+                "SELECT lease_expires_at FROM memos.outbox_job WHERE job_id = ?",
+                Timestamp.class,
+                claimed.jobId().value())
+            .toInstant();
+
+    assertThat(jobStore.renewLease(claimed.fence(), Duration.ofMinutes(2)))
+        .isEqualTo(FencedUpdateResult.UPDATED);
+    Instant renewedExpiry =
+        jdbc.queryForObject(
+                "SELECT lease_expires_at FROM memos.outbox_job WHERE job_id = ?",
+                Timestamp.class,
+                claimed.jobId().value())
+            .toInstant();
+    assertThat(renewedExpiry).isAfter(originalExpiry);
+
+    LeaseFence staleToken =
+        new LeaseFence(claimed.jobId(), claimed.leaseOwner(), new LeaseToken(UUID.randomUUID()));
+    assertThat(jobStore.renewLease(staleToken, Duration.ofMinutes(2)))
+        .isEqualTo(FencedUpdateResult.LEASE_LOST);
+    expireLease(claimed.jobId().value());
+    assertThat(jobStore.renewLease(claimed.fence(), Duration.ofMinutes(2)))
+        .isEqualTo(FencedUpdateResult.LEASE_LOST);
+  }
+
+  @Test
+  void heartbeatPreventsReclaimWhenHandlerExceedsOriginalLease() throws Exception {
+    ingestionService().ingest(command("tenant-a", "source-a", "key-a", "{\"content\":\"x\"}"));
+    Duration leaseDuration = Duration.ofMillis(300);
+    CountDownLatch handlerStarted = new CountDownLatch(1);
+    CountDownLatch releaseHandler = new CountDownLatch(1);
+    MaterializationJobHandler slowHandler =
+        job -> {
+          handlerStarted.countDown();
+          try {
+            if (!releaseHandler.await(5, TimeUnit.SECONDS)) {
+              throw new IllegalStateException("test handler release timed out");
+            }
+          } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("test handler interrupted", exception);
+          }
+          return dev.memos.materialization.JobHandlingResult.WORK_DONE_NEEDS_COMPLETION;
+        };
+
+    try (var heartbeat = new ScheduledJobLeaseHeartbeat(jobStore, OutboxWorkerTelemetry.NOOP);
+        var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      OutboxWorkerService worker =
+          new OutboxWorkerService(
+              Clock.systemUTC(),
+              jobStore,
+              slowHandler,
+              new ExponentialBackoffPolicy(Duration.ofMillis(1), Duration.ofSeconds(1)),
+              OutboxWorkerTelemetry.NOOP,
+              new WorkerId("worker-a"),
+              1,
+              leaseDuration,
+              java.util.Set.of(JobType.MATERIALIZE_SOURCE),
+              heartbeat);
+      var run = executor.submit(worker::runOnce);
+      assertThat(handlerStarted.await(2, TimeUnit.SECONDS)).isTrue();
+      try {
+        Thread.sleep(Duration.ofMillis(700));
+        assertThat(
+                jobStore.claim(
+                    new ClaimRequest(new WorkerId("worker-b"), 1, Instant.now(), leaseDuration)))
+            .isEmpty();
+      } finally {
+        releaseHandler.countDown();
+      }
+
+      assertThat(run.get(2, TimeUnit.SECONDS).succeeded()).isEqualTo(1);
+      assertThat(count("memos.materialization_result")).isEqualTo(1);
+    }
   }
 
   @Test

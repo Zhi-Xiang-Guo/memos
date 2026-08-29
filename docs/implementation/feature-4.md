@@ -34,7 +34,7 @@ calibrated learned fusion, external benchmark scores, or capacity claims. Those 
 
 PostgreSQL assertion versions, transitions, current state, and provenance remain authoritative.
 `memory_search_projection` stores only rebuildable query material: scoped identity, truth status,
-normalized content, valid time, source IDs, a generated `tsvector`, a fixed 64-dimensional vector,
+normalized content, valid time, source IDs, a generated `tsvector`, a configured provider vector,
 provider/policy versions, transition sequence, and projection time.
 
 The worker loads one scope-bound snapshot and releases the database transaction before embedding.
@@ -53,6 +53,33 @@ the latest authoritative transition sequence with the snapshot watermark.
 Deleting and reinserting one lineage occurs in the same transaction. A worker restart or stale job
 cannot overwrite a later transition because the database-time lease and transition watermark are
 both checked at commit.
+
+### Feature 6 embedding compatibility hardening
+
+The current Feature 6 candidate replaces the fixed 64-dimensional fake-only storage contract with
+one configured embedding adapter shared by projection writes and retrieval queries. The
+credential-free default remains a deterministic hashing fake, now at 1024 dimensions; it still
+validates plumbing only. The optional Ollama path uses JDK `HttpClient`, performs no provider call
+inside a database transaction, and fails startup unless `/api/tags` and `/api/show` confirm the
+configured model tag, full lowercase SHA-256 digest, `embedding` capability, and embedding length.
+`/api/embed` is bounded by request timeout and response bytes and must return the configured tag,
+exactly one finite vector of the expected dimension, and a nonnegative whole token count. Raw
+provider response bodies and memory content are excluded from durable error classes.
+
+Migration V007 removes the column's fixed vector typmod while retaining a check that the stored
+vector length equals `embedding_dimensions` in the pgvector HNSW-supported range `1..2000`. The
+selected MVP path has a partial 1024-dimensional cosine HNSW expression index. Other dimensions
+are correctness-compatible but require an explicit index migration before claiming ANN
+performance. Retrieval casts to the configured `vector(N)` and filters both model version and
+dimension.
+
+Legacy 64-dimensional rows remain rebuildable projections and are not rewritten into invented
+1024-dimensional values. Pending/retry jobs for the old deterministic model are moved to the new
+fake model, while an in-flight rolling-deployment job remains protected by its existing lease.
+Because unchanged lineages do not automatically receive a new projection job, switching model
+versions requires an explicit reconciliation/reindex operation before completeness can be
+claimed. Until that operation exists, the model/dimension filter intentionally hides stale
+projections rather than mixing incompatible vectors.
 
 ## Retrieval policy
 
@@ -134,6 +161,7 @@ benchmark results.
 | Gate | Target evidence | State |
 |---|---|---|
 | Projection handler | Embed outside transaction; commit/empty/model-drift behavior | `PASS` — 3 unit tests |
+| Configurable real embedding candidate | Digest/capability/dimension pinning, strict response, timeout/status mapping, content-safe failure, 1024 migration | `PASS` — focused local tests; PostgreSQL/CI publication pending |
 | Fusion and visibility | Independent sources, RRF, present truth policy, vector-only, gate | `PASS` — 5 unit tests |
 | Reranker fallback | Invalid candidate identity falls back without partial reorder | `PASS` |
 | Context safety | Injection escaping, budget, provenance, lineage diversity | `PASS` — 2 unit tests |

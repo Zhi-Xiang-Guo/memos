@@ -216,7 +216,11 @@ local Ollama model IDs. Its bounded Ollama client, strict answer/summary schemas
 non-MemOS baseline context builders are published. A bounded authenticated MemOS client now waits
 on observable source-level materialization state instead of sleeping for a guessed duration; that
 path is remotely verified through commit `2bf7689` and GitHub Actions run `#30`. The unified runner
-and every baseline score remain incomplete. See the
+and every baseline score remain incomplete. A locally verified candidate now connects Java
+projection/retrieval to the same digest-pinned 1024-dimensional Ollama model contract and renews
+leases across slow provider calls and serial claimed batches; PostgreSQL/compose CI publication is
+still pending, and populated deployments still need an explicit model-version projection
+reconciliation path. See the
 [Feature 6 implementation note](docs/implementation/feature-6.md).
 
 ## Design principles

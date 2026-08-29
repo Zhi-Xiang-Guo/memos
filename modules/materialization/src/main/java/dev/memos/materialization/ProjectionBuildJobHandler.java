@@ -28,9 +28,16 @@ public final class ProjectionBuildJobHandler implements MaterializationJobHandle
         store.load(job).orElseThrow(() -> permanent("MISSING_PROJECTION_SOURCE"));
     List<ProjectedVersionBuild> projected = new ArrayList<>(plan.items().size());
     for (ProjectionSourceItem item : plan.items()) {
-      ProjectionEmbedding embedding =
-          embeddings.embed(
-              new ProjectionEmbeddingRequest(item.normalizedContent(), job.modelVersion()));
+      ProjectionEmbedding embedding;
+      try {
+        embedding =
+            embeddings.embed(
+                new ProjectionEmbeddingRequest(item.normalizedContent(), job.modelVersion()));
+      } catch (ProjectionEmbeddingProviderException exception) {
+        throw exception.kind() == JobFailureKind.TRANSIENT
+            ? JobHandlingException.transientFailure(exception.errorClass().value())
+            : JobHandlingException.permanentFailure(exception.errorClass().value());
+      }
       if (!embedding.modelVersion().equals(job.modelVersion())) {
         throw JobHandlingException.permanentFailure("EMBEDDING_MODEL_VERSION_MISMATCH");
       }

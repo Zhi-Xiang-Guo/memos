@@ -35,12 +35,20 @@ memos:
     lease-duration: 30s
     backoff-base: 1s
     backoff-cap: 60s
+  embedding:
+    provider: ${MEMOS_EMBEDDING_PROVIDER:fake}
+    base-url: ${MEMOS_EMBEDDING_BASE_URL:}
+    model-tag: ${MEMOS_EMBEDDING_MODEL_TAG:}
+    model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-1024-v1}
+    model-digest: ${MEMOS_EMBEDDING_MODEL_DIGEST:}
+    dimensions: ${MEMOS_EMBEDDING_DIMENSIONS:1024}
+    timeout: ${MEMOS_EMBEDDING_TIMEOUT:300s}
   temporal:
     projection-policy-version: ${MEMOS_PROJECTION_POLICY_VERSION:projection-v1}
-    projection-model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-64-v1}
+    projection-model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-1024-v1}
     set-valued-predicates: ${MEMOS_SET_VALUED_PREDICATES:preference.coffee,preference.cuisine}
   retrieval:
-    embedding-model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-64-v1}
+    embedding-model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-1024-v1}
     reranker-model-version: ${MEMOS_RERANKER_MODEL_VERSION:pass-through-v1}
     reranking-enabled: ${MEMOS_RERANKING_ENABLED:false}
     reranker-timeout: ${MEMOS_RERANKER_TIMEOUT:150ms}

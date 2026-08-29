@@ -17,6 +17,7 @@ import dev.memos.materialization.MaterializationJobStore;
 import dev.memos.materialization.ReplayResult;
 import dev.memos.materialization.SemanticJobKey;
 import dev.memos.materialization.SourceMaterialization;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -104,6 +105,11 @@ class SourceMaterializationControllerTest {
     @Override
     public List<ClaimedJob> claim(ClaimRequest request) {
       return List.of();
+    }
+
+    @Override
+    public FencedUpdateResult renewLease(LeaseFence fence, Duration leaseDuration) {
+      return FencedUpdateResult.LEASE_LOST;
     }
 
     @Override

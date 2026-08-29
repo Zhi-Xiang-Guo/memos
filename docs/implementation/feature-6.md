@@ -131,6 +131,53 @@ evidence budget. These are runner primitives and do not constitute an executed b
 Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
 documentation gates in GitHub Actions run `#28`.
 
+## Java Ollama embedding and long-call lease safety candidate
+
+The current local candidate connects the Java MemOS projection and retrieval paths to the same
+digest-pinned Ollama embedding contract used by the Python baseline primitives. It keeps the
+deterministic 1024-dimensional fake as the credential-free default. A real environment must set
+the same values for both API and worker, for example:
+
+```text
+MEMOS_EMBEDDING_PROVIDER=ollama
+MEMOS_EMBEDDING_BASE_URL=<reachable-ollama-base-url>
+MEMOS_EMBEDDING_MODEL_TAG=qwen3-embedding:0.6b
+MEMOS_EMBEDDING_MODEL_VERSION=sha256:ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d
+MEMOS_EMBEDDING_MODEL_DIGEST=ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d
+MEMOS_EMBEDDING_DIMENSIONS=1024
+MEMOS_EMBEDDING_TIMEOUT=300s
+```
+
+The base URL is deployment-specific and therefore has no repository-wide real-provider default.
+The immutable model version is a MemOS projection identity; the adapter separately verifies the
+Ollama tag and full observed digest. Startup rejects missing/drifted models, capability mismatch,
+and dimension mismatch. Embedding responses reject model drift, malformed or oversized JSON,
+multiple vectors, non-finite values, wrong dimensions, and invalid token counts. Timeouts,
+transport errors, HTTP 429, and 5xx responses become transient projection failures; 4xx,
+configuration/model drift, malformed responses, and dimension failures become permanent. Error
+classes omit provider bodies and memory content.
+
+The storage migration accepts retained vectors with dimensions `1..2000`, enforces equality
+between declared and actual dimensions, and creates the selected 1024-dimensional partial HNSW
+index. Existing 64-dimensional rows are retained as rebuildable state but excluded by current
+model/dimension filters. A model-version reconciliation command is still missing, so changing an
+already populated deployment's embedding model is not yet operationally complete.
+
+Because one projection job may make several provider calls and the worker claims a serial batch,
+the candidate also renews every claimed lease from the moment the batch is returned. Renewal uses
+PostgreSQL time and the existing job/owner/token/unexpired fence at `lease-duration / 3`; the
+worker stops and joins renewal before any separate terminal update. Low-cardinality counters
+record renewal success, observed loss, and renewal errors. Existing commit fences remain the
+authority under crash or reclaim races.
+
+Focused local verification currently covers strict Ollama requests/responses, digest/capability/
+dimension drift, timeout and safe failure classification, provider-to-job retry mapping, batch
+heartbeat ordering, stop-before-finalize, and Java 25 compilation. PostgreSQL migration,
+wrong-dimension rejection, valid/stale renewal, and a handler exceeding its original lease are
+implemented as Testcontainers cases but await remote CI because this host has no Docker runtime.
+This is implementation evidence, not a provider latency, retrieval-quality, freshness, or scale
+result.
+
 ## Observable MemOS settlement
 
 The published implementation adds an authenticated

@@ -101,7 +101,7 @@ public final class JdbcTemporalMemoryAuthority
 
   public JdbcTemporalMemoryAuthority(
       JdbcTemplate jdbc, TransactionTemplate transactions, TemporalTransitionPlanner planner) {
-    this(jdbc, transactions, planner, "projection-v1", "deterministic-hashing-64-v1");
+    this(jdbc, transactions, planner, "projection-v1", "deterministic-hashing-1024-v1");
   }
 
   public JdbcTemporalMemoryAuthority(

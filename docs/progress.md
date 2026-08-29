@@ -71,6 +71,13 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   PostgreSQL integration, Python, docs, and the complete compose smoke. This is
   harness/freshness-mechanism evidence, not a measured freshness distribution or SLO; the unified
   runner remains incomplete.
+- Feature 6's Java Ollama embedding and long-call lease-safety candidate is `DONE / LOCAL
+  VERIFIED`: API and worker share one digest/capability/dimension-pinned adapter, V007 supports a
+  checked 1024-dimensional provider projection, provider failures map to durable retry/dead
+  semantics, and PostgreSQL-time fenced heartbeats cover every serially claimed batch item. Focused
+  unit tests and Java 25 compilation pass locally. PostgreSQL migration/renewal/timing cases require
+  remote CI because Docker is unavailable here; no publication, model-quality, latency, freshness,
+  or scale claim exists yet. Model-version projection reconciliation remains unresolved.
 
 ## Advanced Memory
 
@@ -125,7 +132,8 @@ Status: `TODO`
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: implement the Java Ollama embedding path and
-unified four-baseline runner against the verified run-package core before executing any campaign.
+Continue Feature 6 without entering Advanced Memory: publish and remotely verify the Java Ollama
+embedding/lease-safety candidate, then implement the unified four-baseline runner against the
+verified run-package core before executing any campaign.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.

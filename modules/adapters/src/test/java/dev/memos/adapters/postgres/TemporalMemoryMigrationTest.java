@@ -1219,7 +1219,7 @@ class TemporalMemoryMigrationTest {
             replay_count, next_attempt_at, payload_reference, lease_owner, lease_token,
             lease_expires_at, trace_id, created_at, updated_at
         ) VALUES (?, ?, ?, 'PROJECTION_BUILD', 'MEMORY_TRANSITION', ?, ?,
-                  'projection-v1', 'deterministic-hashing-64-v1', 'CLAIMED', 1, 3, 0,
+                  'projection-v1', 'deterministic-hashing-1024-v1', 'CLAIMED', 1, 3, 0,
                   NULL, ?, 'projection-worker', ?, ?, 'trace-projection', ?, ?)
         """,
         jobId,
@@ -1239,7 +1239,7 @@ class TemporalMemoryMigrationTest {
         fixture.sourceEventId(),
         new SemanticJobKey(semanticKey),
         "projection-v1",
-        "deterministic-hashing-64-v1",
+        "deterministic-hashing-1024-v1",
         1,
         3,
         new WorkerId("projection-worker"),
@@ -1256,7 +1256,7 @@ class TemporalMemoryMigrationTest {
                 new ProjectedVersionBuild(
                     item,
                     new ProjectionEmbedding(
-                        vector, "deterministic", "deterministic-hashing-64-v1", 4)))
+                        vector, "deterministic", "deterministic-hashing-1024-v1", 4)))
         .toList();
   }
 
@@ -1270,11 +1270,11 @@ class TemporalMemoryMigrationTest {
         "user-1",
         20,
         Set.of(CandidateSource.VECTOR, CandidateSource.LEXICAL, CandidateSource.STRUCTURED),
-        new EmbeddingResult(unitVector(), "deterministic", "deterministic-hashing-64-v1", 4));
+        new EmbeddingResult(unitVector(), "deterministic", "deterministic-hashing-1024-v1", 4));
   }
 
   private static List<Float> unitVector() {
-    List<Float> vector = new ArrayList<>(Collections.nCopies(64, 0.0f));
+    List<Float> vector = new ArrayList<>(Collections.nCopies(1_024, 0.0f));
     vector.set(0, 1.0f);
     return List.copyOf(vector);
   }

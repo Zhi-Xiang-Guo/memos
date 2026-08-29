@@ -1,6 +1,7 @@
 package dev.memos.materialization;
 
 import dev.memos.governance.MemoryScope;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -9,6 +10,8 @@ public interface MaterializationJobStore {
   int deadLetterExpiredExhaustedJobs(Instant now);
 
   List<ClaimedJob> claim(ClaimRequest request);
+
+  FencedUpdateResult renewLease(LeaseFence fence, Duration leaseDuration);
 
   FencedUpdateResult markSucceeded(LeaseFence fence, Instant completedAt);
 

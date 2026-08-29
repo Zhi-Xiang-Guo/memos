@@ -80,6 +80,43 @@ class ProjectionBuildJobHandlerTest {
     assertEquals("EMBEDDING_MODEL_VERSION_MISMATCH", exception.errorClass().value());
   }
 
+  @Test
+  void preservesProviderRetryClassificationForWorkerStateTransitions() {
+    assertProviderFailure(
+        ProjectionEmbeddingProviderException.transientFailure(
+            "OLLAMA_EMBEDDING_TIMEOUT", new RuntimeException("provider detail")),
+        JobFailureKind.TRANSIENT,
+        "OLLAMA_EMBEDDING_TIMEOUT");
+    assertProviderFailure(
+        ProjectionEmbeddingProviderException.permanentFailure(
+            "OLLAMA_EMBEDDING_MODEL_DRIFT", new RuntimeException("provider detail")),
+        JobFailureKind.PERMANENT,
+        "OLLAMA_EMBEDDING_MODEL_DRIFT");
+  }
+
+  private static void assertProviderFailure(
+      ProjectionEmbeddingProviderException providerFailure,
+      JobFailureKind expectedKind,
+      String expectedErrorClass) {
+    ClaimedJob job = job();
+    ProjectionBuildPlan plan =
+        new ProjectionBuildPlan(
+            job, new UUID(10, 1), new UUID(11, 1), 3, List.of(source(new UUID(12, 1))));
+    ProjectionBuildJobHandler handler =
+        new ProjectionBuildJobHandler(
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            new RecordingStore(plan, ProjectionCommitResult.COMMITTED),
+            request -> {
+              throw providerFailure;
+            });
+
+    JobHandlingException exception =
+        assertThrows(JobHandlingException.class, () -> handler.handle(job));
+
+    assertEquals(expectedKind, exception.kind());
+    assertEquals(expectedErrorClass, exception.errorClass().value());
+  }
+
   private static ProjectionSourceItem source(UUID versionId) {
     return new ProjectionSourceItem(
         new UUID(10, 1),

@@ -14,6 +14,7 @@ import dev.memos.adapters.postgres.JdbcTemporalMemoryAuthority;
 import dev.memos.adapters.system.DeterministicExtractionIdentifierGenerator;
 import dev.memos.adapters.system.RandomTemporalIdentityGenerator;
 import dev.memos.adapters.system.RandomTemporalLineageIdentifier;
+import dev.memos.adapters.system.ScheduledJobLeaseHeartbeat;
 import dev.memos.domain.temporal.NormalizedAssertionDeduplication;
 import dev.memos.domain.temporal.TemporalIdentityGenerator;
 import dev.memos.domain.temporal.TemporalTransitionPlanner;
@@ -28,6 +29,7 @@ import dev.memos.materialization.ExponentialBackoffPolicy;
 import dev.memos.materialization.ExtractionCommitStore;
 import dev.memos.materialization.ExtractionIdentifierGenerator;
 import dev.memos.materialization.ExtractionProviderIdentity;
+import dev.memos.materialization.JobLeaseHeartbeat;
 import dev.memos.materialization.MaterializationJobHandler;
 import dev.memos.materialization.MaterializationJobStore;
 import dev.memos.materialization.OutboxWorkerService;
@@ -201,8 +203,11 @@ public class MaterializationConfiguration {
   @Bean
   @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
   ProjectionBuildStore projectionBuildStore(
-      JdbcTemplate jdbc, PlatformTransactionManager transactionManager) {
-    return new JdbcProjectionBuildStore(jdbc, new TransactionTemplate(transactionManager));
+      JdbcTemplate jdbc,
+      PlatformTransactionManager transactionManager,
+      EmbeddingProperties embeddingProperties) {
+    return new JdbcProjectionBuildStore(
+        jdbc, new TransactionTemplate(transactionManager), embeddingProperties.dimensions());
   }
 
   @Bean
@@ -258,6 +263,13 @@ public class MaterializationConfiguration {
     return new MicrometerOutboxWorkerTelemetry(registry);
   }
 
+  @Bean(destroyMethod = "close")
+  @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
+  ScheduledJobLeaseHeartbeat jobLeaseHeartbeat(
+      MaterializationJobStore store, OutboxWorkerTelemetry telemetry) {
+    return new ScheduledJobLeaseHeartbeat(store, telemetry);
+  }
+
   @Bean
   @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
   OutboxWorkerService outboxWorkerService(
@@ -265,6 +277,7 @@ public class MaterializationConfiguration {
       MaterializationJobStore store,
       RoutedMaterializationJobHandler handler,
       OutboxWorkerTelemetry telemetry,
+      JobLeaseHeartbeat leaseHeartbeat,
       WorkerProperties properties) {
     return new OutboxWorkerService(
         clock,
@@ -275,7 +288,8 @@ public class MaterializationConfiguration {
         new WorkerId(effectiveWorkerId(properties.workerId())),
         properties.batchSize(),
         properties.leaseDuration(),
-        handler.supportedJobTypes());
+        handler.supportedJobTypes(),
+        leaseHeartbeat);
   }
 
   private static String effectiveWorkerId(String configured) {

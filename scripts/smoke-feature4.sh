@@ -204,7 +204,7 @@ import sys
 response = json.load(open(sys.argv[1]))
 assert response["trace"]["componentCandidateCount"] >= 1
 assert response["trace"]["embeddingProvider"] == "deterministic-local"
-assert response["trace"]["embeddingModelVersion"] == "deterministic-hashing-64-v1"
+assert response["trace"]["embeddingModelVersion"] == "deterministic-hashing-1024-v1"
 assert {component["source"] for component in response["memories"][0]["components"]} >= {"VECTOR", "LEXICAL"}
 PY
 

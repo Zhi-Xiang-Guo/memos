@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -174,6 +175,57 @@ class OutboxWorkerServiceTest {
         store.lastClaimRequest.supportedJobTypes());
   }
 
+  @Test
+  void monitorsEveryBatchLeaseBeforeSerialHandlerExecutionAndStopsBeforeCompletion() {
+    List<String> events = new ArrayList<>();
+    FakeStore store = new FakeStore(List.of(claimedJob(1, 5), claimedJob(2, 5)), events);
+    RecordingHeartbeat heartbeat = new RecordingHeartbeat(events);
+    OutboxWorkerService worker =
+        worker(
+            store,
+            job -> {
+              events.add("handle-" + job.jobId().value());
+              return JobHandlingResult.WORK_DONE_NEEDS_COMPLETION;
+            },
+            heartbeat);
+
+    OutboxRunSummary summary = worker.runOnce();
+
+    assertEquals(2, summary.succeeded());
+    assertEquals(
+        List.of(
+            "start-" + store.claimed.get(0).jobId().value(),
+            "start-" + store.claimed.get(1).jobId().value(),
+            "handle-" + store.claimed.get(0).jobId().value(),
+            "close-" + store.claimed.get(0).jobId().value(),
+            "complete-" + store.claimed.get(0).jobId().value(),
+            "handle-" + store.claimed.get(1).jobId().value(),
+            "close-" + store.claimed.get(1).jobId().value(),
+            "complete-" + store.claimed.get(1).jobId().value()),
+        events);
+  }
+
+  @Test
+  void doesNotFinalizeWorkAfterHeartbeatObservesLeaseLoss() {
+    List<String> events = new ArrayList<>();
+    FakeStore store = new FakeStore(List.of(claimedJob(1, 5)), events);
+    RecordingHeartbeat heartbeat = new RecordingHeartbeat(events);
+    OutboxWorkerService worker =
+        worker(
+            store,
+            job -> {
+              heartbeat.lose(job.fence());
+              return JobHandlingResult.WORK_DONE_NEEDS_COMPLETION;
+            },
+            heartbeat);
+
+    OutboxRunSummary summary = worker.runOnce();
+
+    assertEquals(1, summary.leaseLost());
+    assertEquals(0, summary.succeeded());
+    assertEquals(null, store.completedFence);
+  }
+
   private static OutboxWorkerService worker(FakeStore store, MaterializationJobHandler handler) {
     return new OutboxWorkerService(
         Clock.fixed(NOW, ZoneOffset.UTC),
@@ -184,6 +236,21 @@ class OutboxWorkerServiceTest {
         new WorkerId("worker-1"),
         10,
         Duration.ofSeconds(30));
+  }
+
+  private static OutboxWorkerService worker(
+      FakeStore store, MaterializationJobHandler handler, JobLeaseHeartbeat heartbeat) {
+    return new OutboxWorkerService(
+        Clock.fixed(NOW, ZoneOffset.UTC),
+        store,
+        handler,
+        new ExponentialBackoffPolicy(Duration.ofSeconds(1), Duration.ofMinutes(1)),
+        OutboxWorkerTelemetry.NOOP,
+        new WorkerId("worker-1"),
+        10,
+        Duration.ofSeconds(30),
+        Set.of(JobType.MATERIALIZE_SOURCE),
+        heartbeat);
   }
 
   private static ClaimedJob claimedJob(int attempt, int maxAttempts) {
@@ -209,6 +276,7 @@ class OutboxWorkerServiceTest {
 
   private static final class FakeStore implements MaterializationJobStore {
     private final List<ClaimedJob> claimed;
+    private final List<String> events;
     private FencedUpdateResult updateResult = FencedUpdateResult.UPDATED;
     private LeaseFence completedFence;
     private JobErrorClass errorClass;
@@ -216,7 +284,12 @@ class OutboxWorkerServiceTest {
     private ClaimRequest lastClaimRequest;
 
     private FakeStore(ClaimedJob claimed) {
-      this.claimed = List.of(claimed);
+      this(List.of(claimed), new ArrayList<>());
+    }
+
+    private FakeStore(List<ClaimedJob> claimed, List<String> events) {
+      this.claimed = List.copyOf(claimed);
+      this.events = events;
     }
 
     @Override
@@ -233,8 +306,14 @@ class OutboxWorkerServiceTest {
     }
 
     @Override
+    public FencedUpdateResult renewLease(LeaseFence fence, Duration leaseDuration) {
+      return updateResult;
+    }
+
+    @Override
     public FencedUpdateResult markSucceeded(LeaseFence fence, Instant completedAt) {
       completedFence = fence;
+      events.add("complete-" + fence.jobId().value());
       return updateResult;
     }
 
@@ -266,6 +345,58 @@ class OutboxWorkerServiceTest {
     @Override
     public ReplayResult replay(MemoryScope scope, JobId jobId, Instant replayedAt) {
       return ReplayResult.NOT_FOUND;
+    }
+  }
+
+  private static final class RecordingHeartbeat implements JobLeaseHeartbeat {
+    private final List<String> events;
+    private final List<RecordingSession> sessions = new ArrayList<>();
+
+    private RecordingHeartbeat(List<String> events) {
+      this.events = events;
+    }
+
+    @Override
+    public JobLeaseHeartbeatSession start(
+        LeaseFence fence, JobType jobType, Duration leaseDuration) {
+      events.add("start-" + fence.jobId().value());
+      RecordingSession session = new RecordingSession(fence, events);
+      sessions.add(session);
+      return session;
+    }
+
+    private void lose(LeaseFence fence) {
+      sessions.stream()
+              .filter(session -> session.fence.equals(fence))
+              .findFirst()
+              .orElseThrow()
+              .leaseLost =
+          true;
+    }
+  }
+
+  private static final class RecordingSession implements JobLeaseHeartbeatSession {
+    private final LeaseFence fence;
+    private final List<String> events;
+    private boolean leaseLost;
+    private boolean closed;
+
+    private RecordingSession(LeaseFence fence, List<String> events) {
+      this.fence = fence;
+      this.events = events;
+    }
+
+    @Override
+    public boolean leaseLost() {
+      return leaseLost;
+    }
+
+    @Override
+    public void close() {
+      if (!closed) {
+        closed = true;
+        events.add("close-" + fence.jobId().value());
+      }
     }
   }
 }

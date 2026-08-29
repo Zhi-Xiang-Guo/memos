@@ -1,9 +1,9 @@
 package dev.memos.adapters.fake;
 
+import dev.memos.adapters.embedding.EmbeddingAdapter;
 import dev.memos.materialization.ProjectionEmbedding;
-import dev.memos.materialization.ProjectionEmbeddingPort;
+import dev.memos.materialization.ProjectionEmbeddingProviderException;
 import dev.memos.materialization.ProjectionEmbeddingRequest;
-import dev.memos.retrieval.EmbeddingPort;
 import dev.memos.retrieval.EmbeddingRequest;
 import dev.memos.retrieval.EmbeddingResult;
 import java.nio.ByteBuffer;
@@ -17,9 +17,9 @@ import java.util.Locale;
 import java.util.Objects;
 
 /** Credential-free hashing embedding for plumbing and deterministic retrieval tests. */
-public final class DeterministicEmbeddingAdapter implements EmbeddingPort, ProjectionEmbeddingPort {
-  public static final int DIMENSIONS = 64;
-  public static final String MODEL_VERSION = "deterministic-hashing-64-v1";
+public final class DeterministicEmbeddingAdapter implements EmbeddingAdapter {
+  public static final int DIMENSIONS = 1_024;
+  public static final String MODEL_VERSION = "deterministic-hashing-1024-v1";
   public static final String PROVIDER = "deterministic-local";
 
   private final String modelVersion;
@@ -44,7 +44,12 @@ public final class DeterministicEmbeddingAdapter implements EmbeddingPort, Proje
 
   @Override
   public ProjectionEmbedding embed(ProjectionEmbeddingRequest request) {
-    requireModel(request.modelVersion());
+    try {
+      requireModel(request.modelVersion());
+    } catch (IllegalArgumentException exception) {
+      throw ProjectionEmbeddingProviderException.permanentFailure(
+          "EMBEDDING_MODEL_VERSION_MISMATCH", exception);
+    }
     return new ProjectionEmbedding(
         vector(request.content()), PROVIDER, modelVersion, tokenCount(request.content()));
   }

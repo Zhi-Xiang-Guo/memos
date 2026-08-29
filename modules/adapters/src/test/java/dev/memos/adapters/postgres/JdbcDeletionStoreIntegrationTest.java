@@ -766,7 +766,7 @@ class JdbcDeletionStoreIntegrationTest {
               semantic_job_key, policy_version, model_version, state, attempt, max_attempts,
               replay_count, next_attempt_at, payload_reference, trace_id, created_at, updated_at
           ) VALUES (?, ?, ?, 'PROJECTION_BUILD', 'MEMORY_TRANSITION', ?, ?,
-                    'projection-v1', 'deterministic-hashing-64-v1', 'PENDING', 0, 3, 0,
+                    'projection-v1', 'deterministic-hashing-1024-v1', 'PENDING', 0, 3, 0,
                     ?, ?, 'trace-projection', ?, ?)
           """,
           projectionJobId,
@@ -846,7 +846,7 @@ class JdbcDeletionStoreIntegrationTest {
       UUID projectionJobId,
       OffsetDateTime now)
       throws SQLException {
-    String embedding = "[1," + "0,".repeat(62) + "0]";
+    String embedding = "[1," + "0,".repeat(1_022) + "0]";
     execute(
         connection,
         """
@@ -857,7 +857,7 @@ class JdbcDeletionStoreIntegrationTest {
             embedding, projection_policy_version, transition_id, transition_sequence,
             projected_at
         ) VALUES (?, ?, ?, ?, ?, 'SEMANTIC', 'USER', ?, 'residence', 'CURRENT', ?,
-                  ?, ARRAY[?]::uuid[], 'deterministic-hashing-64-v1', 64, ?::vector,
+                  ?, ARRAY[?]::uuid[], 'deterministic-hashing-1024-v1', 1024, ?::vector,
                   'projection-v1', ?, 1, ?)
         """,
         tenantId,
@@ -879,7 +879,7 @@ class JdbcDeletionStoreIntegrationTest {
             tenant_id, user_id, agent_id, memory_id, transition_id, transition_sequence,
             projection_policy_version, embedding_model_version, source_job_id,
             projected_version_count, projected_at
-        ) VALUES (?, ?, ?, ?, ?, 1, 'projection-v1', 'deterministic-hashing-64-v1',
+        ) VALUES (?, ?, ?, ?, ?, 1, 'projection-v1', 'deterministic-hashing-1024-v1',
                   ?, 1, ?)
         """,
         tenantId,

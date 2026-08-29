@@ -35,8 +35,9 @@ public class RetrievalConfiguration {
   }
 
   @Bean
-  RetrievalCandidateStore retrievalCandidateStore(JdbcTemplate jdbc) {
-    return new JdbcRetrievalCandidateStore(jdbc);
+  RetrievalCandidateStore retrievalCandidateStore(
+      JdbcTemplate jdbc, EmbeddingProperties embeddingProperties) {
+    return new JdbcRetrievalCandidateStore(jdbc, embeddingProperties.dimensions());
   }
 
   @Bean

@@ -3,6 +3,7 @@ package dev.memos.materialization;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -17,6 +18,7 @@ public final class OutboxWorkerService {
   private final int batchSize;
   private final Duration leaseDuration;
   private final Set<JobType> supportedJobTypes;
+  private final JobLeaseHeartbeat leaseHeartbeat;
 
   public OutboxWorkerService(
       Clock clock,
@@ -36,7 +38,8 @@ public final class OutboxWorkerService {
         workerId,
         batchSize,
         leaseDuration,
-        Set.of(JobType.MATERIALIZE_SOURCE));
+        Set.of(JobType.MATERIALIZE_SOURCE),
+        JobLeaseHeartbeat.NOOP);
   }
 
   public OutboxWorkerService(
@@ -49,6 +52,30 @@ public final class OutboxWorkerService {
       int batchSize,
       Duration leaseDuration,
       Set<JobType> supportedJobTypes) {
+    this(
+        clock,
+        store,
+        handler,
+        backoffPolicy,
+        telemetry,
+        workerId,
+        batchSize,
+        leaseDuration,
+        supportedJobTypes,
+        JobLeaseHeartbeat.NOOP);
+  }
+
+  public OutboxWorkerService(
+      Clock clock,
+      MaterializationJobStore store,
+      MaterializationJobHandler handler,
+      ExponentialBackoffPolicy backoffPolicy,
+      OutboxWorkerTelemetry telemetry,
+      WorkerId workerId,
+      int batchSize,
+      Duration leaseDuration,
+      Set<JobType> supportedJobTypes,
+      JobLeaseHeartbeat leaseHeartbeat) {
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.store = Objects.requireNonNull(store, "store must not be null");
     this.handler = Objects.requireNonNull(handler, "handler must not be null");
@@ -69,6 +96,7 @@ public final class OutboxWorkerService {
     if (this.supportedJobTypes.isEmpty()) {
       throw new IllegalArgumentException("supportedJobTypes must not be empty");
     }
+    this.leaseHeartbeat = Objects.requireNonNull(leaseHeartbeat, "leaseHeartbeat must not be null");
   }
 
   public OutboxRunSummary runOnce() {
@@ -82,17 +110,33 @@ public final class OutboxWorkerService {
                     workerId, batchSize, claimTime, leaseDuration, supportedJobTypes)));
     telemetry.claimed(jobs.size());
 
-    MutableSummary summary = new MutableSummary(jobs.size(), expiredExhausted);
-    for (ClaimedJob job : jobs) {
-      process(job, summary);
+    List<MonitoredJob> monitored = new ArrayList<>(jobs.size());
+    try {
+      for (ClaimedJob job : jobs) {
+        monitored.add(
+            new MonitoredJob(job, leaseHeartbeat.start(job.fence(), job.jobType(), leaseDuration)));
+      }
+
+      MutableSummary summary = new MutableSummary(jobs.size(), expiredExhausted);
+      for (MonitoredJob work : monitored) {
+        process(work.job(), work.heartbeat(), summary);
+      }
+      return summary.toResult();
+    } finally {
+      monitored.forEach(work -> work.heartbeat().close());
     }
-    return summary.toResult();
   }
 
-  private void process(ClaimedJob job, MutableSummary summary) {
+  private void process(ClaimedJob job, JobLeaseHeartbeatSession heartbeat, MutableSummary summary) {
+    if (heartbeat.leaseLost()) {
+      heartbeat.close();
+      recordLeaseLost(job, summary);
+      return;
+    }
     try {
       JobHandlingResult handlingResult =
           Objects.requireNonNull(handler.handle(job), "handler result must not be null");
+      heartbeat.close();
       if (handlingResult == JobHandlingResult.COMPLETED_ATOMICALLY) {
         summary.succeeded++;
         telemetry.succeeded(job.jobType());
@@ -107,6 +151,10 @@ public final class OutboxWorkerService {
         recordLeaseLost(job, summary);
         return;
       }
+      if (heartbeat.leaseLost()) {
+        recordLeaseLost(job, summary);
+        return;
+      }
       FencedUpdateResult result = store.markSucceeded(job.fence(), clock.instant());
       if (result == FencedUpdateResult.UPDATED) {
         summary.succeeded++;
@@ -115,8 +163,18 @@ public final class OutboxWorkerService {
         recordLeaseLost(job, summary);
       }
     } catch (JobHandlingException exception) {
-      handleFailure(job, exception.kind(), exception.errorClass(), summary);
+      heartbeat.close();
+      if (heartbeat.leaseLost()) {
+        recordLeaseLost(job, summary);
+      } else {
+        handleFailure(job, exception.kind(), exception.errorClass(), summary);
+      }
     } catch (RuntimeException exception) {
+      heartbeat.close();
+      if (heartbeat.leaseLost()) {
+        recordLeaseLost(job, summary);
+        return;
+      }
       String simpleName = exception.getClass().getSimpleName();
       JobErrorClass errorClass =
           new JobErrorClass(simpleName.isBlank() ? "UnexpectedRuntimeFailure" : simpleName);
@@ -155,6 +213,8 @@ public final class OutboxWorkerService {
     summary.leaseLost++;
     telemetry.leaseLost(job.jobType());
   }
+
+  private record MonitoredJob(ClaimedJob job, JobLeaseHeartbeatSession heartbeat) {}
 
   private static final class MutableSummary {
     private final int claimed;

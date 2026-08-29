@@ -107,6 +107,7 @@ authorization.
 | Worker unavailable after acceptance | Job remains `PENDING` | Later worker can claim it |
 | Claim | Short transaction selects eligible work with `FOR UPDATE SKIP LOCKED`, writes a fresh lease token, and commits | Attempt increments only on successful claim/reclaim |
 | Handler execution | Runs after the claim transaction commits | No database transaction is held across handler/provider work |
+| Lease renewal | PostgreSQL-time compare-and-set over job ID, `CLAIMED`, owner, token, and unexpired lease | Slow or batch-queued work retains the same completion right; a stale owner updates zero rows |
 | Completion | Compare-and-set using job ID, `CLAIMED`, owner, unexpired lease, and `lease_token` | A stale worker updates zero rows |
 | Completion response/process loss | Committed `SUCCEEDED` job is not claimable | A restart observes terminal state |
 | Replay | Reuse job and semantic key | Downstream handler must remain logically idempotent |
@@ -139,7 +140,20 @@ Claims are ordered, bounded batches. `FOR UPDATE SKIP LOCKED` allows multiple wo
 
 Database time is authoritative for eligibility and expiry. Application wall-clock skew must not decide whether a lease is valid.
 
-An expired `CLAIMED` job with remaining attempts may be reclaimed directly with a new token and incremented attempt. An expired claim whose `attempt` has reached `max_attempts` is atomically moved to `DEAD` before it can be claimed again. Completion, failure, and lease renewal use compare-and-set conditions including the current token; an old worker cannot complete or fail work after another worker has reclaimed it.
+An expired `CLAIMED` job with remaining attempts may be reclaimed directly with a new token and
+incremented attempt. An expired claim whose `attempt` has reached `max_attempts` is atomically
+moved to `DEAD` before it can be claimed again. Completion, failure, and lease renewal use
+compare-and-set conditions including the current token; an old worker cannot complete or fail
+work after another worker has reclaimed it.
+
+Feature 6 hardening starts one process-local heartbeat for every row in a claimed batch before
+serial handler execution begins. Each heartbeat attempts renewal every one third of the configured
+lease duration. The PostgreSQL adapter extends from `clock_timestamp()`, and only while job ID,
+state, owner, token, and unexpired lease still match. Stopping a heartbeat waits for an in-flight
+renewal before the worker writes a non-atomic handler's success/retry/dead state. Handlers that
+commit atomically retain their own database fence as the final authority. A renewal cannot provide
+provider-level exactly-once execution and cannot rescue a lease after expiry; it reduces avoidable
+duplicate slow calls while all existing idempotency and completion fences remain mandatory.
 
 ## Retry, dead state, and replay
 
@@ -171,6 +185,7 @@ Environment variables such as `MEMOS_WORKER_ID` may override deployment values. 
 | After commit, before response | Both rows exist | Exact client retry returns existing receipt |
 | Worker stopped after commit | Job remains ready | Start/restart worker |
 | Crash after claim | Job remains `CLAIMED` until expiry | New token reclaims it or marks it `DEAD` at the attempt limit |
+| Handler or batch wait exceeds the original lease | Heartbeat extends the same fenced claim | Another worker cannot reclaim while renewals continue successfully |
 | Lease expires while old worker runs | Old token is fenced out | Current claimant owns the only valid completion right |
 | Transient handler failure | `RETRY_WAIT` with future attempt time | Automatic bounded retry |
 | Poison/permanent handler failure | `DEAD` with bounded error class | Inspect, fix cause, explicit replay if safe |
@@ -181,7 +196,10 @@ Environment variables such as `MEMOS_WORKER_ID` may override deployment values. 
 
 Operational telemetry must make incomplete work visible without copying source content.
 
-Low-cardinality counters and timers cover accepted, duplicate, rejected, claimed, succeeded, retried, lease-reclaimed, dead, and replayed jobs; handler duration; queue-ready age; and materialization freshness. Tenant, source, job, worker, and idempotency identifiers are correlation fields, not metric labels.
+Low-cardinality counters and timers cover accepted, duplicate, rejected, claimed, succeeded,
+retried, lease-reclaimed, lease-renewed/renewal-lost/renewal-failed, dead, and replayed jobs;
+handler duration; queue-ready age; and materialization freshness. Tenant, source, job, worker, and
+idempotency identifiers are correlation fields, not metric labels.
 
 Structured logs and traces may carry `traceId`, job ID, source-event ID, job type, attempt, state transition, policy/model version, and bounded error class. They must not contain:
 
@@ -222,6 +240,7 @@ Feature 1 does not implement or claim:
 | Multiple workers | `SKIP LOCKED` claims distinct eligible jobs | `PASS` — 20 jobs, two concurrent claimers |
 | Crash after claim / worker restart | Expired lease is reclaimed with a new token | `PASS` |
 | Stale-worker fencing | Old-token complete/retry operations affect zero rows | `PASS` |
+| Slow handler lease safety | Monitor the full claimed batch; stop before terminal update; stale token cannot renew; handler beyond original lease is not reclaimed | `PASS` — unit tests locally; PostgreSQL timing/fencing case awaits remote CI |
 | Transient failure | Deterministic exponential backoff and eventual success/dead outcome | `PASS` — unit + PostgreSQL integration |
 | Poison job | Direct bounded-error `DEAD` result | `PASS` |
 | Handler success before completion crash | Reclaim path creates one payload-free logical effect | `PASS` |

@@ -44,8 +44,9 @@ Feature 2 additionally validates a remote-call-outside-transaction extraction pa
 Feature 3 validates the authoritative memory transaction and durable projection intent. Feature 4
 implements embedding outside a transaction followed by a database-time lease fence and
 transition-sequence fence; a superseded snapshot cannot replace a newer projection, while an
-invalidation commits a zero-row projection checkpoint. PostgreSQL integration, runtime smoke, and
-remote CI remain publication gates, so this ADR is not yet promoted.
+invalidation commits a zero-row projection checkpoint. GitHub Actions run `#17` published the
+PostgreSQL integration and runtime-smoke evidence; representative workload evidence is still
+missing, so this ADR is not yet promoted.
 
 Feature 6 adds a scope-safe source-level read model over the durable extraction, authority, and
 projection intents plus a bounded benchmark client that waits on observable terminal state. Commit
@@ -53,3 +54,12 @@ projection intents plus a bounded benchmark client that waits on observable term
 mechanics. This makes incomplete and failed chains machine-observable without exposing payloads.
 It does not validate representative freshness, throughput, database contention, or the final
 read-your-write contract, so the ADR remains `PROPOSED` pending the declared workload evidence.
+
+The current Feature 6 candidate adds lease renewal for slow external calls and serial claimed
+batches. Every claimed job is monitored before the first handler starts; renewal runs at one third
+of the lease duration and extends from PostgreSQL `clock_timestamp()` only while job ID,
+`CLAIMED`, owner, token, and unexpired lease match. Renewal is stopped and joined before a separate
+success/retry/dead update, while atomic handlers keep their existing in-transaction fence. Unit
+tests cover batch monitoring and renewal-loss behavior; PostgreSQL tests cover stale tokens,
+reclaim races, and a handler longer than its original lease, pending remote CI publication. This
+reduces avoidable duplicate provider work but does not claim end-to-end exactly once.

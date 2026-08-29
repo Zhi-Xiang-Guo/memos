@@ -27,14 +27,24 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** PostgreSQL projection snapshot store with lease fencing and lineage watermarks. */
 public final class JdbcProjectionBuildStore implements ProjectionBuildStore {
-  private static final int EMBEDDING_DIMENSIONS = 64;
+  private static final int DEFAULT_EMBEDDING_DIMENSIONS = 1_024;
 
   private final JdbcTemplate jdbc;
   private final TransactionTemplate transactions;
+  private final int embeddingDimensions;
 
   public JdbcProjectionBuildStore(JdbcTemplate jdbc, TransactionTemplate transactions) {
+    this(jdbc, transactions, DEFAULT_EMBEDDING_DIMENSIONS);
+  }
+
+  public JdbcProjectionBuildStore(
+      JdbcTemplate jdbc, TransactionTemplate transactions, int embeddingDimensions) {
     this.jdbc = Objects.requireNonNull(jdbc, "jdbc must not be null");
     this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
+    if (embeddingDimensions < 1 || embeddingDimensions > 2_000) {
+      throw new IllegalArgumentException("embeddingDimensions must be in [1,2000]");
+    }
+    this.embeddingDimensions = embeddingDimensions;
   }
 
   @Override
@@ -324,13 +334,13 @@ public final class JdbcProjectionBuildStore implements ProjectionBuildStore {
         job.modelVersion());
   }
 
-  private static void validate(CommitProjectionBuild command) {
+  private void validate(CommitProjectionBuild command) {
     Set<UUID> expected = new HashSet<>();
     command.plan().items().forEach(item -> expected.add(item.versionId()));
     Set<UUID> actual = new HashSet<>();
     for (ProjectedVersionBuild value : command.projectedVersions()) {
       actual.add(value.source().versionId());
-      if (value.embedding().dimensions() != EMBEDDING_DIMENSIONS) {
+      if (value.embedding().dimensions() != embeddingDimensions) {
         throw new IllegalArgumentException("projection embedding dimension mismatch");
       }
       if (!value.embedding().modelVersion().equals(command.plan().job().modelVersion())) {

@@ -50,3 +50,12 @@ or user erasure first removes vector/FTS/checkpoint rows, then a fenced PostgreS
 purges retained authoritative content and leaves opaque tombstones. Old projection jobs cannot
 replay an inactive lineage. This validates deletion consistency for the current single-database
 topology, not representative search capacity or future external projection deletion.
+
+The current Feature 6 candidate makes vector length provider-configurable without changing the
+authority boundary. V007 stores unbounded pgvector values with a checked declared/actual dimension
+in the HNSW-supported `1..2000` range and adds a partial 1024-dimensional cosine HNSW expression
+index for the selected MVP model. Retrieval filters model version and dimension before casting to
+the configured `vector(N)`. Legacy vectors remain rebuildable data; no authoritative assertion is
+rewritten or deleted. Dimensions other than 1024 and model-version changes require explicit index
+migration/reconciliation, and representative Recall@K/latency is still `NOT RUN`, so the ADR
+remains `PROPOSED`.

@@ -37,6 +37,21 @@ public final class MicrometerOutboxWorkerTelemetry implements OutboxWorkerTeleme
   }
 
   @Override
+  public void leaseRenewed(JobType jobType) {
+    leaseCounter("renewed", jobType);
+  }
+
+  @Override
+  public void leaseRenewalLost(JobType jobType) {
+    leaseCounter("lost", jobType);
+  }
+
+  @Override
+  public void leaseRenewalFailed(JobType jobType) {
+    leaseCounter("failed", jobType);
+  }
+
+  @Override
   public void expiredExhausted(int count) {
     registry.counter("memos.outbox.expired_exhausted").increment(count);
   }
@@ -44,6 +59,12 @@ public final class MicrometerOutboxWorkerTelemetry implements OutboxWorkerTeleme
   private void counter(String outcome, JobType jobType) {
     registry
         .counter("memos.outbox.jobs", "outcome", outcome, "job.type", jobType.name())
+        .increment();
+  }
+
+  private void leaseCounter(String outcome, JobType jobType) {
+    registry
+        .counter("memos.outbox.lease.renewals", "outcome", outcome, "job.type", jobType.name())
         .increment();
   }
 }

@@ -19,6 +19,7 @@ import dev.memos.materialization.WorkerId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -111,6 +112,33 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
                 request.batchSize(),
                 request.workerId().value(),
                 leaseMilliseconds));
+  }
+
+  @Override
+  public FencedUpdateResult renewLease(LeaseFence fence, Duration leaseDuration) {
+    Objects.requireNonNull(fence, "fence must not be null");
+    Objects.requireNonNull(leaseDuration, "leaseDuration must not be null");
+    long leaseMilliseconds = leaseDuration.toMillis();
+    if (leaseMilliseconds < 1) {
+      throw new IllegalArgumentException("leaseDuration must be at least one millisecond");
+    }
+    int updated =
+        jdbc.update(
+            """
+            UPDATE memos.outbox_job
+               SET lease_expires_at = clock_timestamp() + (? * interval '1 millisecond'),
+                   updated_at = clock_timestamp()
+             WHERE job_id = ?
+               AND state = 'CLAIMED'
+               AND lease_owner = ?
+               AND lease_token = ?
+               AND lease_expires_at > clock_timestamp()
+            """,
+            leaseMilliseconds,
+            fence.jobId().value(),
+            fence.leaseOwner().value(),
+            fence.leaseToken().value());
+    return fencedResult(updated);
   }
 
   @Override

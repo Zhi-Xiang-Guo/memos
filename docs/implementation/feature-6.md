@@ -9,8 +9,9 @@ run-package/metrics core is `DONE / PUBLISHED` through commit `afcabe7` and
 four-baseline result has been published yet. Provider and non-MemOS baseline primitives are
 `DONE / PUBLISHED` through commit `367e0fa` and
 [GitHub Actions run #28](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33276271008). The
-source-level MemOS materialization status endpoint and bounded wait client are implemented in the
-current candidate; remote PostgreSQL/publication verification is pending.
+source-level MemOS materialization status endpoint and bounded wait client are `DONE / PUBLISHED`
+through commit `2bf7689` and
+[GitHub Actions run #30](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33277348058).
 
 ## Product workload
 
@@ -132,7 +133,7 @@ documentation gates in GitHub Actions run `#28`.
 
 ## Observable MemOS settlement
 
-The current candidate adds an authenticated
+The published implementation adds an authenticated
 `GET /v1/source-events/{sourceEventId}/materialization` endpoint. It derives one content-free
 source status from the complete durable job chain: any `DEAD` job is `FAILED`, all jobs
 `SUCCEEDED` is `SUCCEEDED`, and every other state is `PROCESSING`. Per-job diagnostics include
@@ -147,6 +148,10 @@ aggregate timestamps, and turns transport, malformed response, terminal failure,
 conditions into content-safe error classes. This closes the harness mechanism needed to measure
 freshness; it does not establish the distribution, an SLO, or a baseline result. The unified
 ingestion/retrieval/answer runner remains incomplete.
+
+Publication verification in run `#30` passed Java 25 unit and PostgreSQL integration tests,
+Python format/lint and 49 tests, Markdown links, and the complete compose smoke suite. This is
+implementation and recovery evidence only; no model-dependent baseline execution occurred.
 
 ### Provider-contract spike
 

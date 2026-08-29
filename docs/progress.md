@@ -63,11 +63,14 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   [run #28](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33276271008) passed Java 25,
   PostgreSQL/compose regression, Python, and docs gates. The Java MemOS runner and all result rows
   remain `NOT RUN`.
-- Feature 6's observable MemOS settlement candidate adds a hard-scoped source-level aggregate over
-  extraction, authoritative-materialization, and projection jobs plus a bounded Python client that
-  waits on processing/success/failure instead of a fixed sleep. Domain/API/client tests pass
-  locally; PostgreSQL integration, remote publication, and the unified runner remain pending. This
-  is harness/freshness-mechanism evidence, not a measured freshness distribution or SLO.
+- Feature 6's observable MemOS settlement path is `DONE / PUBLISHED` through
+  `2bf7689cb11c37e6eb73744bcf6e79915775a9e7`: a hard-scoped source-level aggregate covers
+  extraction, authoritative-materialization, and projection jobs, while a bounded Python client
+  waits on processing/success/failure instead of a fixed sleep. GitHub Actions
+  [run #30](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33277348058) passed Java 25,
+  PostgreSQL integration, Python, docs, and the complete compose smoke. This is
+  harness/freshness-mechanism evidence, not a measured freshness distribution or SLO; the unified
+  runner remains incomplete.
 
 ## Advanced Memory
 
@@ -122,7 +125,7 @@ Status: `TODO`
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: publish the observable MemOS settlement
-candidate, then implement the Java Ollama embedding path and unified four-baseline runner against
-the verified run-package core before executing any campaign. The legacy trusted scope headers and
-temporary operator key are removed and must not be reintroduced.
+Continue Feature 6 without entering Advanced Memory: implement the Java Ollama embedding path and
+unified four-baseline runner against the verified run-package core before executing any campaign.
+The legacy trusted scope headers and temporary operator key are removed and must not be
+reintroduced.

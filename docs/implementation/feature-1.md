@@ -228,7 +228,7 @@ Feature 1 does not implement or claim:
 | Completion commit before process crash | Terminal job is not reclaimed | `PASS` |
 | Explicit replay | Same job/semantic key, reset attempt, incremented replay count | `PASS` |
 | Tenant/user/agent isolation | Cross-scope inspect/replay is indistinguishable from not found | `PASS` |
-| Source-chain observation | Scope-safe ordered aggregate with explicit processing/success/failure settlement | `LOCAL PASS / REMOTE PENDING` - Feature 6 unit/API/client checks passed; PostgreSQL publication gate pending |
+| Source-chain observation | Scope-safe ordered aggregate with explicit processing/success/failure settlement | `PASS` - Feature 6 unit/API/client and PostgreSQL checks in CI run `#30` |
 | Handler transaction boundary | Handler observes no active Spring transaction | `PASS` |
 | Observability redaction | Runtime log/status marker scan; no content or lease fields | `PASS` |
 | Java verification | `./mvnw -B -ntp clean verify` | `PASS` — 37 tests, zero failures/errors |

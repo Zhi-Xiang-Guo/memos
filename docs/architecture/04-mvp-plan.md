@@ -97,9 +97,9 @@ Implementation status: `DOING`. The workload, v1 synthetic smoke dataset, licens
 prompt hashes, local model IDs, and four-baseline parity declaration are frozen and locally
 verified through commit `4120144` and GitHub Actions run `#24`. Harness execution and all result
 packages remain `NOT RUN`. The run-package core and provider/non-MemOS baseline primitives are
-published through commit `367e0fa` and GitHub Actions run `#28`. The current candidate adds a
-source-level materialization aggregate and bounded wait client; its remote publication gate is
-pending.
+published through commit `367e0fa` and GitHub Actions run `#28`. The source-level materialization
+aggregate and bounded wait client are published through commit `2bf7689` and GitHub Actions run
+`#30`.
 
 Deliver:
 

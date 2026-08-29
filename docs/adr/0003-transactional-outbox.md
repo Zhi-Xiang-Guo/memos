@@ -47,8 +47,9 @@ transition-sequence fence; a superseded snapshot cannot replace a newer projecti
 invalidation commits a zero-row projection checkpoint. PostgreSQL integration, runtime smoke, and
 remote CI remain publication gates, so this ADR is not yet promoted.
 
-Feature 6's current candidate adds a scope-safe source-level read model over the durable extraction,
-authority, and projection intents plus a bounded benchmark client that waits on observable terminal
-state. This makes incomplete and failed chains machine-observable without exposing payloads. It
-does not validate representative freshness, throughput, database contention, or the final
+Feature 6 adds a scope-safe source-level read model over the durable extraction, authority, and
+projection intents plus a bounded benchmark client that waits on observable terminal state. Commit
+`2bf7689` and GitHub Actions run `#30` verify the Java, PostgreSQL, Python, and compose-smoke
+mechanics. This makes incomplete and failed chains machine-observable without exposing payloads.
+It does not validate representative freshness, throughput, database contention, or the final
 read-your-write contract, so the ADR remains `PROPOSED` pending the declared workload evidence.

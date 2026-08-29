@@ -5,7 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("memos.temporal")
 public record TemporalMemoryProperties(
-    String projectionPolicyVersion, Set<String> setValuedPredicates) {
+    String projectionPolicyVersion,
+    String projectionModelVersion,
+    Set<String> setValuedPredicates) {
   public TemporalMemoryProperties {
     setValuedPredicates = setValuedPredicates == null ? Set.of() : Set.copyOf(setValuedPredicates);
   }

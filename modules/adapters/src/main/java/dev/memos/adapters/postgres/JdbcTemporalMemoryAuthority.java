@@ -96,12 +96,26 @@ public final class JdbcTemporalMemoryAuthority
   private final JdbcTemplate jdbc;
   private final TransactionTemplate transactions;
   private final TemporalTransitionPlanner planner;
+  private final String defaultProjectionPolicyVersion;
+  private final String projectionModelVersion;
 
   public JdbcTemporalMemoryAuthority(
       JdbcTemplate jdbc, TransactionTemplate transactions, TemporalTransitionPlanner planner) {
+    this(jdbc, transactions, planner, "projection-v1", "deterministic-hashing-64-v1");
+  }
+
+  public JdbcTemporalMemoryAuthority(
+      JdbcTemplate jdbc,
+      TransactionTemplate transactions,
+      TemporalTransitionPlanner planner,
+      String defaultProjectionPolicyVersion,
+      String projectionModelVersion) {
     this.jdbc = Objects.requireNonNull(jdbc, "jdbc must not be null");
     this.transactions = Objects.requireNonNull(transactions, "transactions must not be null");
     this.planner = Objects.requireNonNull(planner, "planner must not be null");
+    this.defaultProjectionPolicyVersion =
+        requiredText(defaultProjectionPolicyVersion, "defaultProjectionPolicyVersion");
+    this.projectionModelVersion = requiredText(projectionModelVersion, "projectionModelVersion");
   }
 
   @Override
@@ -567,12 +581,7 @@ public final class JdbcTemporalMemoryAuthority
             selection.requestedAt(),
             selection.expectedLockVersion());
     TransitionPlan plan = planner.planCorrection(snapshot, command);
-    persistPlan(
-        plan,
-        snapshot.identity(),
-        selection.expectedLockVersion(),
-        corrected,
-        source.policyVersion());
+    persistPlan(plan, snapshot.identity(), selection.expectedLockVersion(), corrected, null);
     AssertionVersionId resultVersion = plan.appendedVersions().getFirst().versionId();
     StateTransitionId transition = plan.appendedTransitions().getFirst().transitionId();
     completeMutationRequest(
@@ -639,12 +648,7 @@ public final class JdbcTemporalMemoryAuthority
             selection.requestedAt(),
             selection.expectedLockVersion());
     TransitionPlan plan = planner.planInvalidation(snapshot, command);
-    persistPlan(
-        plan,
-        snapshot.identity(),
-        selection.expectedLockVersion(),
-        null,
-        target.provenance().policyVersion());
+    persistPlan(plan, snapshot.identity(), selection.expectedLockVersion(), null, null);
     StateTransitionId transition = plan.appendedTransitions().getFirst().transitionId();
     completeMutationRequest(requestId, plan.resultingSnapshot().lockVersion(), null, transition);
     return mutationResult(
@@ -1160,8 +1164,9 @@ public final class JdbcTemporalMemoryAuthority
           plan.resultingSnapshot(),
           transition,
           projectionPolicyVersion == null
-              ? transition.context().policyVersion()
-              : projectionPolicyVersion);
+              ? defaultProjectionPolicyVersion
+              : projectionPolicyVersion,
+          projectionModelVersion);
       insertAudit(identity, transition);
     }
     int updated =
@@ -1369,7 +1374,8 @@ public final class JdbcTemporalMemoryAuthority
       MemoryLineageIdentity identity,
       MemoryLineageSnapshot snapshot,
       AssertionStateTransition transition,
-      String projectionPolicyVersion) {
+      String projectionPolicyVersion,
+      String projectionModelVersion) {
     SourceIdentity source = sourceIdentity(identity.scope().tenantId(), transition, snapshot);
     String semanticKey =
         "projection/" + identity.lineageId().value() + "/" + transition.transitionId().value();
@@ -1392,7 +1398,7 @@ public final class JdbcTemporalMemoryAuthority
             transition.transitionId().value(),
             semanticKey,
             projectionPolicyVersion,
-            source.modelVersion(),
+            projectionModelVersion,
             source.sourceEventId(),
             transition.transitionId().value().toString());
     if (inserted == 0) {
@@ -1633,6 +1639,14 @@ public final class JdbcTemporalMemoryAuthority
 
   private static Instant instant(ResultSet result, String column) throws SQLException {
     return result.getObject(column, OffsetDateTime.class).toInstant();
+  }
+
+  private static String requiredText(String value, String name) {
+    Objects.requireNonNull(value, name + " must not be null");
+    if (value.isBlank() || value.length() > 128) {
+      throw new IllegalArgumentException(name + " must contain 1 to 128 characters");
+    }
+    return value;
   }
 
   private record LineageRow(MemoryLineageIdentity identity, long lockVersion) {}

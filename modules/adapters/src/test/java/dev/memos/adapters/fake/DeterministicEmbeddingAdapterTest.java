@@ -2,6 +2,7 @@ package dev.memos.adapters.fake;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import dev.memos.retrieval.EmbeddingRequest;
 import org.junit.jupiter.api.Test;
 
 class DeterministicEmbeddingAdapterTest {
@@ -9,7 +10,9 @@ class DeterministicEmbeddingAdapterTest {
   void returnsStableEmbeddingWithoutExternalProvider() {
     var adapter = new DeterministicEmbeddingAdapter();
 
-    assertEquals(adapter.embed("你好, MemOS"), adapter.embed("你好, MemOS"));
-    assertEquals(16, adapter.embed("你好, MemOS").size());
+    var request = new EmbeddingRequest("你好, MemOS", DeterministicEmbeddingAdapter.MODEL_VERSION);
+
+    assertEquals(adapter.embed(request), adapter.embed(request));
+    assertEquals(64, adapter.embed(request).dimensions());
   }
 }

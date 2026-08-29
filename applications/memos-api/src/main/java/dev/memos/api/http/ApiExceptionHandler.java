@@ -71,6 +71,17 @@ public class ApiExceptionHandler {
         request);
   }
 
+  @ExceptionHandler(OperatorAccessDeniedException.class)
+  ProblemDetail handleOperatorAccessDenied(
+      OperatorAccessDeniedException exception, HttpServletRequest request) {
+    return problem(
+        HttpStatus.FORBIDDEN,
+        "Operator access denied",
+        "OPERATOR_ACCESS_DENIED",
+        "The operator diagnostic credential is missing or invalid.",
+        request);
+  }
+
   @ExceptionHandler(TemporalMutationException.class)
   ProblemDetail handleTemporalMutation(
       TemporalMutationException exception, HttpServletRequest request) {

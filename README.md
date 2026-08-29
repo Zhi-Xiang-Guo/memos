@@ -8,11 +8,11 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–3 are published: the repository now has a reproducible engineering foundation, durable asynchronous ingestion/extraction, deterministic write policy, versioned temporal memory, append-only transitions, provenance, optimistic correction/invalidation, and scope-bound inspection APIs. Feature 4 hybrid retrieval is now the active implementation stage. There is **no hybrid retrieval implementation or formal benchmark result yet**. Any result table that appears later must be generated from a reproducible run manifest; placeholder numbers are forbidden.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–3 are published. Feature 4 now has an implemented but not yet published rebuildable vector/FTS projection, hybrid retrieval, trace boundary, and evidence-budgeted context path; its remote PostgreSQL/CI publication gates are still pending. There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 4 (`Features 0–3: published`)
+- MVP implementation: `DOING` — Feature 4 publication verification (`Features 0–3: published`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - Initial repository and Features 0–3 publication: `DONE`
@@ -196,6 +196,8 @@ The `202 Accepted` receipt contains stable source-event and materialization-job 
 Feature 2 replaces the no-op worker effect with structured candidate extraction. The credential-free default fake recognizes one stable local example (`I prefer a dark editor theme.`) and safely returns no candidates for unknown content; it exists to verify plumbing, not model quality. Set `MEMOS_EXTRACTION_PROVIDER=openai-compatible` only with an explicit base URL, fixed model snapshot, API key, and timeout. Regardless of provider, strict application code validates `memory-candidate.v1`, computes trust/sensitivity/write policy, and erases rejected or review proposal content before persistence. See the [Feature 2 implementation note](docs/implementation/feature-2.md).
 
 Feature 3 consumes accepted candidates into a PostgreSQL authority with stable lineages, immutable retained assertion versions, append-only state transitions, source/run/candidate provenance, a rebuildable current-state projection, and a durable `PROJECTION_BUILD` intent for Feature 4. `GET /v1/memories` and its inspect/history/current/as-of/diff variants are hard-scoped by tenant/user/agent. Correction and invalidation require existing governed evidence, an idempotency key, and a strong numeric `If-Match` lock version. See the [Feature 3 implementation note](docs/implementation/feature-3.md).
+
+Feature 4 asynchronously turns the latest authoritative transition into a rebuildable pgvector/FTS projection, then exposes `POST /v1/retrieval` for hybrid evidence and token-budgeted context. `POST /v1/retrieval/trace` adds component diagnostics behind a temporary operator key and is not a production authentication boundary. The default hashing embedding validates local plumbing only. See the [Feature 4 implementation note](docs/implementation/feature-4.md).
 
 ## Design principles
 

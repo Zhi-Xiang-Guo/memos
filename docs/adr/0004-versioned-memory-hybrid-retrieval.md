@@ -40,4 +40,12 @@ Use held-out benchmark cases for update, temporal, contradiction, exact identifi
 
 Feature 3 validates the versioned-memory half of this proposed decision: PostgreSQL 18 migrations enforce scoped lineages, immutable retained versions, append-only transitions/provenance, monotonic locks, and a rebuildable current projection. Pure planner tests, nine PostgreSQL integration/fault tests, thirteen API tests, a 14-case deterministic temporal fixture, and an API→worker→database restart smoke exercise create/reinforce/supersede/coexist/conflict/correct/invalidate, replay, scope isolation, lease fencing, projection-intent rollback, correction persistence, concurrent mutation idempotency, and authoritative candidate-to-job binding.
 
-The ADR remains `PROPOSED` because Feature 4 has not implemented or evaluated the hybrid retrieval half, and Feature 6 has not run held-out benchmarks. Deterministic conformance is implementation evidence, not retrieval or model-quality evidence.
+Feature 4 now implements the hybrid half: transition-watermarked vector/FTS projections,
+independent vector/lexical/structured/temporal candidates, hard database visibility filters,
+configurable RRF, reranker deadline/identity fallback, query gating, operator diagnostics, and
+provenance-bearing context under a deterministic budget. Its six-case synthetic fixture validates
+exact mechanics and mechanically compares vector-only with hybrid ordering.
+
+The ADR remains `PROPOSED` because Feature 4 publication verification is pending and Feature 6 has
+not run held-out external benchmarks. Deterministic conformance is implementation evidence, not
+real retrieval/model quality, latency, scale, cost, or safety evidence.

@@ -2,7 +2,7 @@
 
 Status: **NOT RUN**
 
-No eligible formal benchmark execution exists yet. Features 0–3 include deterministic conformance fixtures, integration tests, and runtime smoke checks, but those are implementation evidence rather than benchmark results. This file intentionally contains no synthetic, borrowed, or estimated quality number.
+No eligible formal benchmark execution exists yet. Features 0–3 include deterministic conformance fixtures, integration tests, and runtime smoke checks. Feature 4 adds a six-case synthetic retrieval-policy fixture, but its mechanically generated values are implementation evidence rather than benchmark results. This file intentionally contains no synthetic, borrowed, or estimated quality number.
 
 ## Result gate
 

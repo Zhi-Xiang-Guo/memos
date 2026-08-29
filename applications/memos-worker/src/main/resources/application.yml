@@ -25,7 +25,15 @@ memos:
     timeout: ${MEMOS_EXTRACTION_TIMEOUT:30s}
   temporal:
     projection-policy-version: ${MEMOS_PROJECTION_POLICY_VERSION:projection-v1}
+    projection-model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-64-v1}
     set-valued-predicates: ${MEMOS_SET_VALUED_PREDICATES:preference.coffee,preference.cuisine}
+  retrieval:
+    embedding-model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-64-v1}
+    reranker-model-version: ${MEMOS_RERANKER_MODEL_VERSION:pass-through-v1}
+    reranking-enabled: ${MEMOS_RERANKING_ENABLED:false}
+    reranker-timeout: ${MEMOS_RERANKER_TIMEOUT:150ms}
+    rrf-k: ${MEMOS_RRF_K:60}
+    operator-key: ${MEMOS_OPERATOR_KEY:local-operator-key}
   worker:
     enabled: true
     worker-id: ${MEMOS_WORKER_ID:}

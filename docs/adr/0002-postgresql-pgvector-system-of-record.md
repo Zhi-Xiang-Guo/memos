@@ -38,3 +38,9 @@ Official capability references: [PostgreSQL full-text search](https://www.postgr
 ## Validation
 
 Define small/medium/large reference load profiles, then record index size, ingest cost, filtered Recall@K, and p50/p95/p99 retrieval. Introduce a specialized projection only after an SLO/quality failure is reproduced and its improvement covers consistency/operations cost.
+
+Feature 4 now implements the proposed PostgreSQL projection with generated FTS, HNSW cosine
+vectors, structured/temporal indexes, hard scope/truth/time filters, and an explicit transition
+watermark. Integration and runtime publication gates are pending. The six-case deterministic
+fixture validates retrieval-policy mechanics only; this ADR remains `PROPOSED` until Feature 6
+measures a representative corpus and load profile.

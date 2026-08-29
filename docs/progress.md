@@ -29,6 +29,7 @@ Status: `DOING` — Feature 4 hybrid retrieval
 - Feature 1 is `DONE` and published: source-event receipt and outbox commit atomically; claim/lease/fencing/retry/dead/replay and a payload-free logical-effect ledger passed PostgreSQL fault/concurrency tests and runtime smoke.
 - Feature 2 is `DONE` and published in `6292b150851218fe6ab480115bde24a214b4d411`: provider-neutral strict extraction, deterministic trust/sensitivity/write policy, sanitized candidate/quarantine persistence, lease-fenced atomic completion, optional real-provider adapter, 17-case conformance fixture, and runtime smoke passed.
 - Feature 3 is `DONE` and published in `5ff32fda451f3923e4130e309e5c19167e84905d`: versioned temporal authority, deterministic transition semantics, correction/invalidation, scoped APIs, 14-case temporal conformance, PostgreSQL fault/concurrency coverage, and API→worker→database restart smoke passed.
+- Feature 4 is `DOING / PUBLICATION VERIFICATION PENDING`: rebuildable vector/FTS projections, transition-watermarked projection jobs, scoped hybrid RRF retrieval, reranker fallback, trace restriction, evidence-budgeted context, and a six-case deterministic conformance fixture are implemented. Local pure-JVM/API/Python checks pass; PostgreSQL Testcontainers, runtime smoke, push, and remote CI remain required before `DONE`.
 
 ## Advanced Memory
 
@@ -80,4 +81,4 @@ Status: `TODO`
 
 ## Next phase
 
-Implement Feature 4's rebuildable semantic/lexical projections, hybrid retrieval, reranking boundary, and evidence-budgeted context assembly.
+Finish Feature 4's PostgreSQL/runtime/publication verification. Do not enter Feature 5 until the coherent commit is pushed and remote CI is green.

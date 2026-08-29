@@ -1,0 +1,118 @@
+{
+  "fixture_version": "retrieval-conformance-v1",
+  "cases": [
+    {
+      "case_id": "exact-identifier",
+      "split": "dev",
+      "coverage": ["lexical", "structured", "rrf"],
+      "query": "Which ticket is MEM-1042?",
+      "limit": 1,
+      "max_tokens": 800,
+      "relevant_ids": ["exact"],
+      "memories": [
+        {"id": "exact", "lineage": "exact", "status": "CURRENT", "content": "Ticket MEM-1042 tracks projection repair.", "predicate": "project.ticket", "recorded_at": "2026-08-30T00:00:00Z"},
+        {"id": "semantic", "lineage": "semantic", "status": "CURRENT", "content": "A project task tracks search repair.", "predicate": "project.ticket", "recorded_at": "2026-08-29T00:00:00Z"}
+      ],
+      "candidates": [
+        {"id": "semantic", "source": "VECTOR", "rank": 1, "raw_score": 0.91},
+        {"id": "exact", "source": "VECTOR", "rank": 2, "raw_score": 0.89},
+        {"id": "exact", "source": "LEXICAL", "rank": 1, "raw_score": 0.83},
+        {"id": "semantic", "source": "LEXICAL", "rank": 2, "raw_score": 0.12},
+        {"id": "exact", "source": "STRUCTURED", "rank": 1, "raw_score": 1.0}
+      ],
+      "expected": {"gate_retrieve": true, "vector_top_ids": ["semantic"], "hybrid_top_ids": ["exact"], "context_selected_ids": ["exact"]}
+    },
+    {
+      "case_id": "semantic-paraphrase",
+      "split": "dev",
+      "coverage": ["vector", "lexical", "rrf"],
+      "query": "What display style does the user like?",
+      "limit": 1,
+      "max_tokens": 800,
+      "relevant_ids": ["dark-theme"],
+      "memories": [
+        {"id": "dark-theme", "lineage": "theme", "status": "CURRENT", "content": "The user prefers a dark editor theme.", "predicate": "preference.editor.theme", "recorded_at": "2026-08-30T00:00:00Z"},
+        {"id": "concise", "lineage": "answers", "status": "CURRENT", "content": "The user prefers concise answers.", "predicate": "preference.response.style", "recorded_at": "2026-08-29T00:00:00Z"}
+      ],
+      "candidates": [
+        {"id": "dark-theme", "source": "VECTOR", "rank": 1, "raw_score": 0.92},
+        {"id": "concise", "source": "VECTOR", "rank": 2, "raw_score": 0.88},
+        {"id": "concise", "source": "LEXICAL", "rank": 1, "raw_score": 0.31},
+        {"id": "dark-theme", "source": "LEXICAL", "rank": 2, "raw_score": 0.25}
+      ],
+      "expected": {"gate_retrieve": true, "vector_top_ids": ["dark-theme"], "hybrid_top_ids": ["dark-theme"], "context_selected_ids": ["dark-theme"]}
+    },
+    {
+      "case_id": "present-truth-filter",
+      "split": "test",
+      "coverage": ["truth-state", "vector", "lexical"],
+      "query": "Where does the user live?",
+      "limit": 1,
+      "max_tokens": 800,
+      "relevant_ids": ["current-city"],
+      "memories": [
+        {"id": "former-city", "lineage": "residence", "status": "HISTORICAL", "content": "The user lived in Shanghai.", "predicate": "residence", "recorded_at": "2026-08-28T00:00:00Z"},
+        {"id": "current-city", "lineage": "residence", "status": "CURRENT", "content": "The user lives in Hangzhou.", "predicate": "residence", "recorded_at": "2026-08-30T00:00:00Z"}
+      ],
+      "candidates": [
+        {"id": "former-city", "source": "VECTOR", "rank": 1, "raw_score": 0.95},
+        {"id": "current-city", "source": "VECTOR", "rank": 2, "raw_score": 0.91},
+        {"id": "former-city", "source": "LEXICAL", "rank": 1, "raw_score": 0.80},
+        {"id": "current-city", "source": "LEXICAL", "rank": 2, "raw_score": 0.75}
+      ],
+      "expected": {"gate_retrieve": true, "vector_top_ids": ["current-city"], "hybrid_top_ids": ["current-city"], "context_selected_ids": ["current-city"]}
+    },
+    {
+      "case_id": "historical-intent",
+      "split": "test",
+      "coverage": ["temporal", "truth-state", "rrf"],
+      "query": "Where did the user previously live?",
+      "limit": 1,
+      "max_tokens": 800,
+      "relevant_ids": ["former-city"],
+      "memories": [
+        {"id": "current-city", "lineage": "residence", "status": "CURRENT", "content": "The user lives in Hangzhou.", "predicate": "residence", "recorded_at": "2026-08-30T00:00:00Z"},
+        {"id": "former-city", "lineage": "residence", "status": "HISTORICAL", "content": "The user previously lived in Shanghai.", "predicate": "residence", "recorded_at": "2026-08-28T00:00:00Z"}
+      ],
+      "candidates": [
+        {"id": "current-city", "source": "VECTOR", "rank": 1, "raw_score": 0.94},
+        {"id": "former-city", "source": "VECTOR", "rank": 2, "raw_score": 0.90},
+        {"id": "former-city", "source": "LEXICAL", "rank": 1, "raw_score": 0.82},
+        {"id": "former-city", "source": "TEMPORAL", "rank": 1, "raw_score": 1.0}
+      ],
+      "expected": {"gate_retrieve": true, "vector_top_ids": ["current-city"], "hybrid_top_ids": ["former-city"], "context_selected_ids": ["former-city"]}
+    },
+    {
+      "case_id": "conversational-gate",
+      "split": "test",
+      "coverage": ["query-gate"],
+      "query": "thanks",
+      "limit": 1,
+      "max_tokens": 800,
+      "relevant_ids": [],
+      "memories": [],
+      "candidates": [],
+      "expected": {"gate_retrieve": false, "vector_top_ids": [], "hybrid_top_ids": [], "context_selected_ids": []}
+    },
+    {
+      "case_id": "lineage-diversity",
+      "split": "test",
+      "coverage": ["context-budget", "lineage-diversity", "provenance"],
+      "query": "What should the agent remember?",
+      "limit": 3,
+      "max_tokens": 800,
+      "relevant_ids": ["theme-current"],
+      "memories": [
+        {"id": "theme-current", "lineage": "theme", "status": "CURRENT", "content": "The user prefers a dark editor theme.", "predicate": "preference.editor.theme", "recorded_at": "2026-08-30T00:00:00Z"},
+        {"id": "theme-duplicate", "lineage": "theme", "status": "CURRENT", "content": "The preferred editor appearance is dark.", "predicate": "preference.editor.theme", "recorded_at": "2026-08-29T00:00:00Z"},
+        {"id": "response-style", "lineage": "answers", "status": "CURRENT", "content": "The user prefers concise answers.", "predicate": "preference.response.style", "recorded_at": "2026-08-28T00:00:00Z"}
+      ],
+      "candidates": [
+        {"id": "theme-current", "source": "VECTOR", "rank": 1, "raw_score": 0.95},
+        {"id": "theme-duplicate", "source": "VECTOR", "rank": 2, "raw_score": 0.91},
+        {"id": "response-style", "source": "VECTOR", "rank": 3, "raw_score": 0.86}
+      ],
+      "expected": {"gate_retrieve": true, "vector_top_ids": ["theme-current", "theme-duplicate", "response-style"], "hybrid_top_ids": ["theme-current", "theme-duplicate", "response-style"], "context_selected_ids": ["theme-current", "response-style"]}
+    }
+  ]
+}

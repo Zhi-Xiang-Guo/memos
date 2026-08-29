@@ -43,6 +43,11 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _text_sha256(path: Path) -> str:
+    normalized = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def load_fixture(manifest_path: Path) -> tuple[dict[str, Any], list[dict[str, Any]], Path]:
     """Load and verify a versioned fixture manifest and its cases."""
 
@@ -63,7 +68,7 @@ def load_fixture(manifest_path: Path) -> tuple[dict[str, Any], list[dict[str, An
         raise FixtureReportError(f"manifest missing fields: {missing_fields}")
 
     case_path = manifest_path.parent / str(manifest["case_file"])
-    actual_sha = _sha256(case_path)
+    actual_sha = _text_sha256(case_path)
     if actual_sha != manifest["case_sha256"]:
         raise FixtureReportError(
             f"case SHA-256 mismatch: manifest={manifest['case_sha256']} actual={actual_sha}"
@@ -318,7 +323,7 @@ def generate_report(manifest_path: Path, prediction_path: Path) -> dict[str, Any
             "schema_version": manifest["schema_version"],
             "policy_version": manifest["policy_version"],
             "manifest_sha256": _sha256(manifest_path),
-            "case_sha256": _sha256(case_path),
+            "case_sha256": _text_sha256(case_path),
             "prediction_sha256": _sha256(prediction_path),
             "case_count": len(cases),
             "splits": manifest["splits"],

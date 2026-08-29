@@ -6,7 +6,6 @@ import dev.memos.adapters.fake.PassThroughRerankerAdapter;
 import dev.memos.adapters.system.UuidMemoryIdGenerator;
 import dev.memos.domain.MemoryIdGenerator;
 import dev.memos.materialization.StructuredExtractionPort;
-import dev.memos.retrieval.EmbeddingPort;
 import dev.memos.retrieval.RerankerPort;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
@@ -30,7 +29,7 @@ public class ProviderConfiguration {
   }
 
   @Bean
-  EmbeddingPort embeddingPort() {
+  DeterministicEmbeddingAdapter embeddingPort() {
     return new DeterministicEmbeddingAdapter();
   }
 

@@ -8,6 +8,7 @@ import dev.memos.adapters.metrics.MicrometerOutboxWorkerTelemetry;
 import dev.memos.adapters.observability.TracingMaterializationJobHandler;
 import dev.memos.adapters.postgres.JdbcExtractionCommitStore;
 import dev.memos.adapters.postgres.JdbcMaterializationJobStore;
+import dev.memos.adapters.postgres.JdbcProjectionBuildStore;
 import dev.memos.adapters.postgres.JdbcSourceExtractionStore;
 import dev.memos.adapters.postgres.JdbcTemporalMemoryAuthority;
 import dev.memos.adapters.system.DeterministicExtractionIdentifierGenerator;
@@ -31,6 +32,9 @@ import dev.memos.materialization.MaterializationJobHandler;
 import dev.memos.materialization.MaterializationJobStore;
 import dev.memos.materialization.OutboxWorkerService;
 import dev.memos.materialization.OutboxWorkerTelemetry;
+import dev.memos.materialization.ProjectionBuildJobHandler;
+import dev.memos.materialization.ProjectionBuildStore;
+import dev.memos.materialization.ProjectionEmbeddingPort;
 import dev.memos.materialization.RoutedMaterializationJobHandler;
 import dev.memos.materialization.SourceExtractionStore;
 import dev.memos.materialization.StrictCandidateProposalDecoder;
@@ -184,9 +188,21 @@ public class MaterializationConfiguration {
   JdbcTemporalMemoryAuthority jdbcTemporalMemoryAuthority(
       JdbcTemplate jdbc,
       PlatformTransactionManager transactionManager,
-      TemporalTransitionPlanner planner) {
+      TemporalTransitionPlanner planner,
+      TemporalMemoryProperties properties) {
     return new JdbcTemporalMemoryAuthority(
-        jdbc, new TransactionTemplate(transactionManager), planner);
+        jdbc,
+        new TransactionTemplate(transactionManager),
+        planner,
+        required(properties.projectionPolicyVersion(), "memos.temporal.projection-policy-version"),
+        required(properties.projectionModelVersion(), "memos.temporal.projection-model-version"));
+  }
+
+  @Bean
+  @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
+  ProjectionBuildStore projectionBuildStore(
+      JdbcTemplate jdbc, PlatformTransactionManager transactionManager) {
+    return new JdbcProjectionBuildStore(jdbc, new TransactionTemplate(transactionManager));
   }
 
   @Bean
@@ -214,16 +230,26 @@ public class MaterializationConfiguration {
 
   @Bean
   @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
+  MaterializationJobHandler projectionBuildJobHandler(
+      Clock clock, ProjectionBuildStore store, ProjectionEmbeddingPort embeddingPort) {
+    return new ProjectionBuildJobHandler(clock, store, embeddingPort);
+  }
+
+  @Bean
+  @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
   RoutedMaterializationJobHandler routedMaterializationJobHandler(
       @Qualifier("sourceExtractionJobHandler") MaterializationJobHandler sourceExtractionJobHandler,
       @Qualifier("temporalCandidateJobHandler")
-          MaterializationJobHandler temporalCandidateJobHandler) {
+          MaterializationJobHandler temporalCandidateJobHandler,
+      @Qualifier("projectionBuildJobHandler") MaterializationJobHandler projectionBuildJobHandler) {
     return new RoutedMaterializationJobHandler(
         Map.of(
             dev.memos.materialization.JobType.MATERIALIZE_SOURCE,
             sourceExtractionJobHandler,
             dev.memos.materialization.JobType.CANDIDATE_MATERIALIZATION,
-            temporalCandidateJobHandler));
+            temporalCandidateJobHandler,
+            dev.memos.materialization.JobType.PROJECTION_BUILD,
+            projectionBuildJobHandler));
   }
 
   @Bean

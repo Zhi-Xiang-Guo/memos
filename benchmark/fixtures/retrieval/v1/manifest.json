@@ -1,0 +1,29 @@
+{
+  "fixture_version": "retrieval-conformance-v1",
+  "retrieval_contract_version": "hybrid-retrieval-v1",
+  "fusion_policy_version": "rrf-k60-v1",
+  "context_policy_version": "evidence-context-v1",
+  "report_schema_version": "retrieval-conformance-report.v1",
+  "case_file": "cases.json",
+  "case_sha256": "2142668c37d35865d97a2209e7495ae7a457ed25316ce3696a3cc325f4ba641b",
+  "case_count": 6,
+  "splits": {"dev": 2, "test": 4},
+  "required_coverage": [
+    "context-budget",
+    "lexical",
+    "lineage-diversity",
+    "provenance",
+    "query-gate",
+    "rrf",
+    "structured",
+    "temporal",
+    "truth-state",
+    "vector"
+  ],
+  "frozen_test_case_ids": [
+    "conversational-gate",
+    "historical-intent",
+    "lineage-diversity",
+    "present-truth-filter"
+  ]
+}

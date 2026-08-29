@@ -23,6 +23,7 @@ import dev.memos.domain.temporal.TransitionContext;
 import dev.memos.domain.temporal.TransitionSource;
 import dev.memos.governance.MemoryScope;
 import dev.memos.materialization.ClaimedJob;
+import dev.memos.materialization.CommitProjectionBuild;
 import dev.memos.materialization.CommitTemporalMaterialization;
 import dev.memos.materialization.CorrectionSelection;
 import dev.memos.materialization.InvalidationSelection;
@@ -30,19 +31,30 @@ import dev.memos.materialization.JobId;
 import dev.memos.materialization.JobType;
 import dev.memos.materialization.LeaseToken;
 import dev.memos.materialization.PlannedCandidateMaterialization;
+import dev.memos.materialization.ProjectedVersionBuild;
+import dev.memos.materialization.ProjectionBuildPlan;
+import dev.memos.materialization.ProjectionCommitResult;
+import dev.memos.materialization.ProjectionEmbedding;
 import dev.memos.materialization.SemanticJobKey;
 import dev.memos.materialization.TemporalMaterializationCommitResult;
 import dev.memos.materialization.TemporalMutationDisposition;
 import dev.memos.materialization.TemporalMutationException;
 import dev.memos.materialization.TemporalMutationFailureKind;
 import dev.memos.materialization.WorkerId;
+import dev.memos.retrieval.CandidateSource;
+import dev.memos.retrieval.CandidateStoreQuery;
+import dev.memos.retrieval.EmbeddingResult;
+import dev.memos.retrieval.QueryIntent;
+import dev.memos.retrieval.TemporalQueryIntent;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -1053,6 +1065,117 @@ class TemporalMemoryMigrationTest {
         .isZero();
   }
 
+  @Test
+  void projectionCommitFencesStaleWorkAndRetrievalHardFiltersScopeAndTruth() throws Exception {
+    Fixture fixture = fixture("tenant-feature4-projection");
+    UUID lineageId = UUID.randomUUID();
+    UUID versionId = UUID.randomUUID();
+    UUID firstTransitionId = UUID.randomUUID();
+    insertFirstAuthority(fixture, lineageId, versionId, firstTransitionId);
+
+    DataSource dataSource =
+        new DriverManagerDataSource(
+            DATABASE.getJdbcUrl(), DATABASE.getUsername(), DATABASE.getPassword());
+    JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+    JdbcProjectionBuildStore store =
+        new JdbcProjectionBuildStore(
+            jdbc, new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
+
+    ClaimedJob staleJob = insertClaimedProjectionJob(fixture, firstTransitionId);
+    ProjectionBuildPlan stalePlan = store.load(staleJob).orElseThrow();
+    assertThat(stalePlan.transitionSequence()).isEqualTo(1);
+
+    UUID secondTransitionId = UUID.randomUUID();
+    try (Connection connection = connection()) {
+      connection.setAutoCommit(false);
+      UUID reinforcement = insertAdditionalCandidate(connection, fixture, 1);
+      insertTransition(
+          connection,
+          fixture,
+          lineageId,
+          secondTransitionId,
+          2,
+          "REINFORCE",
+          new UUID[] {versionId},
+          "DUPLICATE_REINFORCEMENT",
+          reinforcement);
+      connection.commit();
+    }
+
+    assertThat(
+            store.commit(
+                new CommitProjectionBuild(
+                    stalePlan, projected(stalePlan), java.time.Instant.now())))
+        .isEqualTo(ProjectionCommitResult.SUPERSEDED);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT count(*) FROM memos.memory_search_projection WHERE tenant_id = ?",
+                Integer.class,
+                fixture.tenantId()))
+        .isZero();
+
+    ClaimedJob currentJob = insertClaimedProjectionJob(fixture, secondTransitionId);
+    ProjectionBuildPlan currentPlan = store.load(currentJob).orElseThrow();
+    ClaimedJob forgedJob =
+        new ClaimedJob(
+            currentJob.jobId(),
+            currentJob.jobType(),
+            currentJob.scope(),
+            currentJob.sourceEventId(),
+            currentJob.semanticJobKey(),
+            currentJob.policyVersion(),
+            currentJob.modelVersion(),
+            currentJob.attempt(),
+            currentJob.maxAttempts(),
+            currentJob.leaseOwner(),
+            new LeaseToken(UUID.randomUUID()),
+            currentJob.leaseExpiresAt(),
+            currentJob.traceId());
+    ProjectionBuildPlan forgedPlan =
+        new ProjectionBuildPlan(
+            forgedJob,
+            currentPlan.memoryId(),
+            currentPlan.transitionId(),
+            currentPlan.transitionSequence(),
+            currentPlan.items());
+    assertThat(
+            store.commit(
+                new CommitProjectionBuild(
+                    forgedPlan, projected(forgedPlan), java.time.Instant.now())))
+        .isEqualTo(ProjectionCommitResult.LEASE_LOST);
+
+    assertThat(
+            store.commit(
+                new CommitProjectionBuild(
+                    currentPlan, projected(currentPlan), java.time.Instant.now())))
+        .isEqualTo(ProjectionCommitResult.COMMITTED);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT transition_sequence FROM memos.memory_projection_checkpoint WHERE tenant_id = ? AND memory_id = ?",
+                Long.class,
+                fixture.tenantId(),
+                lineageId))
+        .isEqualTo(2L);
+
+    JdbcRetrievalCandidateStore candidates = new JdbcRetrievalCandidateStore(jdbc);
+    CandidateStoreQuery scopedQuery = candidateQuery(fixture.tenantId(), "user-1", "agent-1");
+    assertThat(candidates.findCandidates(scopedQuery))
+        .isNotEmpty()
+        .allSatisfy(candidate -> assertThat(candidate.memory().memoryId()).isEqualTo(lineageId));
+    assertThat(candidates.findCandidates(candidateQuery(fixture.tenantId(), "other", "agent-1")))
+        .isEmpty();
+    assertThat(candidates.findCandidates(candidateQuery(fixture.tenantId(), "user-1", "other")))
+        .isEmpty();
+    assertThat(candidates.findCandidates(candidateQuery("other-tenant", "user-1", "agent-1")))
+        .isEmpty();
+
+    jdbc.update(
+        "UPDATE memos.memory_search_projection SET truth_status = 'HISTORICAL' WHERE tenant_id = ? AND memory_id = ?",
+        fixture.tenantId(),
+        lineageId);
+    assertThat(candidates.findCandidates(scopedQuery)).isEmpty();
+  }
+
   private static void insertFirstAuthority(
       Fixture fixture, UUID lineageId, UUID versionId, UUID transitionId) throws SQLException {
     try (Connection connection = connection()) {
@@ -1089,6 +1212,80 @@ class TemporalMemoryMigrationTest {
           lineageId);
       connection.commit();
     }
+  }
+
+  private static ClaimedJob insertClaimedProjectionJob(Fixture fixture, UUID transitionId)
+      throws SQLException {
+    UUID jobId = UUID.randomUUID();
+    UUID leaseToken = UUID.randomUUID();
+    String semanticKey = "projection/" + transitionId;
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    execute(
+        """
+        INSERT INTO memos.outbox_job (
+            job_id, tenant_id, source_event_id, job_type, aggregate_type, aggregate_id,
+            semantic_job_key, policy_version, model_version, state, attempt, max_attempts,
+            replay_count, next_attempt_at, payload_reference, lease_owner, lease_token,
+            lease_expires_at, trace_id, created_at, updated_at
+        ) VALUES (?, ?, ?, 'PROJECTION_BUILD', 'MEMORY_TRANSITION', ?, ?,
+                  'projection-v1', 'deterministic-hashing-64-v1', 'CLAIMED', 1, 3, 0,
+                  NULL, ?, 'projection-worker', ?, ?, 'trace-projection', ?, ?)
+        """,
+        jobId,
+        fixture.tenantId(),
+        fixture.sourceEventId(),
+        transitionId,
+        semanticKey,
+        fixture.sourceEventId(),
+        leaseToken,
+        now.plusMinutes(5),
+        now,
+        now);
+    return new ClaimedJob(
+        new JobId(jobId),
+        JobType.PROJECTION_BUILD,
+        new MemoryScope(fixture.tenantId(), "user-1", "agent-1"),
+        fixture.sourceEventId(),
+        new SemanticJobKey(semanticKey),
+        "projection-v1",
+        "deterministic-hashing-64-v1",
+        1,
+        3,
+        new WorkerId("projection-worker"),
+        new LeaseToken(leaseToken),
+        now.plusMinutes(5).toInstant(),
+        "trace-projection");
+  }
+
+  private static List<ProjectedVersionBuild> projected(ProjectionBuildPlan plan) {
+    List<Float> vector = unitVector();
+    return plan.items().stream()
+        .map(
+            item ->
+                new ProjectedVersionBuild(
+                    item,
+                    new ProjectionEmbedding(
+                        vector, "deterministic", "deterministic-hashing-64-v1", 4)))
+        .toList();
+  }
+
+  private static CandidateStoreQuery candidateQuery(
+      String tenantId, String userId, String agentId) {
+    return new CandidateStoreQuery(
+        new LineageScope(tenantId, userId, agentId),
+        "user lives in Hangzhou",
+        new QueryIntent(TemporalQueryIntent.PRESENT, null),
+        "residence",
+        "user-1",
+        20,
+        Set.of(CandidateSource.VECTOR, CandidateSource.LEXICAL, CandidateSource.STRUCTURED),
+        new EmbeddingResult(unitVector(), "deterministic", "deterministic-hashing-64-v1", 4));
+  }
+
+  private static List<Float> unitVector() {
+    List<Float> vector = new ArrayList<>(Collections.nCopies(64, 0.0f));
+    vector.set(0, 1.0f);
+    return List.copyOf(vector);
   }
 
   private static void insertVersion(

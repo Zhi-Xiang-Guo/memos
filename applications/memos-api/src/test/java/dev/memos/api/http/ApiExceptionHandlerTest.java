@@ -38,6 +38,19 @@ class ApiExceptionHandlerTest {
   }
 
   @Test
+  void operatorAccessFailureIsForbiddenAndContentSafe() {
+    HttpServletRequest request = new MockHttpServletRequest("POST", "/v1/retrieval/trace");
+
+    var detail =
+        new ApiExceptionHandler()
+            .handleOperatorAccessDenied(new OperatorAccessDeniedException(), request);
+
+    assertThat(detail.getStatus()).isEqualTo(403);
+    assertThat(detail.getProperties()).containsEntry("code", "OPERATOR_ACCESS_DENIED");
+    assertThat(detail.getDetail()).doesNotContain("key", "secret", "tenant");
+  }
+
+  @Test
   void temporalMutationFailuresHaveStableContentSafeStatusesAndCodes() {
     HttpServletRequest request = new MockHttpServletRequest("POST", "/v1/memories/id/corrections");
     Map<TemporalMutationFailureKind, Integer> statuses =

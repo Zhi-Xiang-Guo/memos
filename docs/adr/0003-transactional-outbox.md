@@ -40,3 +40,9 @@ Fault tests kill the process before/after source commit, claim, provider respons
 Feature 1 validates the ingestion half of this decision: atomic source/outbox commit, concurrent idempotency, `SKIP LOCKED` claims, lease-token fencing, transient/dead/replay paths, handler execution outside a transaction, and one payload-free logical effect under reclaim all pass against PostgreSQL 18. The ADR remains `PROPOSED` until Features 3–4 validate authoritative version and projection completion transactions; Feature 1 does not claim those later boundaries.
 
 Feature 2 additionally validates a remote-call-outside-transaction extraction path and a lease-fenced transaction that commits sanitized candidate results, append-only policy decisions, content-free quarantine, one unique downstream intent, and source-job completion together. Fault injection proves rollback before commit and idempotent replay after commit. The ADR remains `PROPOSED` because authoritative memory-version and projection-job transactions are still Feature 3–4 work.
+
+Feature 3 validates the authoritative memory transaction and durable projection intent. Feature 4
+implements embedding outside a transaction followed by a database-time lease fence and
+transition-sequence fence; a superseded snapshot cannot replace a newer projection, while an
+invalidation commits a zero-row projection checkpoint. PostgreSQL integration, runtime smoke, and
+remote CI remain publication gates, so this ADR is not yet promoted.

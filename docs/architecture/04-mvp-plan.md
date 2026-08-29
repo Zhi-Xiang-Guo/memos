@@ -103,8 +103,8 @@ aggregate and bounded wait client are published through commit `2bf7689` and Git
 The Java Ollama embedding and long-call lease-safety milestone is published through commit
 `9225ed1` and GitHub Actions run `#32`; the unified runner and all result packages remain
 `NOT RUN`.
-The complete-context tokenizer-parity candidate is locally verified; remote publication and
-runner-side parity evidence remain pending.
+The complete-context tokenizer-parity milestone is published through commit `c5035c3` and GitHub
+Actions run `#34`; runner-side parity evidence remains pending.
 
 Deliver:
 

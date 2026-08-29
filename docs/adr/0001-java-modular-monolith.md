@@ -39,8 +39,9 @@ Use option 2. Set Java 21 or newer LTS-compatible code as the production baselin
 - one benchmark manifest can run every baseline through stable HTTP contracts;
 - revisit if a required model/runtime cannot meet the adapter contract or adds unacceptable overhead.
 
-Feature 6 now has a locally verified cross-language budget contract: Python baseline builders and
+Feature 6 now has a published cross-language budget contract: Python baseline builders and
 the Java MemOS context assembler count complete rendered contexts through the selected
 digest-pinned embedding tokenizer, while the Java HTTP response exposes counting usage for runner
-attribution. Remote publication and the unified four-baseline run remain pending, so this ADR is
-still `PROPOSED`.
+attribution. Commit `c5035c3` and GitHub Actions run `#34` verify the implementation and regression
+gates. Runner-side parity verification and the unified four-baseline run remain pending, so this
+ADR is still `PROPOSED`.

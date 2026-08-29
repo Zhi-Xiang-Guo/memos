@@ -15,6 +15,8 @@ through commit `2bf7689` and
 The Java Ollama embedding and long-call lease-safety milestone is `DONE / PUBLISHED` through
 commit `9225ed1` and
 [GitHub Actions run #32](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33279370001).
+The equal-budget Java context milestone is `DONE / PUBLISHED` through commit `c5035c3` and
+[GitHub Actions run #34](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33280316053).
 
 ## Product workload
 
@@ -134,9 +136,9 @@ evidence budget. These are runner primitives and do not constitute an executed b
 Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
 documentation gates in GitHub Actions run `#28`.
 
-## Equal-budget Java context candidate
+## Equal-budget Java context
 
-The current locally verified candidate removes the remaining Java/Python token-budget mismatch.
+The published milestone removes the remaining Java/Python token-budget mismatch.
 Java context assembly now counts each tentative complete rendered context through the configured
 embedding port instead of summing independently tokenized fragments. Under the selected Ollama
 configuration, this is the same digest-pinned embedding tokenizer used by the three Python
@@ -144,9 +146,10 @@ baseline builders. The response reports the immutable counter identity, final co
 the provider calls/input tokens consumed by budget checks so the runner can attribute that cost.
 
 The deterministic fake remains credential-free and reports no provider usage. Focused context and
-API tests plus Java 25 API compilation pass locally; remote CI publication and the independent
-runner-side parity assertion are still pending. This is a fairness mechanism, not an executed
-baseline or quality result.
+API tests plus Java 25 compilation passed locally. GitHub Actions run `#34` remotely passed the
+Java 25, PostgreSQL, Python, documentation, and complete compose-smoke regression gates. The
+independent runner-side parity assertion is still pending. This is a fairness mechanism, not an
+executed baseline or quality result.
 
 ## Java Ollama embedding and long-call lease safety
 

@@ -64,7 +64,8 @@ baseline has run, so the ADR still requires held-out quality, latency, token, an
 Commit `4120144` and GitHub Actions run `#24` verify publication and regression gates for the
 contract itself.
 
-The current Feature 6 candidate replaces additive code-point budgeting in the Java runtime with
+Feature 6 now replaces additive code-point budgeting in the Java runtime with
 complete-context counts from the configured embedding tokenizer and reports provider usage spent
-on those counts. Focused local tests verify the mechanism; remote publication and runner-side
-equal-budget evidence remain pending, so no quality conclusion follows.
+on those counts. Commit `c5035c3` and GitHub Actions run `#34` remotely verify the implementation
+and regression gates. Runner-side equal-budget evidence remains pending, so no quality conclusion
+follows.

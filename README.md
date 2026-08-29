@@ -221,10 +221,12 @@ digest-pinned 1024-dimensional Ollama model contract and renew leases across slo
 and serial claimed batches; commit `9225ed1` and
 [GitHub Actions run #32](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33279370001)
 remotely verify the PostgreSQL migration, renewal, and compose paths. Populated deployments still
-need an explicit model-version projection reconciliation path. A locally verified candidate now
+need an explicit model-version projection reconciliation path. A published milestone now
 counts the complete Java-rendered context with the same configured embedding tokenizer as the
-Python baselines and exposes counting calls/tokens for fair cost attribution; remote publication
-and runner-side parity verification remain pending. See the
+Python baselines and exposes counting calls/tokens for fair cost attribution. Commit `c5035c3`
+and [GitHub Actions run #34](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33280316053)
+remotely verify the Java implementation and regression gates; runner-side parity verification
+remains pending. See the
 [Feature 6 implementation note](docs/implementation/feature-6.md).
 
 ## Design principles

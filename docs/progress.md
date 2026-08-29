@@ -38,11 +38,14 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   [run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267) passed Java 25,
   PostgreSQL migration/fault/concurrency tests, Python, docs, and the full Feature 0–5 compose
   smoke. This is implementation evidence, not formal security effectiveness or model-quality data.
-- Feature 6's first contract gate is locally complete but not yet published: the bounded bilingual
+- Feature 6's first contract gate is `DONE / PUBLISHED` through
+  `4120144a3afa2b9c7e443fe3c27e88eb01595330`: the bounded bilingual
   personal/project-assistant workload, 13-scenario/15-question synthetic smoke dataset, frozen
   train/dev/test IDs, CC BY 4.0 license and attribution, answer/summary prompt hashes, equal-budget
-  four-baseline contract, and exact local Ollama model IDs are machine-verified. No baseline run,
-  quality score, latency result, or cost result exists yet.
+  four-baseline contract, and exact local Ollama model IDs are machine-verified. GitHub Actions
+  [run #24](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33273671807) passed Java 25,
+  PostgreSQL/compose regression, Python, and docs gates. No baseline run, quality score, latency
+  result, or cost result exists yet.
 
 ## Advanced Memory
 

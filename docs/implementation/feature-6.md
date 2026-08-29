@@ -1,7 +1,9 @@
 # Feature 6 - reproducible evaluation and evidence package
 
-Status: `DOING`. The product workload and the first smoke dataset are frozen. No four-baseline
-result has been published yet.
+Status: `DOING`. The product workload and first smoke contract are `DONE / PUBLISHED` through
+commit `4120144` and
+[GitHub Actions run #24](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33273671807). No
+four-baseline result has been published yet.
 
 ## Product workload
 

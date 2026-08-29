@@ -61,3 +61,5 @@ Feature 6 has frozen a 13-scenario/15-question synthetic bilingual smoke contrac
 temporal, contradiction, exact/project facts, semantic/bilingual recall, noise, abstention,
 multi-hop, and poisoning cases under four declared baselines. This is protocol evidence only: no
 baseline has run, so the ADR still requires held-out quality, latency, token, and storage evidence.
+Commit `4120144` and GitHub Actions run `#24` verify publication and regression gates for the
+contract itself.

@@ -17,6 +17,7 @@ import dev.memos.materialization.MaterializationJobStore;
 import dev.memos.materialization.ReplayResult;
 import dev.memos.materialization.SemanticJobKey;
 import dev.memos.materialization.SourceMaterialization;
+import dev.memos.materialization.SourceMaterializationUsage;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -39,7 +40,8 @@ class SourceMaterializationControllerTest {
             SOURCE_ID,
             List.of(
                 job(JobType.PROJECTION_BUILD, JobState.PENDING, 3),
-                job(JobType.MATERIALIZE_SOURCE, JobState.SUCCEEDED, 1)));
+                job(JobType.MATERIALIZE_SOURCE, JobState.SUCCEEDED, 1)),
+            new SourceMaterializationUsage(false, 11, 7, 5, 2));
     var controller =
         new SourceMaterializationController(
             new ReadStore(observedScope, Optional.of(materialization)), ignored -> SCOPE);
@@ -56,6 +58,9 @@ class SourceMaterializationControllerTest {
         .containsExactly("MATERIALIZE_SOURCE", "PROJECTION_BUILD");
     assertThat(response.jobs().getFirst().completedAt()).isEqualTo(NOW.plusSeconds(2));
     assertThat(response.jobs().getLast().errorClass()).isNull();
+    assertThat(response.usage().complete()).isFalse();
+    assertThat(response.usage().inputTokens()).isEqualTo(11);
+    assertThat(response.usage().embeddingTokens()).isEqualTo(5);
   }
 
   @Test

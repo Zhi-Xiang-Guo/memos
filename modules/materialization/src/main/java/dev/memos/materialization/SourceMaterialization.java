@@ -6,7 +6,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public record SourceMaterialization(UUID sourceEventId, List<MaterializationJob> jobs) {
+public record SourceMaterialization(
+    UUID sourceEventId, List<MaterializationJob> jobs, SourceMaterializationUsage usage) {
+  public SourceMaterialization(UUID sourceEventId, List<MaterializationJob> jobs) {
+    this(sourceEventId, jobs, SourceMaterializationUsage.unavailable());
+  }
+
   public SourceMaterialization {
     Objects.requireNonNull(sourceEventId, "sourceEventId must not be null");
     jobs =
@@ -22,6 +27,7 @@ public record SourceMaterialization(UUID sourceEventId, List<MaterializationJob>
     if (jobs.stream().anyMatch(job -> !sourceEventId.equals(job.sourceEventId()))) {
       throw new IllegalArgumentException("all jobs must belong to the source event");
     }
+    Objects.requireNonNull(usage, "usage must not be null");
   }
 
   public SourceMaterializationState state() {

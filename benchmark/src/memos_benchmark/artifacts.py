@@ -132,6 +132,42 @@ def expected_case_rows(
     return sorted(rows, key=execution_key)
 
 
+def write_key(row: dict[str, Any]) -> tuple[str, str, int]:
+    """Return the stable baseline/scenario/repetition identity for preprocessing usage."""
+
+    baseline = row.get("baseline")
+    scenario_id = row.get("scenario_id")
+    repetition = row.get("repetition")
+    if (
+        not isinstance(baseline, str)
+        or not baseline
+        or not isinstance(scenario_id, str)
+        or not scenario_id
+        or not isinstance(repetition, int)
+        or isinstance(repetition, bool)
+        or repetition < 1
+    ):
+        raise ArtifactPackageError("write row has an invalid execution identity")
+    return baseline, scenario_id, repetition
+
+
+def expected_write_keys(
+    dataset_manifest: dict[str, Any],
+    scenarios: list[dict[str, Any]],
+    split: str,
+    repetitions: int,
+) -> set[tuple[str, str, int]]:
+    """Expand the exact scenario-level preprocessing coverage contract."""
+
+    return {
+        (baseline, scenario["scenario_id"], repetition)
+        for baseline in dataset_manifest["baselines"]
+        for scenario in scenarios
+        if scenario["split"] == split
+        for repetition in range(1, repetitions + 1)
+    }
+
+
 def split_membership_sha256(scenarios: list[dict[str, Any]], split: str) -> str:
     membership = [
         {
@@ -255,7 +291,7 @@ def write_package(
         _write_json(run_dir / "costs.json", costs)
         _write_json(run_dir / "metrics.json", metrics)
         with (run_dir / "failures.md").open("x", encoding="utf-8", newline="\n") as stream:
-            stream.write(render_failures_markdown(answers, retrieval, timings))
+            stream.write(render_failures_markdown(writes, answers, retrieval, timings))
         hashes = {name: file_sha256(run_dir / name) for name in sorted(PACKAGE_FILES)}
         integrity = {
             "schema_version": INTEGRITY_SCHEMA,
@@ -398,13 +434,36 @@ def _validate_status_rows(
             raise ArtifactPackageError(f"{name} row {key} lacks explicit failure/exclusion reason")
 
 
+def _validate_write_rows(expected: set[tuple[str, str, int]], rows: list[dict[str, Any]]) -> None:
+    indexed: dict[tuple[str, str, int], dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ArtifactPackageError("writes contains a non-object row")
+        key = write_key(row)
+        if key in indexed:
+            raise ArtifactPackageError(f"writes contains duplicate execution row {key}")
+        indexed[key] = row
+    if set(indexed) != expected:
+        raise ArtifactPackageError(
+            f"writes execution set mismatch: missing={len(expected - set(indexed))} "
+            f"unexpected={len(set(indexed) - expected)}"
+        )
+    for key, row in indexed.items():
+        status = row.get("status")
+        if status not in {"SUCCESS", "FAILED", "EXCLUDED"}:
+            raise ArtifactPackageError(f"writes row {key} has an invalid status")
+        if status != "SUCCESS" and not isinstance(row.get("error_class"), str):
+            raise ArtifactPackageError(f"writes row {key} lacks explicit failure/exclusion reason")
+        _usage(row)
+
+
 def _usage(row: dict[str, Any]) -> dict[str, int]:
     fields = ("input_tokens", "output_tokens", "embedding_tokens", "model_calls")
+    if not isinstance(row.get("usage_complete"), bool):
+        raise ArtifactPackageError("every usage row must declare usage_complete")
     usage = row.get("usage")
-    if usage is None:
-        return dict.fromkeys(fields, 0)
     if not isinstance(usage, dict) or set(usage) != set(fields):
-        raise ArtifactPackageError("usage must contain the exact v1 accounting fields")
+        raise ArtifactPackageError("every usage row must contain the exact v1 accounting fields")
     for field in fields:
         value = usage[field]
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
@@ -422,18 +481,20 @@ def generate_costs(
 
     fields = ("input_tokens", "output_tokens", "embedding_tokens", "model_calls")
     baselines = run_manifest["execution"]["baselines"]
-    totals = {baseline: dict.fromkeys(fields, 0) for baseline in baselines}
+    totals = {baseline: {**dict.fromkeys(fields, 0), "complete": True} for baseline in baselines}
     for row in [*writes, *retrieval, *answers]:
         baseline = row.get("baseline")
         if baseline not in totals:
             raise ArtifactPackageError("usage row has an unknown baseline")
         usage = _usage(row)
+        totals[baseline]["complete"] = totals[baseline]["complete"] and row["usage_complete"]
         for field in fields:
             totals[baseline][field] += usage[field]
     return {
         "schema_version": "memos-benchmark-costs.v1",
         "pricing_snapshot": run_manifest["pricing_snapshot"],
         "estimated_cost_usd": None,
+        "usage_complete": all(value["complete"] for value in totals.values()),
         "by_baseline": totals,
         "disclaimer": (
             "Local model calls and tokens are counted, but monetary and energy costs are not "
@@ -443,6 +504,7 @@ def generate_costs(
 
 
 def render_failures_markdown(
+    writes: list[dict[str, Any]],
     answers: list[dict[str, Any]],
     retrieval: list[dict[str, Any]],
     timings: list[dict[str, Any]],
@@ -450,6 +512,23 @@ def render_failures_markdown(
     """Render content-safe failure/exclusion accounting from raw status rows."""
 
     failures: list[tuple[str, tuple[str, str, str, int], str, str]] = []
+    for row in writes:
+        if row.get("status") == "SUCCESS":
+            continue
+        baseline, scenario_id, repetition = write_key(row)
+        error_class = row.get("error_class")
+        if not isinstance(error_class, str) or not error_class:
+            raise ArtifactPackageError(
+                f"write row {(baseline, scenario_id, repetition)} lacks an error_class"
+            )
+        failures.append(
+            (
+                "write",
+                (baseline, scenario_id, "N/A", repetition),
+                str(row.get("status")),
+                error_class,
+            )
+        )
     for stage, rows in (("answer", answers), ("retrieval", retrieval), ("timing", timings)):
         for row in rows:
             if row.get("status") == "SUCCESS":
@@ -505,6 +584,15 @@ def verify_package(run_dir: Path, dataset_manifest_path: Path) -> dict[str, Any]
     _validate_status_rows(expected, answers, "answers")
     _validate_status_rows(expected, retrieval, "retrieval")
     _validate_status_rows(expected, timings, "timings")
+    _validate_write_rows(
+        expected_write_keys(
+            dataset_manifest,
+            scenarios,
+            manifest["execution"]["split"],
+            manifest["execution"]["repetitions"],
+        ),
+        writes,
+    )
     try:
         regenerated = generate_metrics(
             dataset_manifest, scenarios, manifest, answers, retrieval, timings
@@ -513,9 +601,10 @@ def verify_package(run_dir: Path, dataset_manifest_path: Path) -> dict[str, Any]
         raise ArtifactPackageError(str(exc)) from exc
     if _read_json(run_dir / "metrics.json") != regenerated:
         raise ArtifactPackageError("metrics.json differs from mechanically regenerated metrics")
-    if _read_json(run_dir / "costs.json") != generate_costs(manifest, writes, retrieval, answers):
+    costs = _read_json(run_dir / "costs.json")
+    if costs != generate_costs(manifest, writes, retrieval, answers):
         raise ArtifactPackageError("costs.json differs from mechanically regenerated usage")
-    expected_failures = render_failures_markdown(answers, retrieval, timings)
+    expected_failures = render_failures_markdown(writes, answers, retrieval, timings)
     if (run_dir / "failures.md").read_text(encoding="utf-8") != expected_failures:
         raise ArtifactPackageError("failures.md differs from raw failure/exclusion rows")
     return {
@@ -523,6 +612,7 @@ def verify_package(run_dir: Path, dataset_manifest_path: Path) -> dict[str, Any]
         "campaign_kind": manifest["campaign_kind"],
         "execution_count": len(expected),
         "answer_status": dict(sorted(Counter(row["status"] for row in answers).items())),
+        "usage_complete": costs["usage_complete"],
         "package_sha256": _read_json(run_dir / "integrity.json")["package_sha256"],
     }
 

@@ -1147,6 +1147,18 @@ class TemporalMemoryMigrationTest {
                 fixture.tenantId(),
                 lineageId))
         .isEqualTo(2L);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT sum(input_tokens) FROM memos.projection_provider_usage WHERE tenant_id = ?",
+                Long.class,
+                fixture.tenantId()))
+        .isEqualTo(8L);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT sum(model_calls) FROM memos.projection_provider_usage WHERE tenant_id = ?",
+                Long.class,
+                fixture.tenantId()))
+        .isEqualTo(2L);
 
     JdbcRetrievalCandidateStore candidates = new JdbcRetrievalCandidateStore(jdbc);
     CandidateStoreQuery scopedQuery = candidateQuery(fixture.tenantId(), "user-1", "agent-1");

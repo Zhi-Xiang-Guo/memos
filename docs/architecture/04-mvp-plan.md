@@ -105,6 +105,9 @@ The Java Ollama embedding and long-call lease-safety milestone is published thro
 `NOT RUN`.
 The complete-context tokenizer-parity milestone is published through commit `c5035c3` and GitHub
 Actions run `#34`; runner-side parity evidence remains pending.
+The unified runner and exact provider-usage candidate is locally verified with deterministic
+four-baseline tests. V008 PostgreSQL integration, real-model parity, storage observation, and all
+result packages remain pending remote verification or `NOT RUN`.
 
 Deliver:
 

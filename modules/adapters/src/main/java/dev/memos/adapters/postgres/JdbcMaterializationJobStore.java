@@ -15,6 +15,7 @@ import dev.memos.materialization.MaterializationJobStore;
 import dev.memos.materialization.ReplayResult;
 import dev.memos.materialization.SemanticJobKey;
 import dev.memos.materialization.SourceMaterialization;
+import dev.memos.materialization.SourceMaterializationUsage;
 import dev.memos.materialization.WorkerId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -313,7 +314,79 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
             scope.agentId());
     return jobs.isEmpty()
         ? Optional.empty()
-        : Optional.of(new SourceMaterialization(sourceEventId, jobs));
+        : Optional.of(
+            new SourceMaterialization(
+                sourceEventId, jobs, providerUsage(scope, sourceEventId, jobs)));
+  }
+
+  private SourceMaterializationUsage providerUsage(
+      MemoryScope scope, UUID sourceEventId, List<MaterializationJob> jobs) {
+    UsageAggregate extraction =
+        jdbc.queryForObject(
+            """
+            SELECT COALESCE(sum(attempt.input_tokens), 0) AS input_tokens,
+                   COALESCE(sum(attempt.output_tokens), 0) AS output_tokens,
+                   COALESCE(sum(attempt.model_calls), 0) AS model_calls,
+                   count(*) FILTER (
+                       WHERE attempt.state = 'SUCCEEDED'
+                         AND attempt.input_tokens IS NOT NULL
+                         AND attempt.output_tokens IS NOT NULL
+                   ) AS complete_rows
+              FROM memos.extraction_attempt attempt
+              JOIN memos.outbox_job job
+                ON job.tenant_id = attempt.tenant_id AND job.job_id = attempt.job_id
+             WHERE job.tenant_id = ? AND job.source_event_id = ?
+               AND job.job_type = 'MATERIALIZE_SOURCE'
+            """,
+            (result, row) ->
+                new UsageAggregate(
+                    result.getLong("input_tokens"),
+                    result.getLong("output_tokens"),
+                    0,
+                    result.getLong("model_calls"),
+                    result.getLong("complete_rows")),
+            scope.tenantId(),
+            sourceEventId);
+    UsageAggregate projection =
+        jdbc.queryForObject(
+            """
+            SELECT COALESCE(sum(usage.input_tokens), 0) AS embedding_tokens,
+                   COALESCE(sum(usage.model_calls), 0) AS model_calls,
+                   count(*) AS complete_rows
+              FROM memos.projection_provider_usage usage
+             WHERE usage.tenant_id = ? AND usage.source_event_id = ?
+            """,
+            (result, row) ->
+                new UsageAggregate(
+                    0,
+                    0,
+                    result.getLong("embedding_tokens"),
+                    result.getLong("model_calls"),
+                    result.getLong("complete_rows")),
+            scope.tenantId(),
+            sourceEventId);
+    long extractionJobs =
+        jobs.stream().filter(job -> job.jobType() == JobType.MATERIALIZE_SOURCE).count();
+    long projectionJobs =
+        jobs.stream().filter(job -> job.jobType() == JobType.PROJECTION_BUILD).count();
+    boolean singleAttemptProviderWork =
+        jobs.stream()
+            .filter(
+                job ->
+                    job.jobType() == JobType.MATERIALIZE_SOURCE
+                        || job.jobType() == JobType.PROJECTION_BUILD)
+            .allMatch(job -> job.attempt() == 1 && job.replayCount() == 0);
+    boolean complete =
+        jobs.stream().allMatch(job -> job.state() == JobState.SUCCEEDED)
+            && singleAttemptProviderWork
+            && extraction.completeRows() == extractionJobs
+            && projection.completeRows() == projectionJobs;
+    return new SourceMaterializationUsage(
+        complete,
+        extraction.inputTokens(),
+        extraction.outputTokens(),
+        projection.embeddingTokens(),
+        Math.addExact(extraction.modelCalls(), projection.modelCalls()));
   }
 
   @Override
@@ -420,4 +493,11 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
       String semanticJobKey,
       String handlerVersion,
       Instant completedAt) {}
+
+  private record UsageAggregate(
+      long inputTokens,
+      long outputTokens,
+      long embeddingTokens,
+      long modelCalls,
+      long completeRows) {}
 }

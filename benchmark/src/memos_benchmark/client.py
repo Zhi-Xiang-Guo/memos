@@ -61,7 +61,53 @@ class SourceMaterializationStatus:
     created_at: datetime
     updated_at: datetime
     settled_at: datetime | None
+    usage: MaterializationUsage
     jobs: tuple[MaterializationJobStatus, ...]
+
+
+@dataclass(frozen=True)
+class MaterializationUsage:
+    complete: bool
+    input_tokens: int
+    output_tokens: int
+    embedding_tokens: int
+    model_calls: int
+
+
+@dataclass(frozen=True)
+class SourceEventReceipt:
+    source_event_id: str
+    source_id: str
+    materialization_job_id: str
+    disposition: str
+    accepted_at: datetime
+    materialization_state: str
+
+
+@dataclass(frozen=True)
+class RetrievalContext:
+    rendered: str
+    tokens: int
+    token_counter_version: str
+    token_count_provider_input_tokens: int
+    token_count_provider_calls: int
+    selected_version_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class RetrievalTrace:
+    embedding_provider: str
+    embedding_model_version: str
+    embedding_input_tokens: int
+
+
+@dataclass(frozen=True)
+class RetrievalResponse:
+    gate_retrieve: bool
+    ranked_source_event_ids: tuple[str, ...]
+    selected_source_event_ids: tuple[str, ...]
+    context: RetrievalContext
+    trace: RetrievalTrace
 
 
 class MemosClient:
@@ -100,6 +146,59 @@ class MemosClient:
             timeout_seconds,
         )
         return _source_materialization(payload, canonical_source_id)
+
+    def ingest_source_event(
+        self,
+        event: dict[str, Any],
+        bearer_token: str,
+        idempotency_key: str,
+        timeout_seconds: float = 10.0,
+    ) -> SourceEventReceipt:
+        if not bearer_token or not idempotency_key:
+            raise ValueError("bearer_token and idempotency_key must not be empty")
+        if not isinstance(event, dict):
+            raise ValueError("event must be an object")
+        payload = self._request_json(
+            "POST",
+            "/v1/source-events",
+            bearer_token,
+            timeout_seconds,
+            event,
+            {"Idempotency-Key": idempotency_key},
+            202,
+        )
+        return _source_receipt(payload)
+
+    def retrieval_trace(
+        self,
+        query: str,
+        bearer_token: str,
+        *,
+        limit: int,
+        max_tokens: int,
+        timeout_seconds: float = 300.0,
+    ) -> RetrievalResponse:
+        if not query or not bearer_token:
+            raise ValueError("query and bearer_token must not be empty")
+        if limit < 1 or max_tokens < 1:
+            raise ValueError("limit and max_tokens must be positive")
+        payload = self._request_json(
+            "POST",
+            "/v1/retrieval/trace",
+            bearer_token,
+            timeout_seconds,
+            {
+                "query": query,
+                "mode": "HYBRID",
+                "limit": limit,
+                "componentLimit": max(40, limit),
+                "rerank": False,
+                "maxTokens": max_tokens,
+            },
+            {},
+            200,
+        )
+        return _retrieval_response(payload)
 
     def wait_for_materialization(
         self,
@@ -144,14 +243,33 @@ class MemosClient:
     def _get_json(
         self, path: str, bearer_token: str | None, timeout_seconds: float
     ) -> dict[str, Any]:
+        return self._request_json("GET", path, bearer_token, timeout_seconds, None, {}, 200)
+
+    def _request_json(
+        self,
+        method: str,
+        path: str,
+        bearer_token: str | None,
+        timeout_seconds: float,
+        body: dict[str, Any] | None,
+        extra_headers: dict[str, str],
+        expected_status: int,
+    ) -> dict[str, Any]:
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
         headers = {"Accept": "application/json"}
+        encoded = None
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+            encoded = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         if bearer_token is not None:
             headers["Authorization"] = f"Bearer {bearer_token}"
-        request = Request(f"{self._base_url}{path}", headers=headers, method="GET")
+        headers.update(extra_headers)
+        request = Request(f"{self._base_url}{path}", data=encoded, headers=headers, method=method)
         try:
             with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310
+                if getattr(response, "status", expected_status) != expected_status:
+                    raise MemosClientError("HTTP_ERROR", "MemOS returned unexpected HTTP status")
                 raw = response.read(MAX_RESPONSE_BYTES + 1)
         except HTTPError as exc:
             raise MemosClientError(
@@ -168,6 +286,171 @@ class MemosClient:
         if not isinstance(payload, dict):
             raise MemosClientError("MALFORMED_RESPONSE", "MemOS response is not an object")
         return payload
+
+
+def _source_receipt(payload: dict[str, Any]) -> SourceEventReceipt:
+    fields = {
+        "sourceEventId",
+        "sourceId",
+        "materializationJobId",
+        "disposition",
+        "acceptedAt",
+        "materializationState",
+    }
+    if set(payload) != fields:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS source receipt schema is invalid")
+    source_id = payload["sourceId"]
+    disposition = payload["disposition"]
+    state = payload["materializationState"]
+    if (
+        not isinstance(source_id, str)
+        or not source_id
+        or not isinstance(disposition, str)
+        or not disposition
+        or not isinstance(state, str)
+        or not state
+    ):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS source receipt values are invalid")
+    return SourceEventReceipt(
+        source_event_id=_uuid(payload["sourceEventId"], "sourceEventId"),
+        source_id=source_id,
+        materialization_job_id=_uuid(payload["materializationJobId"], "materializationJobId"),
+        disposition=disposition,
+        accepted_at=_required_timestamp(payload["acceptedAt"], "acceptedAt"),
+        materialization_state=state,
+    )
+
+
+def _retrieval_response(payload: dict[str, Any]) -> RetrievalResponse:
+    if set(payload) != {"gate", "intent", "context", "memories", "trace"}:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval response schema is invalid")
+    gate = payload["gate"]
+    if (
+        not isinstance(gate, dict)
+        or set(gate) != {"retrieve", "reason"}
+        or not isinstance(gate["retrieve"], bool)
+        or not isinstance(gate["reason"], str)
+    ):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval gate is invalid")
+    context = _retrieval_context(payload["context"])
+    trace = _retrieval_trace(payload["trace"])
+    memories = payload["memories"]
+    if not isinstance(memories, list):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval memories are invalid")
+    by_version: dict[str, tuple[str, ...]] = {}
+    ranked: list[str] = []
+    for memory in memories:
+        if not isinstance(memory, dict):
+            raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval memory is invalid")
+        version_id = _uuid(memory.get("versionId"), "memory.versionId")
+        if version_id in by_version:
+            raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval versions are duplicated")
+        raw_source_ids = memory.get("sourceEventIds")
+        if not isinstance(raw_source_ids, list):
+            raise MemosClientError("MALFORMED_RESPONSE", "MemOS memory provenance is invalid")
+        source_ids = tuple(_uuid(value, "memory.sourceEventId") for value in raw_source_ids)
+        if not source_ids or len(source_ids) != len(set(source_ids)):
+            raise MemosClientError("MALFORMED_RESPONSE", "MemOS memory provenance is invalid")
+        by_version[version_id] = source_ids
+        _extend_unique(ranked, source_ids)
+    if not set(context.selected_version_ids).issubset(by_version):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS selected context is not ranked")
+    selected: list[str] = []
+    for version_id in context.selected_version_ids:
+        _extend_unique(selected, by_version[version_id])
+    return RetrievalResponse(
+        gate_retrieve=gate["retrieve"],
+        ranked_source_event_ids=tuple(ranked),
+        selected_source_event_ids=tuple(selected),
+        context=context,
+        trace=trace,
+    )
+
+
+def _retrieval_context(value: Any) -> RetrievalContext:
+    fields = {
+        "rendered",
+        "tokens",
+        "tokenCounterVersion",
+        "tokenCountProviderInputTokens",
+        "tokenCountProviderCalls",
+        "considered",
+        "selected",
+        "truncated",
+        "selectedVersionIds",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval context is invalid")
+    rendered = value["rendered"]
+    counter = value["tokenCounterVersion"]
+    selected = value["selectedVersionIds"]
+    if (
+        not isinstance(rendered, str)
+        or not rendered
+        or not isinstance(counter, str)
+        or not counter
+        or not isinstance(selected, list)
+        or not isinstance(value["truncated"], bool)
+    ):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval context is invalid")
+    selected_ids = tuple(_uuid(item, "context.selectedVersionId") for item in selected)
+    if len(selected_ids) != len(set(selected_ids)):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS selected versions are duplicated")
+    _non_negative_int(value["considered"], "context.considered")
+    selected_count = _non_negative_int(value["selected"], "context.selected")
+    if selected_count != len(selected_ids):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS selected count is inconsistent")
+    return RetrievalContext(
+        rendered=rendered,
+        tokens=_positive_int(value["tokens"], "context.tokens"),
+        token_counter_version=counter,
+        token_count_provider_input_tokens=_non_negative_int(
+            value["tokenCountProviderInputTokens"], "context.tokenCountProviderInputTokens"
+        ),
+        token_count_provider_calls=_non_negative_int(
+            value["tokenCountProviderCalls"], "context.tokenCountProviderCalls"
+        ),
+        selected_version_ids=selected_ids,
+    )
+
+
+def _retrieval_trace(value: Any) -> RetrievalTrace:
+    fields = {
+        "gateReason",
+        "temporalIntent",
+        "componentCandidateCount",
+        "fusedCandidateCount",
+        "rerankOutcome",
+        "embeddingProvider",
+        "embeddingModelVersion",
+        "embeddingInputTokens",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval trace is invalid")
+    for field in (
+        "gateReason",
+        "temporalIntent",
+        "rerankOutcome",
+        "embeddingProvider",
+        "embeddingModelVersion",
+    ):
+        if not isinstance(value[field], str) or not value[field]:
+            raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval trace is invalid")
+    _non_negative_int(value["componentCandidateCount"], "trace.componentCandidateCount")
+    _non_negative_int(value["fusedCandidateCount"], "trace.fusedCandidateCount")
+    return RetrievalTrace(
+        embedding_provider=value["embeddingProvider"],
+        embedding_model_version=value["embeddingModelVersion"],
+        embedding_input_tokens=_non_negative_int(
+            value["embeddingInputTokens"], "trace.embeddingInputTokens"
+        ),
+    )
+
+
+def _extend_unique(output: list[str], values: tuple[str, ...]) -> None:
+    for value in values:
+        if value not in output:
+            output.append(value)
 
 
 def _source_materialization(
@@ -189,6 +472,7 @@ def _source_materialization(
     if job_order != tuple(sorted(job_order)):
         raise MemosClientError("MALFORMED_RESPONSE", "MemOS materialization jobs are unordered")
     settled_at = _timestamp(payload.get("settledAt"), "settledAt", optional=True)
+    usage = _materialization_usage(payload.get("usage"))
     derived_status = (
         "FAILED"
         if any(job.state == "DEAD" for job in jobs)
@@ -211,13 +495,39 @@ def _source_materialization(
         raise MemosClientError("MALFORMED_RESPONSE", "MemOS aggregate update time is inconsistent")
     if settled_at != (None if status == "PROCESSING" else expected_settled_at):
         raise MemosClientError("MALFORMED_RESPONSE", "MemOS settled timestamp is inconsistent")
+    if usage.complete and status != "SUCCEEDED":
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS usage completeness is inconsistent")
     return SourceMaterializationStatus(
         source_event_id=source_event_id,
         status=status,
         created_at=created_at,
         updated_at=updated_at,
         settled_at=settled_at,
+        usage=usage,
         jobs=jobs,
+    )
+
+
+def _materialization_usage(value: Any) -> MaterializationUsage:
+    fields = {
+        "complete",
+        "inputTokens",
+        "outputTokens",
+        "embeddingTokens",
+        "modelCalls",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != fields
+        or not isinstance(value["complete"], bool)
+    ):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS materialization usage is invalid")
+    return MaterializationUsage(
+        complete=value["complete"],
+        input_tokens=_non_negative_int(value["inputTokens"], "usage.inputTokens"),
+        output_tokens=_non_negative_int(value["outputTokens"], "usage.outputTokens"),
+        embedding_tokens=_non_negative_int(value["embeddingTokens"], "usage.embeddingTokens"),
+        model_calls=_non_negative_int(value["modelCalls"], "usage.modelCalls"),
     )
 
 

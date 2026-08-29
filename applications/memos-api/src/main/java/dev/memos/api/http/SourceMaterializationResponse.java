@@ -10,6 +10,7 @@ public record SourceMaterializationResponse(
     Instant createdAt,
     Instant updatedAt,
     Instant settledAt,
+    ProviderUsageResponse usage,
     List<MaterializationJobResponse> jobs) {
   static SourceMaterializationResponse from(SourceMaterialization materialization) {
     return new SourceMaterializationResponse(
@@ -18,6 +19,19 @@ public record SourceMaterializationResponse(
         materialization.createdAt(),
         materialization.updatedAt(),
         materialization.settledAt(),
+        new ProviderUsageResponse(
+            materialization.usage().complete(),
+            materialization.usage().inputTokens(),
+            materialization.usage().outputTokens(),
+            materialization.usage().embeddingTokens(),
+            materialization.usage().modelCalls()),
         materialization.jobs().stream().map(MaterializationJobResponse::from).toList());
   }
+
+  public record ProviderUsageResponse(
+      boolean complete,
+      long inputTokens,
+      long outputTokens,
+      long embeddingTokens,
+      long modelCalls) {}
 }

@@ -208,12 +208,13 @@ Hosted model aliases that can drift are called out explicitly; a date is not pro
 
 ## Harness artifacts
 
-The v1 immutable layout and verifier are implemented; the real runner that populates this layout
-is still in progress:
+The v1 immutable layout, verifier, and a locally verified four-baseline runner candidate are
+implemented. The selected model path has not executed and the storage/result-rendering gates are
+still in progress:
 
 ```text
 benchmark-artifacts/<run-id>/
-  manifest.yaml
+  manifest.json
   cases.jsonl
   writes.jsonl
   retrieval.jsonl
@@ -233,6 +234,8 @@ Only small, license-compatible artifacts are committed. Large/upstream datasets 
   result-table renderer remains pending.
 - `integrity.json` pins every raw and derived artifact; checksum updates alone cannot bypass the
   independent regeneration checks.
+- Every baseline/scenario/repetition has one preprocessing/write row with explicit usage; absent
+  usage is invalid, while known-incomplete usage is marked incomplete rather than treated as zero.
 - Missing values render as `NOT RUN`, never zero.
 - Failed and excluded cases include an explicit reason and remain counted.
 - Manual corrections require a review log and do not overwrite raw outputs.

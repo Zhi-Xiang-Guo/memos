@@ -213,6 +213,7 @@ public final class JdbcProjectionBuildStore implements ProjectionBuildStore {
       throw new IllegalStateException("projection lineage disappeared");
     }
     if (latest.getFirst() != plan.transitionSequence()) {
+      recordProviderUsage(command);
       complete(job, "PROJECTION_SUPERSEDED");
       return ProjectionCommitResult.SUPERSEDED;
     }
@@ -255,6 +256,7 @@ public final class JdbcProjectionBuildStore implements ProjectionBuildStore {
         job.jobId().value(),
         command.projectedVersions().size(),
         Timestamp.from(command.committedAt()));
+    recordProviderUsage(command);
     complete(job, "PROJECTION_BUILT");
     return ProjectionCommitResult.COMMITTED;
   }
@@ -332,6 +334,36 @@ public final class JdbcProjectionBuildStore implements ProjectionBuildStore {
         job.sourceEventId(),
         outcome,
         job.modelVersion());
+  }
+
+  private void recordProviderUsage(CommitProjectionBuild command) {
+    ClaimedJob job = command.plan().job();
+    List<ProjectedVersionBuild> projected = command.projectedVersions();
+    String provider = projected.isEmpty() ? null : projected.getFirst().embedding().provider();
+    if (provider != null
+        && projected.stream().anyMatch(value -> !provider.equals(value.embedding().provider()))) {
+      throw new IllegalArgumentException("projection embedding providers differ");
+    }
+    long inputTokens =
+        projected.stream()
+            .mapToLong(value -> value.embedding().inputTokens())
+            .reduce(0L, Math::addExact);
+    jdbc.update(
+        """
+        INSERT INTO memos.projection_provider_usage (
+            tenant_id, job_id, source_event_id, job_attempt, provider, model_version,
+            input_tokens, model_calls, recorded_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        job.scope().tenantId(),
+        job.jobId().value(),
+        job.sourceEventId(),
+        job.attempt(),
+        provider,
+        job.modelVersion(),
+        inputTokens,
+        projected.size(),
+        Timestamp.from(command.committedAt()));
   }
 
   private void validate(CommitProjectionBuild command) {

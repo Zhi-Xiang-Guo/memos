@@ -17,6 +17,8 @@ commit `9225ed1` and
 [GitHub Actions run #32](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33279370001).
 The equal-budget Java context milestone is `DONE / PUBLISHED` through commit `c5035c3` and
 [GitHub Actions run #34](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33280316053).
+A unified-runner and exact provider-usage candidate is `DONE / LOCAL VERIFIED`; remote PostgreSQL
+and compose verification plus every selected-model result remain pending.
 
 ## Product workload
 
@@ -111,8 +113,9 @@ The deterministic metrics currently include:
 - attributable input/output/embedding tokens and model calls by baseline.
 
 Local-model monetary and energy cost remain `N/E`; the usage report emits `null`, not a fabricated
-zero-dollar claim. The runner, live provider calls, Java API ingestion/retrieval, storage readings,
-and final Markdown/table generation remain to be implemented before a smoke result is eligible.
+zero-dollar claim. The verifier now requires exact scenario-level preprocessing coverage and an
+explicit usage object/completeness marker on every cost-bearing row. Storage readings and final
+Markdown/table generation remain to be implemented before a smoke result is eligible.
 
 Publication verification for this core passed Java 25, PostgreSQL/compose regression, a clean
 Python 3.14.7 install with 28 tests, and the Markdown gate in run `#26`. These gates establish
@@ -136,6 +139,33 @@ evidence budget. These are runner primitives and do not constitute an executed b
 Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
 documentation gates in GitHub Actions run `#28`.
 
+## Unified runner and exact usage candidate
+
+The locally verified runner rejects dirty worktrees, verifies dataset/prompt hashes and full
+Ollama digests, expands every expected identity, and uses one answer prompt/model/schema across
+full history, rolling summary, raw-turn vector, and MemOS. Each MemOS scenario/repetition receives
+a unique hard scope and short-lived `USER`+`OPERATOR` JWT. The runner ingests every source, waits
+for source-to-authority-to-projection settlement, maps returned MemOS source UUIDs back to dataset
+event IDs, and fails closed on unknown citations or provenance.
+
+For equal-budget evidence, the runner independently sends the exact Java-rendered context through
+the selected embedding tokenizer and requires the returned count, configured digest identity, and
+shared token limit to match. This verification call is recorded separately as harness overhead;
+it is not charged as MemOS retrieval work.
+
+V008 adds a content-free `projection_provider_usage` record committed atomically with successful
+or superseded projection completion. The source status combines it with existing extraction
+attempt usage and marks completeness false for retries, replay, missing rows, or incomplete
+settlement. `writes.jsonl` must contain exactly one explicit-usage row for every
+baseline/scenario/repetition, and `costs.json` propagates completeness instead of converting
+missing usage into zero. Failed write, retrieval, answer, and timing work remains visible through
+content-safe error classes.
+
+Python format/lint and 58 tests, Java 25 compilation, and focused materialization/API tests pass
+locally. The new PostgreSQL cases could not start because this workstation has no Docker runtime;
+remote CI is required before publication. No real Ollama campaign or result row has run, and the
+remaining storage/result-renderer gate keeps `docs/benchmark/results.md` at `NOT RUN`.
+
 ## Equal-budget Java context
 
 The published milestone removes the remaining Java/Python token-budget mismatch.
@@ -148,8 +178,9 @@ the provider calls/input tokens consumed by budget checks so the runner can attr
 The deterministic fake remains credential-free and reports no provider usage. Focused context and
 API tests plus Java 25 compilation passed locally. GitHub Actions run `#34` remotely passed the
 Java 25, PostgreSQL, Python, documentation, and complete compose-smoke regression gates. The
-independent runner-side parity assertion is still pending. This is a fairness mechanism, not an
-executed baseline or quality result.
+independent runner-side parity assertion is covered locally with deterministic fakes but has not
+run against the selected Ollama snapshots. This is a fairness mechanism, not an executed baseline
+or quality result.
 
 ## Java Ollama embedding and long-call lease safety
 
@@ -212,8 +243,8 @@ than applying a fixed post-ingestion sleep. Its strict decoder independently der
 state, verifies source/job identities, pipeline ordering, terminal/schedule/lease invariants, and
 aggregate timestamps, and turns transport, malformed response, terminal failure, and total-timeout
 conditions into content-safe error classes. This closes the harness mechanism needed to measure
-freshness; it does not establish the distribution, an SLO, or a baseline result. The unified
-ingestion/retrieval/answer runner remains incomplete.
+freshness; it does not establish the distribution, an SLO, or a baseline result. Selected-model
+execution and result publication remain incomplete.
 
 Publication verification in run `#30` passed Java 25 unit and PostgreSQL integration tests,
 Python format/lint and 49 tests, Markdown links, and the complete compose smoke suite. This is

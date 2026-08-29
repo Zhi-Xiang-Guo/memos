@@ -88,6 +88,15 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   [run #34](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33280316053) passed Java 25,
   PostgreSQL migration/fault/concurrency tests, Python, docs, and the complete compose smoke.
   Runner-side parity verification remains pending; no baseline result exists yet.
+- Feature 6's unified-runner and exact-cost candidate is `DONE / LOCAL VERIFIED`: all four
+  baselines share one answer path and evidence budget; MemOS uses isolated JWT scopes, waits for
+  every source chain, maps API UUID provenance back to dataset event IDs, and independently
+  retokenizes returned Java contexts. V008 persists content-free projection embedding usage, the
+  source aggregate rejects retry/replay-incomplete accounting, and the artifact verifier now
+  requires exactly one explicit-usage write row per baseline/scenario/repetition. Python format,
+  lint, and 58 tests plus Java compilation and focused API/materialization tests pass locally.
+  PostgreSQL integration is blocked locally by the absent Docker runtime and awaits remote CI;
+  no real-model run, score, latency distribution, storage result, or SLO exists yet.
 
 ## Advanced Memory
 
@@ -142,8 +151,8 @@ Status: `TODO`
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: implement the unified four-baseline runner
-against the verified run-package, provider, settlement, and Java embedding cores before executing
-any campaign.
+Continue Feature 6 without entering Advanced Memory: remotely verify the unified runner and V008
+usage migration, add the remaining storage observation/result renderer gate, then execute the
+predeclared dev smoke against the selected local model snapshots.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.

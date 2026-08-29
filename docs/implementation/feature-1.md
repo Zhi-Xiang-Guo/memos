@@ -79,6 +79,12 @@ The aggregate includes creation/update/settlement timestamps and the same conten
 diagnostics as the single-job endpoint. A missing source and a source in another authenticated
 tenant/user/agent scope both return the same `404` contract.
 
+Feature 6 extends this content-safe view with provider usage totals. `usage.complete` is true only
+when every provider-bearing job succeeded on its first attempt without replay and every extraction
+or projection usage record is present. Input/output/embedding tokens and call counts contain no
+source content; a false completeness marker is a benchmark accounting failure, not an implicit
+zero.
+
 This endpoint makes asynchronous completion observable. It does not provide synchronous
 read-your-write behavior, promise an SLO, or establish a representative freshness distribution.
 

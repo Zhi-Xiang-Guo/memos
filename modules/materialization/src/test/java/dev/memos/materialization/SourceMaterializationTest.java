@@ -70,6 +70,16 @@ class SourceMaterializationTest {
     assertTrue(exception.getMessage().contains("source event"));
   }
 
+  @Test
+  void rejectsNegativeProviderUsage() {
+    var exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> new SourceMaterializationUsage(true, 0, 0, -1, 1));
+
+    assertTrue(exception.getMessage().contains("usage"));
+  }
+
   private static MaterializationJob job(JobType type, JobState state, int sequence) {
     return job(type, state, sequence, SOURCE_ID);
   }

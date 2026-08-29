@@ -11,6 +11,7 @@ from memos_benchmark.client import MemosClient, MemosClientError
 SOURCE_ID = "00000000-0000-0000-0000-000000000010"
 JOB_ID = "00000000-0000-0000-0000-000000000020"
 NOW = "2026-08-30T00:00:00Z"
+VERSION_ID = "00000000-0000-0000-0000-000000000030"
 
 
 class FakeResponse(io.BytesIO):
@@ -33,6 +34,13 @@ def _materialization(status: str, job_state: str) -> dict[str, object]:
         "createdAt": NOW,
         "updatedAt": NOW,
         "settledAt": NOW if status != "PROCESSING" else None,
+        "usage": {
+            "complete": status == "SUCCEEDED",
+            "inputTokens": 11,
+            "outputTokens": 7,
+            "embeddingTokens": 5,
+            "modelCalls": 2,
+        },
         "jobs": [
             {
                 "jobId": JOB_ID,
@@ -50,6 +58,54 @@ def _materialization(status: str, job_state: str) -> dict[str, object]:
                 "updatedAt": NOW,
             }
         ],
+    }
+
+
+def _retrieval() -> dict[str, object]:
+    return {
+        "gate": {"retrieve": True, "reason": "MEMORY_QUERY"},
+        "intent": {"temporal": "PRESENT", "targetTime": None},
+        "context": {
+            "rendered": "[\n{}\n]",
+            "tokens": 4,
+            "tokenCounterVersion": "sha256:" + "b" * 64,
+            "tokenCountProviderInputTokens": 9,
+            "tokenCountProviderCalls": 2,
+            "considered": 1,
+            "selected": 1,
+            "truncated": False,
+            "selectedVersionIds": [VERSION_ID],
+        },
+        "memories": [
+            {
+                "memoryId": "00000000-0000-0000-0000-000000000040",
+                "versionId": VERSION_ID,
+                "memoryType": "SEMANTIC",
+                "subjectKind": "USER",
+                "subjectLabel": "user",
+                "predicate": "preference.theme",
+                "status": "CURRENT",
+                "normalizedContent": "dark",
+                "validFrom": None,
+                "validTo": None,
+                "recordedAt": NOW,
+                "sourceEventIds": [SOURCE_ID],
+                "fusedScore": 1.0,
+                "rerankRank": None,
+                "watermark": {},
+                "components": [],
+            }
+        ],
+        "trace": {
+            "gateReason": "MEMORY_QUERY",
+            "temporalIntent": "PRESENT",
+            "componentCandidateCount": 1,
+            "fusedCandidateCount": 1,
+            "rerankOutcome": "DISABLED",
+            "embeddingProvider": "ollama",
+            "embeddingModelVersion": "sha256:" + "b" * 64,
+            "embeddingInputTokens": 6,
+        },
     }
 
 
@@ -77,6 +133,8 @@ def test_source_materialization_is_authenticated_and_strictly_decoded() -> None:
     assert observed.status == "SUCCEEDED"
     assert observed.jobs[0].job_type == "MATERIALIZE_SOURCE"
     assert observed.jobs[0].completed_at is not None
+    assert observed.usage.complete is True
+    assert observed.usage.model_calls == 2
     assert request.full_url.endswith(f"/v1/source-events/{SOURCE_ID}/materialization")
     assert request.headers["Authorization"] == "Bearer token-value"
 
@@ -104,6 +162,67 @@ def test_wait_uses_observable_state_instead_of_a_fixed_delay() -> None:
     assert observed.status == "SUCCEEDED"
     assert now[0] == 0.25
     assert call.call_count == 2
+
+
+def test_ingest_source_event_sends_idempotency_and_decodes_receipt() -> None:
+    payload = {
+        "sourceEventId": SOURCE_ID,
+        "sourceId": "dataset-e1",
+        "materializationJobId": JOB_ID,
+        "disposition": "ACCEPTED",
+        "acceptedAt": NOW,
+        "materializationState": "PENDING",
+    }
+    event = {
+        "sourceId": "dataset-e1",
+        "sessionId": "session-1",
+        "actorType": "USER",
+        "sourceType": "CONVERSATION_MESSAGE",
+        "trustLevel": "DIRECT_USER",
+        "occurredAt": NOW,
+        "payload": {"content": "hello"},
+    }
+    with patch("memos_benchmark.client.urlopen", return_value=_response(payload)) as call:
+        receipt = MemosClient("http://example.test").ingest_source_event(
+            event, "token-value", "idem-1"
+        )
+
+    request = call.call_args.args[0]
+    assert receipt.source_event_id == SOURCE_ID
+    assert request.method == "POST"
+    assert request.headers["Idempotency-key"] == "idem-1"
+    assert json.loads(request.data) == event
+
+
+def test_retrieval_trace_decodes_provenance_and_token_usage() -> None:
+    with patch("memos_benchmark.client.urlopen", return_value=_response(_retrieval())) as call:
+        result = MemosClient("http://example.test").retrieval_trace(
+            "theme?", "operator-token", limit=8, max_tokens=1200
+        )
+
+    body = json.loads(call.call_args.args[0].data)
+    assert body["mode"] == "HYBRID"
+    assert result.ranked_source_event_ids == (SOURCE_ID,)
+    assert result.selected_source_event_ids == (SOURCE_ID,)
+    assert result.context.tokens == 4
+    assert result.trace.embedding_input_tokens == 6
+
+
+def test_retrieval_trace_rejects_selected_versions_outside_ranked_memories() -> None:
+    response = _retrieval()
+    response["context"] = {
+        **response["context"],
+        "selectedVersionIds": ["00000000-0000-0000-0000-000000000099"],
+    }
+    with (
+        patch("memos_benchmark.client.urlopen", return_value=_response(response)),
+        pytest.raises(MemosClientError) as error,
+    ):
+        MemosClient("http://example.test").retrieval_trace(
+            "theme?", "operator-token", limit=8, max_tokens=1200
+        )
+
+    assert error.value.kind == "MALFORMED_RESPONSE"
 
 
 @pytest.mark.parametrize(
@@ -168,6 +287,21 @@ def test_source_materialization_rejects_duplicate_or_unordered_jobs() -> None:
     }
     for jobs in ([source_job, source_job], [projection_job, source_job]):
         response = {**_materialization("PROCESSING", "PENDING"), "jobs": jobs}
+        with (
+            patch("memos_benchmark.client.urlopen", return_value=_response(response)),
+            pytest.raises(MemosClientError) as error,
+        ):
+            MemosClient("http://example.test").source_materialization(SOURCE_ID, "token-value")
+
+        assert error.value.kind == "MALFORMED_RESPONSE"
+
+
+def test_source_materialization_rejects_missing_or_inconsistent_usage() -> None:
+    missing = _materialization("SUCCEEDED", "SUCCEEDED")
+    missing.pop("usage")
+    inconsistent = _materialization("PROCESSING", "PENDING")
+    inconsistent["usage"] = {**inconsistent["usage"], "complete": True}
+    for response in (missing, inconsistent):
         with (
             patch("memos_benchmark.client.urlopen", return_value=_response(response)),
             pytest.raises(MemosClientError) as error,

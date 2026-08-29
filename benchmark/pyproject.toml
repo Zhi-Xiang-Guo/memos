@@ -14,6 +14,7 @@ dev = [
 
 [project.scripts]
 memos-benchmark = "memos_benchmark.cli:main"
+memos-benchmark-run = "memos_benchmark.runner:main"
 memos-retrieval-conformance-report = "memos_benchmark.retrieval_conformance_report:main"
 memos-temporal-conformance-report = "memos_benchmark.temporal_conformance_report:main"
 memos-write-policy-report = "memos_benchmark.write_policy_report:main"

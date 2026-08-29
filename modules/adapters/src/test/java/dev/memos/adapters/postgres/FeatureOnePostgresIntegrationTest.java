@@ -462,11 +462,24 @@ class FeatureOnePostgresIntegrationTest {
     jdbc.update(
         """
         UPDATE memos.outbox_job
-           SET state = 'SUCCEEDED', next_attempt_at = NULL,
+           SET state = 'SUCCEEDED', attempt = 1, next_attempt_at = NULL,
                completed_at = clock_timestamp(), updated_at = clock_timestamp()
          WHERE job_id = ?
         """,
         receipt.materializationJobId().value());
+    jdbc.update(
+        """
+        INSERT INTO memos.extraction_attempt (
+            attempt_id, tenant_id, job_id, job_attempt, lease_token, provider,
+            model_version, prompt_version, schema_version, policy_version, state,
+            started_at, finished_at, input_tokens, output_tokens, model_calls, duration_ms
+        ) VALUES (?, 'tenant-a', ?, 1, ?, 'test-provider', 'model-v1', 'prompt-v1',
+                  'schema-v1', 'policy-v1', 'SUCCEEDED', clock_timestamp(),
+                  clock_timestamp(), 11, 7, 1, 5)
+        """,
+        UUID.randomUUID(),
+        receipt.materializationJobId().value(),
+        UUID.randomUUID());
     insertPipelineJob(sourceEventId, JobType.CANDIDATE_MATERIALIZATION, JobState.SUCCEEDED);
     UUID projectionJob =
         insertPipelineJob(sourceEventId, JobType.PROJECTION_BUILD, JobState.PENDING);
@@ -483,6 +496,7 @@ class FeatureOnePostgresIntegrationTest {
             JobType.PROJECTION_BUILD);
     assertThat(processing.jobs().getFirst().completedAt()).isNotNull();
     assertThat(processing.jobs().getLast().completedAt()).isNull();
+    assertThat(processing.usage().complete()).isFalse();
     assertThat(
             jobStore.findBySource(
                 new MemoryScope("tenant-a", "other-user", "agent-a"), sourceEventId))
@@ -495,15 +509,30 @@ class FeatureOnePostgresIntegrationTest {
     jdbc.update(
         """
         UPDATE memos.outbox_job
-           SET state = 'SUCCEEDED', next_attempt_at = NULL,
+           SET state = 'SUCCEEDED', attempt = 1, next_attempt_at = NULL,
                completed_at = clock_timestamp(), updated_at = clock_timestamp()
          WHERE job_id = ?
         """,
         projectionJob);
+    jdbc.update(
+        """
+        INSERT INTO memos.projection_provider_usage (
+            tenant_id, job_id, source_event_id, job_attempt, provider, model_version,
+            input_tokens, model_calls, recorded_at
+        ) VALUES ('tenant-a', ?, ?, 1, 'test-provider', 'model-v1', 5, 1,
+                  clock_timestamp())
+        """,
+        projectionJob,
+        sourceEventId);
 
     var succeeded = jobStore.findBySource(scope, sourceEventId).orElseThrow();
     assertThat(succeeded.state()).isEqualTo(SourceMaterializationState.SUCCEEDED);
     assertThat(succeeded.settledAt()).isNotNull();
+    assertThat(succeeded.usage().complete()).isTrue();
+    assertThat(succeeded.usage().inputTokens()).isEqualTo(11);
+    assertThat(succeeded.usage().outputTokens()).isEqualTo(7);
+    assertThat(succeeded.usage().embeddingTokens()).isEqualTo(5);
+    assertThat(succeeded.usage().modelCalls()).isEqualTo(2);
   }
 
   @Test

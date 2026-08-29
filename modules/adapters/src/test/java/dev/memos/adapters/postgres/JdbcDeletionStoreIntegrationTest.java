@@ -142,8 +142,8 @@ class JdbcDeletionStoreIntegrationTest {
     assertThatThrownBy(
             () ->
                 requestMemory(
-                    new MemoryScope(fixture.tenantId(), fixture.userId(), "other-agent"),
-                    fixture.memoryId(),
+                    fixture.scope(),
+                    UUID.randomUUID(),
                     "delete-key",
                     DeletionPolicyBasis.USER_REQUEST))
         .isInstanceOf(DeletionRequestException.class)

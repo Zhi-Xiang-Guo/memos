@@ -158,7 +158,7 @@ class CandidateExtractionMigrationTest {
                 fixture.sourceEventId()));
 
     assertSqlState(
-        "23514",
+        "55000",
         () ->
             execute(
                 """

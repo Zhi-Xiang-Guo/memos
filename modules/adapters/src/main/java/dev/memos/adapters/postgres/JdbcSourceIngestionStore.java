@@ -39,9 +39,9 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
 
   private AcceptanceResult acceptInTransaction(
       SourceEvent sourceEvent, MaterializationIntent intent) {
-    jdbc.queryForObject(
+    jdbc.query(
         "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
-        Long.class,
+        result -> null,
         JdbcDeletionStore.userScopeLock(
             sourceEvent.scope().tenantId(), sourceEvent.scope().userId()));
     Integer erasedScope =

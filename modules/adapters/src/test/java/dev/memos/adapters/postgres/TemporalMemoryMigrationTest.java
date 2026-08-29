@@ -311,22 +311,13 @@ class TemporalMemoryMigrationTest {
                 versionId,
                 fixture.sourceEventId()));
 
-    execute(
-        """
-        UPDATE memos.memory_lineage
-           SET lifecycle_state = 'ERASED', lock_version = lock_version + 1,
-               updated_at = clock_timestamp()
-         WHERE tenant_id = ? AND memory_id = ?
-        """,
-        fixture.tenantId(),
-        lineageId);
     assertSqlState(
         "55000",
         () ->
             execute(
                 """
                 UPDATE memos.memory_lineage
-                   SET lifecycle_state = 'ACTIVE', lock_version = lock_version + 1,
+                   SET lifecycle_state = 'ERASED', lock_version = lock_version + 1,
                        updated_at = clock_timestamp()
                  WHERE tenant_id = ? AND memory_id = ?
                 """,

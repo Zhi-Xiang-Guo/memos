@@ -908,7 +908,7 @@ public final class JdbcDeletionStore implements DeletionStore {
   }
 
   private void advisoryLock(String key) {
-    jdbc.queryForObject("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", Long.class, key);
+    jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", result -> null, key);
   }
 
   private static String targetLock(DeletionRequest request) {

@@ -55,11 +55,12 @@ mechanics. This makes incomplete and failed chains machine-observable without ex
 It does not validate representative freshness, throughput, database contention, or the final
 read-your-write contract, so the ADR remains `PROPOSED` pending the declared workload evidence.
 
-The current Feature 6 candidate adds lease renewal for slow external calls and serial claimed
-batches. Every claimed job is monitored before the first handler starts; renewal runs at one third
-of the lease duration and extends from PostgreSQL `clock_timestamp()` only while job ID,
+The published Feature 6 implementation adds lease renewal for slow external calls and serial
+claimed batches. Every claimed job is monitored before the first handler starts; renewal runs at
+one third of the lease duration and extends from PostgreSQL `clock_timestamp()` only while job ID,
 `CLAIMED`, owner, token, and unexpired lease match. Renewal is stopped and joined before a separate
 success/retry/dead update, while atomic handlers keep their existing in-transaction fence. Unit
 tests cover batch monitoring and renewal-loss behavior; PostgreSQL tests cover stale tokens,
-reclaim races, and a handler longer than its original lease, pending remote CI publication. This
-reduces avoidable duplicate provider work but does not claim end-to-end exactly once.
+reclaim races, and a handler longer than its original lease. Commit `9225ed1` and GitHub Actions
+run `#32` remotely verify these paths. This reduces avoidable duplicate provider work but does not
+claim end-to-end exactly once.

@@ -41,9 +41,9 @@ Define small/medium/large reference load profiles, then record index size, inges
 
 Feature 4 now implements the proposed PostgreSQL projection with generated FTS, HNSW cosine
 vectors, structured/temporal indexes, hard scope/truth/time filters, and an explicit transition
-watermark. Integration and runtime publication gates are pending. The six-case deterministic
-fixture validates retrieval-policy mechanics only; this ADR remains `PROPOSED` until Feature 6
-measures a representative corpus and load profile.
+watermark. GitHub Actions run `#17` verifies the PostgreSQL integration and runtime smoke. The
+six-case deterministic fixture validates retrieval-policy mechanics only; this ADR remains
+`PROPOSED` until Feature 6 measures a representative corpus and load profile.
 
 Feature 5 adds implementation evidence for the authority/projection distinction: governed memory
 or user erasure first removes vector/FTS/checkpoint rows, then a fenced PostgreSQL transaction
@@ -51,11 +51,12 @@ purges retained authoritative content and leaves opaque tombstones. Old projecti
 replay an inactive lineage. This validates deletion consistency for the current single-database
 topology, not representative search capacity or future external projection deletion.
 
-The current Feature 6 candidate makes vector length provider-configurable without changing the
-authority boundary. V007 stores unbounded pgvector values with a checked declared/actual dimension
-in the HNSW-supported `1..2000` range and adds a partial 1024-dimensional cosine HNSW expression
-index for the selected MVP model. Retrieval filters model version and dimension before casting to
-the configured `vector(N)`. Legacy vectors remain rebuildable data; no authoritative assertion is
-rewritten or deleted. Dimensions other than 1024 and model-version changes require explicit index
-migration/reconciliation, and representative Recall@K/latency is still `NOT RUN`, so the ADR
-remains `PROPOSED`.
+The published Feature 6 implementation makes vector length provider-configurable without changing
+the authority boundary. V007 stores unbounded pgvector values with a checked declared/actual
+dimension in the HNSW-supported `1..2000` range and adds a partial 1024-dimensional cosine HNSW
+expression index for the selected MVP model. Retrieval filters model version and dimension before
+casting to the configured `vector(N)`. Commit `9225ed1` and GitHub Actions run `#32` verify the
+migration, dimension constraints, PostgreSQL retrieval path, and compose smoke. Legacy vectors
+remain rebuildable data; no authoritative assertion is rewritten or deleted. Dimensions other
+than 1024 and model-version changes require explicit index migration/reconciliation, and
+representative Recall@K/latency is still `NOT RUN`, so the ADR remains `PROPOSED`.

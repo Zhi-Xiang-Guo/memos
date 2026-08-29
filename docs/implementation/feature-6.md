@@ -12,6 +12,9 @@ four-baseline result has been published yet. Provider and non-MemOS baseline pri
 source-level MemOS materialization status endpoint and bounded wait client are `DONE / PUBLISHED`
 through commit `2bf7689` and
 [GitHub Actions run #30](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33277348058).
+The Java Ollama embedding and long-call lease-safety milestone is `DONE / PUBLISHED` through
+commit `9225ed1` and
+[GitHub Actions run #32](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33279370001).
 
 ## Product workload
 
@@ -131,9 +134,9 @@ evidence budget. These are runner primitives and do not constitute an executed b
 Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
 documentation gates in GitHub Actions run `#28`.
 
-## Java Ollama embedding and long-call lease safety candidate
+## Java Ollama embedding and long-call lease safety
 
-The current local candidate connects the Java MemOS projection and retrieval paths to the same
+The published implementation connects the Java MemOS projection and retrieval paths to the same
 digest-pinned Ollama embedding contract used by the Python baseline primitives. It keeps the
 deterministic 1024-dimensional fake as the credential-free default. A real environment must set
 the same values for both API and worker, for example:
@@ -170,13 +173,12 @@ worker stops and joins renewal before any separate terminal update. Low-cardinal
 record renewal success, observed loss, and renewal errors. Existing commit fences remain the
 authority under crash or reclaim races.
 
-Focused local verification currently covers strict Ollama requests/responses, digest/capability/
-dimension drift, timeout and safe failure classification, provider-to-job retry mapping, batch
-heartbeat ordering, stop-before-finalize, and Java 25 compilation. PostgreSQL migration,
-wrong-dimension rejection, valid/stale renewal, and a handler exceeding its original lease are
-implemented as Testcontainers cases but await remote CI because this host has no Docker runtime.
-This is implementation evidence, not a provider latency, retrieval-quality, freshness, or scale
-result.
+Focused tests cover strict Ollama requests/responses, digest/capability/dimension drift, timeout
+and safe failure classification, provider-to-job retry mapping, batch heartbeat ordering,
+stop-before-finalize, PostgreSQL migration and wrong-dimension rejection, valid/stale renewal, and
+a handler exceeding its original lease. GitHub Actions run `#32` remotely passed those Java 25 and
+PostgreSQL paths plus Python, docs, and the complete compose smoke. This is implementation
+evidence, not a provider latency, retrieval-quality, freshness, or scale result.
 
 ## Observable MemOS settlement
 

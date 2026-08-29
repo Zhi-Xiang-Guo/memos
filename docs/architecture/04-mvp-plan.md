@@ -100,6 +100,9 @@ packages remain `NOT RUN`. The run-package core and provider/non-MemOS baseline 
 published through commit `367e0fa` and GitHub Actions run `#28`. The source-level materialization
 aggregate and bounded wait client are published through commit `2bf7689` and GitHub Actions run
 `#30`.
+The Java Ollama embedding and long-call lease-safety milestone is published through commit
+`9225ed1` and GitHub Actions run `#32`; the unified runner and all result packages remain
+`NOT RUN`.
 
 Deliver:
 

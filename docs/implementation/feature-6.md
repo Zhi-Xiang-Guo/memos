@@ -134,6 +134,20 @@ evidence budget. These are runner primitives and do not constitute an executed b
 Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
 documentation gates in GitHub Actions run `#28`.
 
+## Equal-budget Java context candidate
+
+The current locally verified candidate removes the remaining Java/Python token-budget mismatch.
+Java context assembly now counts each tentative complete rendered context through the configured
+embedding port instead of summing independently tokenized fragments. Under the selected Ollama
+configuration, this is the same digest-pinned embedding tokenizer used by the three Python
+baseline builders. The response reports the immutable counter identity, final context tokens, and
+the provider calls/input tokens consumed by budget checks so the runner can attribute that cost.
+
+The deterministic fake remains credential-free and reports no provider usage. Focused context and
+API tests plus Java 25 API compilation pass locally; remote CI publication and the independent
+runner-side parity assertion are still pending. This is a fairness mechanism, not an executed
+baseline or quality result.
+
 ## Java Ollama embedding and long-call lease safety
 
 The published implementation connects the Java MemOS projection and retrieval paths to the same

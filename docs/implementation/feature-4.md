@@ -118,12 +118,16 @@ The context assembler:
 - XML-escapes all memory content and metadata;
 - includes opaque memory/version/source lineage rather than inventing citations;
 - limits one item per lineage, except two conflicting alternatives;
-- never exceeds the configured deterministic token budget;
-- reports considered, selected, truncated, token-count version, and selected version IDs.
+- counts every tentative complete rendered context, including its envelope and separators;
+- never exceeds the configured token budget;
+- reports considered, selected, truncated, token-count version, selected version IDs, and any
+  provider calls/input tokens spent on counting.
 
-`CodePointTokenCounter` is an injected deterministic local counter, not a claim of provider
-tokenizer parity. A real provider adapter must supply the matching tokenizer before comparable
-token/cost experiments.
+`ContextTokenCounter` remains an injected port. The credential-free deterministic fake reports
+Unicode code-point counts, while a configured Ollama deployment uses the same digest-pinned
+embedding adapter as projection and retrieval and records the resulting counting calls. The API
+therefore exposes both the final count and its provider usage; the Feature 6 runner must still
+independently verify the returned rendered context before an equal-budget result is eligible.
 
 ## Deterministic retrieval fixture
 

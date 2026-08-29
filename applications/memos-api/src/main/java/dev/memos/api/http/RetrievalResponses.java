@@ -16,6 +16,8 @@ final class RetrievalResponses {
       String rendered,
       int tokens,
       String tokenCounterVersion,
+      long tokenCountProviderInputTokens,
+      int tokenCountProviderCalls,
       int considered,
       int selected,
       boolean truncated,

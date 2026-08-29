@@ -119,6 +119,8 @@ public final class MemoryRetrievalController {
             context.rendered(),
             context.tokens(),
             context.tokenCounterVersion(),
+            context.tokenCountProviderInputTokens(),
+            context.tokenCountProviderCalls(),
             context.considered(),
             context.selected(),
             context.truncated(),

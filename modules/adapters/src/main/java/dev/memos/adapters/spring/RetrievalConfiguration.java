@@ -2,8 +2,8 @@ package dev.memos.adapters.spring;
 
 import dev.memos.adapters.metrics.MicrometerRetrievalTelemetry;
 import dev.memos.adapters.postgres.JdbcRetrievalCandidateStore;
-import dev.memos.context.CodePointTokenCounter;
 import dev.memos.context.ContextTokenCounter;
+import dev.memos.context.EmbeddingContextTokenCounter;
 import dev.memos.context.MemoryContextAssembler;
 import dev.memos.retrieval.DeterministicQueryGate;
 import dev.memos.retrieval.EmbeddingPort;
@@ -69,8 +69,11 @@ public class RetrievalConfiguration {
   }
 
   @Bean
-  ContextTokenCounter contextTokenCounter() {
-    return new CodePointTokenCounter();
+  ContextTokenCounter contextTokenCounter(
+      EmbeddingPort embeddingPort, EmbeddingProperties embeddingProperties) {
+    return new EmbeddingContextTokenCounter(
+        embeddingPort,
+        required(embeddingProperties.modelVersion(), "memos.embedding.model-version"));
   }
 
   @Bean

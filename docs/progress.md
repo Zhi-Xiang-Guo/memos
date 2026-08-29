@@ -80,6 +80,12 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   PostgreSQL migration/renewal/fault/concurrency tests, Python, docs, and the complete compose smoke.
   This is implementation evidence, not model-quality, latency, freshness, or scale evidence.
   Model-version projection reconciliation remains unresolved.
+- Feature 6's equal-budget Java context candidate is `DONE / LOCAL VERIFIED`: every tentative
+  complete context is counted by the configured embedding tokenizer, the selected Ollama path
+  therefore shares the Python baselines' digest-pinned counter, and provider calls/input tokens
+  spent on budget checks are returned for cost attribution. Focused context/API tests and Java 25
+  compilation pass locally. Remote CI publication and runner-side parity verification remain
+  pending; no baseline result exists yet.
 
 ## Advanced Memory
 

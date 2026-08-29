@@ -24,8 +24,14 @@ public final class MemoryContextAssembler {
     ranked = List.copyOf(Objects.requireNonNull(ranked, "ranked must not be null"));
     Objects.requireNonNull(budget, "budget must not be null");
     StringBuilder rendered = new StringBuilder(OPEN);
-    int baseTokens = counter.count(OPEN + CLOSE);
+    ContextTokenCount baseCount = counter.count(OPEN + CLOSE);
+    int baseTokens = baseCount.tokens();
+    if (baseTokens < 1 || baseTokens > budget.maxTokens()) {
+      throw new IllegalArgumentException("maxTokens cannot contain the context envelope");
+    }
     int tokens = baseTokens;
+    long providerInputTokens = baseCount.providerInputTokens();
+    int providerCalls = baseCount.providerCalls();
     Map<UUID, Integer> perLineage = new HashMap<>();
     List<UUID> selected = new ArrayList<>();
     boolean truncated = false;
@@ -37,13 +43,16 @@ public final class MemoryContextAssembler {
         continue;
       }
       String item = renderItem(rankedMemory);
-      int itemTokens = counter.count(item);
-      if (tokens + itemTokens > budget.maxTokens()) {
+      ContextTokenCount tentativeCount = counter.count(rendered + item + CLOSE);
+      providerInputTokens =
+          Math.addExact(providerInputTokens, tentativeCount.providerInputTokens());
+      providerCalls = Math.addExact(providerCalls, tentativeCount.providerCalls());
+      if (tentativeCount.tokens() > budget.maxTokens()) {
         truncated = true;
         continue;
       }
       rendered.append(item);
-      tokens += itemTokens;
+      tokens = tentativeCount.tokens();
       perLineage.put(rankedMemory.memory().memoryId(), lineageCount + 1);
       selected.add(rankedMemory.memory().versionId());
     }
@@ -55,6 +64,8 @@ public final class MemoryContextAssembler {
         selected.size(),
         truncated,
         counter.version(),
+        providerInputTokens,
+        providerCalls,
         selected);
   }
 

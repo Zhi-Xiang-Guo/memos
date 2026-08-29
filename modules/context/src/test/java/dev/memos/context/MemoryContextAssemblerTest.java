@@ -12,6 +12,7 @@ import dev.memos.retrieval.ComponentSignal;
 import dev.memos.retrieval.ProjectedMemory;
 import dev.memos.retrieval.RankedMemory;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,42 @@ class MemoryContextAssemblerTest {
     assertEquals(1, result.selected());
     assertTrue(result.truncated());
     assertTrue(result.tokens() <= 400);
+    assertEquals(0, result.tokenCountProviderCalls());
+    assertEquals(0, result.tokenCountProviderInputTokens());
+  }
+
+  @Test
+  void countsEveryTentativeCompleteRenderedContext() {
+    List<String> counted = new ArrayList<>();
+    ContextTokenCounter counter =
+        new ContextTokenCounter() {
+          @Override
+          public ContextTokenCount count(String text) {
+            counted.add(text);
+            int tokens = text.codePointCount(0, text.length());
+            return new ContextTokenCount(tokens, tokens, 1);
+          }
+
+          @Override
+          public String version() {
+            return "recording-v1";
+          }
+        };
+    var assembler = new MemoryContextAssembler(counter);
+
+    ContextAssembly result =
+        assembler.assemble(
+            List.of(
+                memory(
+                    new UUID(0, 1), new UUID(1, 1), AssertionStatus.CURRENT, "complete context")),
+            new ContextBudget(2_000));
+
+    assertTrue(counted.contains(result.rendered()));
+    assertEquals(result.rendered().codePointCount(0, result.rendered().length()), result.tokens());
+    assertEquals(counted.size(), result.tokenCountProviderCalls());
+    assertEquals(
+        counted.stream().mapToLong(value -> value.codePointCount(0, value.length())).sum(),
+        result.tokenCountProviderInputTokens());
   }
 
   private static RankedMemory memory(

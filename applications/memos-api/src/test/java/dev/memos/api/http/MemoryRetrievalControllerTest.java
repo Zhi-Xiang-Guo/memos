@@ -110,6 +110,8 @@ class MemoryRetrievalControllerTest {
     assertThat(response.memories()).singleElement();
     assertThat(response.memories().getFirst().components()).isEmpty();
     assertThat(response.context().rendered()).contains("trust=\"untrusted-data\"");
+    assertThat(response.context().tokenCountProviderCalls()).isZero();
+    assertThat(response.context().tokenCountProviderInputTokens()).isZero();
     assertThat(response.trace()).isNull();
   }
 

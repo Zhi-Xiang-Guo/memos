@@ -8,14 +8,14 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–3 are published. Feature 4 now has an implemented but not yet published rebuildable vector/FTS projection, hybrid retrieval, trace boundary, and evidence-budgeted context path; its remote PostgreSQL/CI publication gates are still pending. There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–4 are published. Feature 4's rebuildable vector/FTS projection, hybrid retrieval, trace boundary, evidence-budgeted context, PostgreSQL tests, and full runtime smoke passed [GitHub Actions run #17](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33267375064). There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 4 publication verification (`Features 0–3: published`)
+- MVP implementation: `DOING` — Feature 5 is next and has not started (`Features 0–4: published`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
-- Initial repository and Features 0–3 publication: `DONE`
+- Initial repository and Features 0–4 publication: `DONE`
 
 See [progress](docs/progress.md), [open questions](docs/open-questions.md), and [benchmark results](docs/benchmark/results.md).
 

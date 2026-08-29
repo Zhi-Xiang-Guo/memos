@@ -1,6 +1,6 @@
 # Feature 4 — hybrid retrieval and context builder
 
-Status: `IMPLEMENTED / PUBLICATION VERIFICATION PENDING`.
+Status: `DONE / PUBLISHED`.
 
 Feature 4 consumes the authoritative temporal memory and durable `PROJECTION_BUILD` intents from
 [Feature 3](feature-3.md). It adds a rebuildable PostgreSQL search projection, asynchronous
@@ -134,11 +134,18 @@ benchmark results.
 | API contract | Scoped evidence, trace restriction, error mapping | `PASS` — 6 focused API tests |
 | Fixture | Byte-stable Java observations and exact Python report | `PASS` — 6/6 synthetic cases |
 | Python workspace | locked Python 3.14, Ruff, and pytest | `PASS` — 15 tests |
-| PostgreSQL migration/query/fencing | V005, stale transition, lease loss, scope/truth filters | `PENDING REMOTE CI` — local machine has no Docker/PostgreSQL |
-| Runtime smoke | Full projection/retrieval/invalidation/restart path and 40 latency samples | `PENDING REMOTE CI` |
-| Full Java verification | `./mvnw -B -ntp clean verify` | `PENDING REMOTE CI` — local Testcontainers cannot start without Docker |
-| Markdown links | `python3 scripts/check_markdown_links.py` | `PENDING` |
-| Git publication | Coherent commit pushed and CI green | `PENDING` |
+| PostgreSQL migration/query/fencing | V005, stale transition, lease loss, scope/truth filters | `PASS` — PostgreSQL/Testcontainers in CI run `#17` |
+| Runtime smoke | Full projection/retrieval/invalidation/restart path and 40 latency samples | `PASS` — compose smoke in CI run `#17` |
+| Full Java verification | `./mvnw -B -ntp clean verify` | `PASS` — JVM job in CI run `#17` |
+| Markdown links | `python3 scripts/check_markdown_links.py` | `PASS` — 57 Markdown files locally and docs job in CI run `#17` |
+| Git publication | Coherent commit pushed and CI green | `PASS` — published verification head `69c5f63e836160aab04fc9995259f9c87aa2ca3e` |
 
-Feature 4 may be marked `DONE / PUBLISHED` only after the PostgreSQL integration test, runtime
-smoke, full Java/Python/docs checks, push, and remote CI gates pass.
+The implementation commit `34904ab82c7bf02676c1e3c2c7dfeb266135ea41` and publication fixes through
+`69c5f63e836160aab04fc9995259f9c87aa2ca3e` are pushed to `origin/main`. GitHub Actions
+[CI run #17](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33267375064) passed its JVM,
+Python, docs, and compose-smoke jobs. The compose job exercised all Feature 0–4 smoke scripts;
+the Feature 4 path included governed invalidation evidence, zero-row projection cleanup, and
+worker restart persistence.
+
+Feature 4 is therefore `DONE / PUBLISHED`. Its synthetic conformance values and environment-local
+smoke samples remain implementation evidence only, not formal benchmark or production SLO data.

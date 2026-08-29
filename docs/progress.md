@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-08-27 (Asia/Shanghai)
+Last updated: 2026-08-30 (Asia/Shanghai)
 
 ## Research
 
@@ -22,14 +22,15 @@ Status: `DONE` for Phase 1 design; ADRs remain `PROPOSED`
 
 ## MVP
 
-Status: `DOING` — Feature 4 hybrid retrieval
+Status: `DOING` — Feature 5 access control is next and has not started
 
 - Phase 1 was reviewed and the active project goal authorizes Features 0–6.
-- Feature 0 engineering foundation is `DONE`: local Maven/Testcontainers, pgvector migration, architecture, Python, documentation, and API/worker smoke gates passed. The GitHub workflow is published but has no hosted-run record yet.
+- Feature 0 engineering foundation is `DONE`: local Maven/Testcontainers, pgvector migration, architecture, Python, documentation, and API/worker smoke gates passed. The workflow is published and exercised by green GitHub Actions run `#17`.
 - Feature 1 is `DONE` and published: source-event receipt and outbox commit atomically; claim/lease/fencing/retry/dead/replay and a payload-free logical-effect ledger passed PostgreSQL fault/concurrency tests and runtime smoke.
 - Feature 2 is `DONE` and published in `6292b150851218fe6ab480115bde24a214b4d411`: provider-neutral strict extraction, deterministic trust/sensitivity/write policy, sanitized candidate/quarantine persistence, lease-fenced atomic completion, optional real-provider adapter, 17-case conformance fixture, and runtime smoke passed.
 - Feature 3 is `DONE` and published in `5ff32fda451f3923e4130e309e5c19167e84905d`: versioned temporal authority, deterministic transition semantics, correction/invalidation, scoped APIs, 14-case temporal conformance, PostgreSQL fault/concurrency coverage, and API→worker→database restart smoke passed.
-- Feature 4 is `DOING / PUBLICATION VERIFICATION PENDING`: rebuildable vector/FTS projections, transition-watermarked projection jobs, scoped hybrid RRF retrieval, reranker fallback, trace restriction, evidence-budgeted context, and a six-case deterministic conformance fixture are implemented. Local pure-JVM/API/Python checks pass; PostgreSQL Testcontainers, runtime smoke, push, and remote CI remain required before `DONE`.
+- Feature 4 is `DONE / PUBLISHED` through `69c5f63e836160aab04fc9995259f9c87aa2ca3e`: rebuildable vector/FTS projections, transition-watermarked projection jobs, scoped hybrid RRF retrieval, reranker fallback, trace restriction, evidence-budgeted context, and a six-case deterministic conformance fixture are implemented. GitHub Actions run `#17` passed JVM/PostgreSQL, Python, docs, and the full Feature 0–4 compose smoke, including governed invalidation, zero-row projection cleanup, and worker restart.
+- Feature 5 has not started. Its next boundary is real authentication/RBAC, tenant-safe administration, and deletion propagation; the temporary retrieval-trace operator key is not a production security claim.
 
 ## Advanced Memory
 
@@ -81,4 +82,4 @@ Status: `TODO`
 
 ## Next phase
 
-Finish Feature 4's PostgreSQL/runtime/publication verification. Do not enter Feature 5 until the coherent commit is pushed and remote CI is green.
+Begin Feature 5 access-control and deletion work as the next MVP boundary. Do not treat the temporary operator key as production authentication, and do not enter Feature 6 evaluation until Feature 5 is implemented, verified, documented, pushed, and green in remote CI.

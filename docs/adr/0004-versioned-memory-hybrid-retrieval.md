@@ -46,6 +46,8 @@ configurable RRF, reranker deadline/identity fallback, query gating, operator di
 provenance-bearing context under a deterministic budget. Its six-case synthetic fixture validates
 exact mechanics and mechanically compares vector-only with hybrid ordering.
 
-The ADR remains `PROPOSED` because Feature 4 publication verification is pending and Feature 6 has
-not run held-out external benchmarks. Deterministic conformance is implementation evidence, not
-real retrieval/model quality, latency, scale, cost, or safety evidence.
+Feature 4 publication verification passed in GitHub Actions run `#17`, including PostgreSQL
+integration tests and the projection/retrieval/invalidation/restart smoke. The ADR remains
+`PROPOSED` because Feature 6 has not run held-out external benchmarks. Deterministic conformance
+is implementation evidence, not real retrieval/model quality, latency, scale, cost, or safety
+evidence.

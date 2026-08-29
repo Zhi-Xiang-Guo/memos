@@ -7,8 +7,8 @@ ADRs capture consequential choices as `Problem → Options → Decision → Why 
 - `SUPERSEDED`: replaced by a later ADR; historical rationale remains.
 
 ADRs 0001–0004 remain `PROPOSED` because their representative workload/benchmark validation is
-still open. ADR-0005 has a narrower implementation validation gate and remains `PROPOSED` until
-Feature 5 publication and remote CI complete. Each record states its precise boundary.
+still open. ADR-0005 is `ACCEPTED` against its narrower implementation gate after Feature 5
+publication and remote CI completed. Each record states its precise boundary.
 
 - [ADR-0001: Java modular monolith with Python benchmark tooling](0001-java-modular-monolith.md)
 - [ADR-0002: PostgreSQL plus pgvector and FTS](0002-postgresql-pgvector-system-of-record.md)

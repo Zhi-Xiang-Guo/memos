@@ -1,6 +1,6 @@
 # ADR-0005: Verified scope, role boundaries, and governed erasure
 
-- Status: `PROPOSED` — implementation complete; remote verification pending
+- Status: `ACCEPTED` — implementation gate verified through commit `ae37714` and CI run `#22`
 - Date: 2026-08-30
 
 ## Problem
@@ -74,5 +74,9 @@ identity provider or key-management design.
   dead-operation requeue, and concurrent user deletion/ingestion.
 - Runtime smoke crosses API, worker, PostgreSQL, restart, trace audit, and post-delete write paths.
 - A frozen four-case poisoning fixture verifies structural escaping and exact text round-trip.
-- Promote this ADR to `ACCEPTED` only after the coherent commit is pushed and remote Java,
-  PostgreSQL, docs, Python, and compose-smoke jobs are green.
+- Commit `ae377143929cf2a7fcfbfccae21d8792b7275d7e` is published, and
+  [GitHub Actions run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267) passed
+  remote Java/PostgreSQL, docs, Python, and the complete Feature 0–5 compose smoke.
+- Acceptance covers this PostgreSQL-only reference implementation boundary. Production identity,
+  external-store/backup erasure, legal sufficiency, and real-model poisoning resistance remain
+  explicitly unvalidated trade-offs rather than implied acceptance claims.

@@ -76,7 +76,8 @@ Exit gate: component Recall@K/MRR and end-to-end cases run for vector-only and h
 
 ## Feature 5 — privacy, deletion, audit, and poisoning defenses
 
-Implementation status: `IMPLEMENTED / PUBLICATION PENDING` on 2026-08-30. See the
+Implementation status: `DONE / PUBLISHED` on 2026-08-30 through commit `ae37714` and
+[GitHub Actions run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267). See the
 [Feature 5 implementation note](../implementation/feature-5.md). Formal security effectiveness
 and model-level poisoning evaluation remain outside this implementation gate.
 

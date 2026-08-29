@@ -1,7 +1,8 @@
 # Feature 5 — authentication, governed erasure, audit, and poisoning boundary
 
-Status: `IMPLEMENTED / PUBLICATION PENDING`. Production and test sources compile locally;
-PostgreSQL integration, compose smoke, full verification, publication, and remote CI are pending.
+Status: `DONE / PUBLISHED`. Commit `ae377143929cf2a7fcfbfccae21d8792b7275d7e` is published, and
+[GitHub Actions run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267) passed the
+Java/PostgreSQL, Python, docs, and complete Feature 0–5 compose gates.
 
 Feature 5 replaces the temporary trust boundaries from Features 1–4 and implements the privacy
 workflow described by the [recommended architecture](../architecture/03-recommended-architecture.md),
@@ -140,12 +141,12 @@ must run write-to-retrieve-to-use attacks against fixed model snapshots.
 | Worker state machine | Success, retry/backoff, dead, lease loss, expired exhausted claim | `PASS` locally — 5 unit cases |
 | Poisoning boundary | Four hostile strings remain text under one untrusted root; manifest SHA is fixed | `PASS` locally — SHA `b915bba484f09c53d7d979d8bb8e17f2cfc80ded2244914d101ce06bacde7d42` |
 | Production/test compilation | API, worker, adapters, governance, and integration sources | `PASS` locally with Java 25/Maven Wrapper |
-| PostgreSQL migration and erasure | V006, tenant isolation, immediate hiding, purge, tombstone immutability, retry/requeue | `PENDING` — no local container runtime |
-| Concurrency and replay | User deletion versus ingestion, lease-expiry rollback, old-job replay, restart | `PENDING` — remote Testcontainers/compose |
-| Audit persistence | Content-safe trace/deletion facts and fail-closed trace access | `PENDING` — remote PostgreSQL integration/runtime |
-| Runtime smoke | JWT/RBAC, audit, memory/user deletion, replay and resurrection defenses | `PENDING` — `scripts/smoke-feature5.sh` in CI |
-| Full Java/Python/docs verification | Repository-wide required commands | `PENDING` |
-| Git publication | Coherent commit pushed and remote CI green | `PENDING` |
+| PostgreSQL migration and erasure | V006, tenant isolation, immediate hiding, purge, tombstone immutability, retry/requeue | `PASS` — remote PostgreSQL integration in run #22 |
+| Concurrency and replay | User deletion versus ingestion, lease-expiry rollback, old-job replay, restart | `PASS` — Testcontainers and compose in run #22 |
+| Audit persistence | Content-safe trace/deletion facts and fail-closed trace access | `PASS` — PostgreSQL integration/runtime in run #22 |
+| Runtime smoke | JWT/RBAC, audit, memory/user deletion, replay and resurrection defenses | `PASS` — `scripts/smoke-feature5.sh` in run #22 |
+| Full Java/Python/docs verification | Repository-wide required commands | `PASS` — run #22 |
+| Git publication | Coherent commit pushed and remote CI green | `DONE` — `ae37714`, run #22 |
 
 No formal quality, latency, scale, cost, legal-compliance, or security-effectiveness result is
 created by these gates. Deterministic fixtures and runtime smoke are implementation evidence only.

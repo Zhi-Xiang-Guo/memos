@@ -46,3 +46,9 @@ implements embedding outside a transaction followed by a database-time lease fen
 transition-sequence fence; a superseded snapshot cannot replace a newer projection, while an
 invalidation commits a zero-row projection checkpoint. PostgreSQL integration, runtime smoke, and
 remote CI remain publication gates, so this ADR is not yet promoted.
+
+Feature 6's current candidate adds a scope-safe source-level read model over the durable extraction,
+authority, and projection intents plus a bounded benchmark client that waits on observable terminal
+state. This makes incomplete and failed chains machine-observable without exposing payloads. It
+does not validate representative freshness, throughput, database contention, or the final
+read-your-write contract, so the ADR remains `PROPOSED` pending the declared workload evidence.

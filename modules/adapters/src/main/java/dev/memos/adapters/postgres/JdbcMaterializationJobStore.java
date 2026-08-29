@@ -14,6 +14,7 @@ import dev.memos.materialization.MaterializationJob;
 import dev.memos.materialization.MaterializationJobStore;
 import dev.memos.materialization.ReplayResult;
 import dev.memos.materialization.SemanticJobKey;
+import dev.memos.materialization.SourceMaterialization;
 import dev.memos.materialization.WorkerId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -256,6 +257,38 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
   }
 
   @Override
+  public Optional<SourceMaterialization> findBySource(MemoryScope scope, UUID sourceEventId) {
+    Objects.requireNonNull(scope, "scope must not be null");
+    Objects.requireNonNull(sourceEventId, "sourceEventId must not be null");
+    List<MaterializationJob> jobs =
+        jdbc.query(
+            """
+            SELECT job.*, source.user_id, source.agent_id
+              FROM memos.outbox_job job
+              JOIN memos.source_event source
+                ON source.tenant_id = job.tenant_id
+               AND source.source_event_id = job.source_event_id
+             WHERE job.source_event_id = ? AND job.tenant_id = ?
+               AND source.user_id = ? AND source.agent_id = ?
+             ORDER BY CASE job.job_type
+                          WHEN 'MATERIALIZE_SOURCE' THEN 1
+                          WHEN 'CANDIDATE_MATERIALIZATION' THEN 2
+                          WHEN 'PROJECTION_BUILD' THEN 3
+                          ELSE 4
+                      END,
+                      job.created_at, job.job_id
+            """,
+            (result, row) -> mapJob(result),
+            sourceEventId,
+            scope.tenantId(),
+            scope.userId(),
+            scope.agentId());
+    return jobs.isEmpty()
+        ? Optional.empty()
+        : Optional.of(new SourceMaterialization(sourceEventId, jobs));
+  }
+
+  @Override
   public ReplayResult replay(MemoryScope scope, JobId jobId, Instant ignoredReplayedAt) {
     int updated =
         jdbc.update(
@@ -334,6 +367,7 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
         errorClass == null ? null : new JobErrorClass(errorClass),
         result.getInt("replay_count"),
         result.getString("trace_id"),
+        nullableInstant(result, "completed_at"),
         instant(result, "created_at"),
         instant(result, "updated_at"));
   }

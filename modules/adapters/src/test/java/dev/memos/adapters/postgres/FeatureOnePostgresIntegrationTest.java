@@ -21,10 +21,12 @@ import dev.memos.materialization.FencedUpdateResult;
 import dev.memos.materialization.JobErrorClass;
 import dev.memos.materialization.JobHandlingException;
 import dev.memos.materialization.JobState;
+import dev.memos.materialization.JobType;
 import dev.memos.materialization.MaterializationJobHandler;
 import dev.memos.materialization.OutboxWorkerService;
 import dev.memos.materialization.OutboxWorkerTelemetry;
 import dev.memos.materialization.ReplayResult;
+import dev.memos.materialization.SourceMaterializationState;
 import dev.memos.materialization.WorkerId;
 import java.time.Clock;
 import java.time.Duration;
@@ -359,6 +361,58 @@ class FeatureOnePostgresIntegrationTest {
   }
 
   @Test
+  void sourceMaterializationChainIsScopeSafeOrderedAndSettlesAfterProjection() {
+    var receipt =
+        ingestionService().ingest(command("tenant-a", "source-a", "key-a", "{\"content\":\"x\"}"));
+    UUID sourceEventId = receipt.sourceEventId().value();
+    jdbc.update(
+        """
+        UPDATE memos.outbox_job
+           SET state = 'SUCCEEDED', next_attempt_at = NULL,
+               completed_at = clock_timestamp(), updated_at = clock_timestamp()
+         WHERE job_id = ?
+        """,
+        receipt.materializationJobId().value());
+    insertPipelineJob(sourceEventId, JobType.CANDIDATE_MATERIALIZATION, JobState.SUCCEEDED);
+    UUID projectionJob =
+        insertPipelineJob(sourceEventId, JobType.PROJECTION_BUILD, JobState.PENDING);
+
+    var scope = new MemoryScope("tenant-a", "user-a", "agent-a");
+    var processing = jobStore.findBySource(scope, sourceEventId).orElseThrow();
+
+    assertThat(processing.state()).isEqualTo(SourceMaterializationState.PROCESSING);
+    assertThat(processing.jobs())
+        .extracting(job -> job.jobType())
+        .containsExactly(
+            JobType.MATERIALIZE_SOURCE,
+            JobType.CANDIDATE_MATERIALIZATION,
+            JobType.PROJECTION_BUILD);
+    assertThat(processing.jobs().getFirst().completedAt()).isNotNull();
+    assertThat(processing.jobs().getLast().completedAt()).isNull();
+    assertThat(
+            jobStore.findBySource(
+                new MemoryScope("tenant-a", "other-user", "agent-a"), sourceEventId))
+        .isEmpty();
+    assertThat(
+            jobStore.findBySource(
+                new MemoryScope("other-tenant", "user-a", "agent-a"), sourceEventId))
+        .isEmpty();
+
+    jdbc.update(
+        """
+        UPDATE memos.outbox_job
+           SET state = 'SUCCEEDED', next_attempt_at = NULL,
+               completed_at = clock_timestamp(), updated_at = clock_timestamp()
+         WHERE job_id = ?
+        """,
+        projectionJob);
+
+    var succeeded = jobStore.findBySource(scope, sourceEventId).orElseThrow();
+    assertThat(succeeded.state()).isEqualTo(SourceMaterializationState.SUCCEEDED);
+    assertThat(succeeded.settledAt()).isNotNull();
+  }
+
+  @Test
   void multipleWorkersClaimDistinctJobsWithoutLoss() throws Exception {
     for (int index = 0; index < 20; index++) {
       ingestionService()
@@ -435,6 +489,36 @@ class FeatureOnePostgresIntegrationTest {
 
   private int count(String table) {
     return jdbc.queryForObject("SELECT count(*) FROM " + table, Integer.class);
+  }
+
+  private UUID insertPipelineJob(UUID sourceEventId, JobType type, JobState state) {
+    UUID jobId = UUID.randomUUID();
+    boolean succeeded = state == JobState.SUCCEEDED;
+    jdbc.update(
+        """
+        INSERT INTO memos.outbox_job (
+            job_id, tenant_id, source_event_id, job_type, aggregate_type, aggregate_id,
+            semantic_job_key, policy_version, model_version, state, attempt, max_attempts,
+            replay_count, next_attempt_at, payload_reference, completed_at, trace_id,
+            created_at, updated_at
+        ) VALUES (
+            ?, 'tenant-a', ?, ?, 'SOURCE_EVENT', ?, ?, 'policy-v1', 'model-v1', ?, ?, 5,
+            0, CASE WHEN ? THEN NULL ELSE clock_timestamp() END, ?,
+            CASE WHEN ? THEN clock_timestamp() ELSE NULL END,
+            'trace-test', clock_timestamp(), clock_timestamp()
+        )
+        """,
+        jobId,
+        sourceEventId,
+        type.name(),
+        sourceEventId,
+        type + "/" + jobId,
+        state.name(),
+        succeeded ? 1 : 0,
+        succeeded,
+        sourceEventId,
+        succeeded);
+    return jobId;
   }
 
   private void expireLease(UUID jobId) {

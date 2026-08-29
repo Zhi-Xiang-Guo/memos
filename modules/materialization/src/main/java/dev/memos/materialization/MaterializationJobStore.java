@@ -19,5 +19,7 @@ public interface MaterializationJobStore {
 
   Optional<MaterializationJob> find(MemoryScope scope, JobId jobId);
 
+  Optional<SourceMaterialization> findBySource(MemoryScope scope, java.util.UUID sourceEventId);
+
   ReplayResult replay(MemoryScope scope, JobId jobId, Instant replayedAt);
 }

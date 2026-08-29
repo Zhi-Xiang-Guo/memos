@@ -61,6 +61,17 @@ public class ApiExceptionHandler {
         request);
   }
 
+  @ExceptionHandler(SourceEventNotFoundException.class)
+  ProblemDetail handleSourceEventNotFound(
+      SourceEventNotFoundException exception, HttpServletRequest request) {
+    return problem(
+        HttpStatus.NOT_FOUND,
+        "Source event not found",
+        "SOURCE_EVENT_NOT_FOUND",
+        "The source event was not found in the authenticated scope.",
+        request);
+  }
+
   @ExceptionHandler(MemoryNotFoundException.class)
   ProblemDetail handleMemoryNotFound(
       MemoryNotFoundException exception, HttpServletRequest request) {

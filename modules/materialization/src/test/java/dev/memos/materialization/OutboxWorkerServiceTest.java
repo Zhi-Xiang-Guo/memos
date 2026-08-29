@@ -259,6 +259,11 @@ class OutboxWorkerServiceTest {
     }
 
     @Override
+    public Optional<SourceMaterialization> findBySource(MemoryScope scope, UUID sourceEventId) {
+      return Optional.empty();
+    }
+
+    @Override
     public ReplayResult replay(MemoryScope scope, JobId jobId, Instant replayedAt) {
       return ReplayResult.NOT_FOUND;
     }

@@ -78,6 +78,13 @@ At Feature 4 publication time, retrieval used the trusted-upstream scope headers
 `OPERATOR` role for trace access; successful trace access is written to the append-only,
 content-safe audit table. Ordinary responses continue to omit raw component diagnostics.
 
+Feature 6 adds `GET /v1/source-events/{sourceEventId}/materialization` so a caller can observe the
+complete source-to-projection job chain and wait for a queryable terminal state without a fixed
+sleep. The source job, any candidate-materialization jobs, and any projection jobs are read under
+one authenticated tenant/user/agent scope. Success means every observed durable intent succeeded;
+any dead intent is failure. This is a settlement mechanism, not evidence for a freshness SLO or a
+synchronous consistency guarantee.
+
 The context assembler:
 
 - renders evidence inside `<memory-evidence trust="untrusted-data">`;

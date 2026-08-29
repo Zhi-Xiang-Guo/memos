@@ -66,6 +66,22 @@ GET /v1/materialization-jobs/{jobId}
 
 The lookup is tenant-scoped even though the tenant is not encoded in the path. The response may expose state, attempt/max-attempt counts, next-attempt time, bounded error class, replay count, and timestamps. It must not expose source payload, request body, credentials, lease owner, or `lease_token`.
 
+Feature 6 adds a source-level read model over the same authoritative jobs:
+
+```http
+GET /v1/source-events/{sourceEventId}/materialization
+```
+
+The response orders `MATERIALIZE_SOURCE`, `CANDIDATE_MATERIALIZATION`, and `PROJECTION_BUILD`
+jobs and reports `PROCESSING`, `SUCCEEDED`, or `FAILED`. Any `DEAD` job makes the aggregate failed;
+all observed jobs must be `SUCCEEDED` before it succeeds; every other valid chain is processing.
+The aggregate includes creation/update/settlement timestamps and the same content-free per-job
+diagnostics as the single-job endpoint. A missing source and a source in another authenticated
+tenant/user/agent scope both return the same `404` contract.
+
+This endpoint makes asynchronous completion observable. It does not provide synchronous
+read-your-write behavior, promise an SLO, or establish a representative freshness distribution.
+
 ### Replay incomplete work
 
 ```http
@@ -212,6 +228,7 @@ Feature 1 does not implement or claim:
 | Completion commit before process crash | Terminal job is not reclaimed | `PASS` |
 | Explicit replay | Same job/semantic key, reset attempt, incremented replay count | `PASS` |
 | Tenant/user/agent isolation | Cross-scope inspect/replay is indistinguishable from not found | `PASS` |
+| Source-chain observation | Scope-safe ordered aggregate with explicit processing/success/failure settlement | `LOCAL PASS / REMOTE PENDING` - Feature 6 unit/API/client checks passed; PostgreSQL publication gate pending |
 | Handler transaction boundary | Handler observes no active Spring transaction | `PASS` |
 | Observability redaction | Runtime log/status marker scan; no content or lease fields | `PASS` |
 | Java verification | `./mvnw -B -ntp clean verify` | `PASS` — 37 tests, zero failures/errors |

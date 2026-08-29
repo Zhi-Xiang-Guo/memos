@@ -38,6 +38,20 @@ class ApiExceptionHandlerTest {
   }
 
   @Test
+  void sourceEventNotFoundDoesNotRevealCrossScopeExistence() {
+    HttpServletRequest request =
+        new MockHttpServletRequest("GET", "/v1/source-events/id/materialization");
+
+    var detail =
+        new ApiExceptionHandler()
+            .handleSourceEventNotFound(new SourceEventNotFoundException(), request);
+
+    assertThat(detail.getStatus()).isEqualTo(404);
+    assertThat(detail.getProperties()).containsEntry("code", "SOURCE_EVENT_NOT_FOUND");
+    assertThat(detail.getDetail()).doesNotContain("tenant", "user", "agent");
+  }
+
+  @Test
   void temporalMutationFailuresHaveStableContentSafeStatusesAndCodes() {
     HttpServletRequest request = new MockHttpServletRequest("POST", "/v1/memories/id/corrections");
     Map<TemporalMutationFailureKind, Integer> statuses =

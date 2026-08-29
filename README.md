@@ -194,7 +194,13 @@ curl --request POST http://localhost:8080/v1/source-events \
   }'
 ```
 
-The `202 Accepted` receipt contains stable source-event and materialization-job IDs. Inspect `GET /v1/materialization-jobs/{jobId}` with the same bearer token, or explicitly replay eligible incomplete work with `POST /v1/materialization-jobs/{jobId}/replay`. See the [Feature 1 implementation note](docs/implementation/feature-1.md) for conflict, lease, and failure semantics.
+The `202 Accepted` receipt contains stable source-event and materialization-job IDs. Inspect the
+entire extraction-to-projection chain with
+`GET /v1/source-events/{sourceEventId}/materialization`, inspect one job with
+`GET /v1/materialization-jobs/{jobId}`, or explicitly replay eligible incomplete work with
+`POST /v1/materialization-jobs/{jobId}/replay`. All three use the same bearer token and hard scope.
+See the [Feature 1 implementation note](docs/implementation/feature-1.md) for conflict, lease, and
+failure semantics.
 
 Feature 2 replaces the no-op worker effect with structured candidate extraction. The credential-free default fake recognizes one stable local example (`I prefer a dark editor theme.`) and safely returns no candidates for unknown content; it exists to verify plumbing, not model quality. Set `MEMOS_EXTRACTION_PROVIDER=openai-compatible` only with an explicit base URL, fixed model snapshot, API key, and timeout. Regardless of provider, strict application code validates `memory-candidate.v1`, computes trust/sensitivity/write policy, and erases rejected or review proposal content before persistence. See the [Feature 2 implementation note](docs/implementation/feature-2.md).
 
@@ -207,8 +213,10 @@ Feature 5 replaces forgeable scope headers and the temporary operator key with s
 Feature 6 has frozen a versioned, synthetic bilingual personal/project-assistant smoke dataset,
 license/attribution boundary, prompt and content hashes, four-baseline parity contract, and exact
 local Ollama model IDs. Its bounded Ollama client, strict answer/summary schemas, and three
-non-MemOS baseline context builders are published, but the unified runner and every baseline score
-remain incomplete. See the [Feature 6 implementation note](docs/implementation/feature-6.md).
+non-MemOS baseline context builders are published. A bounded authenticated MemOS client now waits
+on observable source-level materialization state instead of sleeping for a guessed duration, but
+the unified runner and every baseline score remain incomplete. See the
+[Feature 6 implementation note](docs/implementation/feature-6.md).
 
 ## Design principles
 

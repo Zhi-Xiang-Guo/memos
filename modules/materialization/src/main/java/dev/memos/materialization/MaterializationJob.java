@@ -23,6 +23,7 @@ public record MaterializationJob(
     JobErrorClass errorClass,
     int replayCount,
     String traceId,
+    Instant completedAt,
     Instant createdAt,
     Instant updatedAt) {
   public MaterializationJob {
@@ -52,6 +53,10 @@ public record MaterializationJob(
       throw new IllegalArgumentException("replayCount must not be negative");
     }
     traceId = MaterializationTextValidation.requireText(traceId, "traceId", 128);
+    boolean terminal = state == JobState.SUCCEEDED || state == JobState.DEAD;
+    if (terminal != (completedAt != null)) {
+      throw new IllegalArgumentException("only terminal jobs require completedAt");
+    }
     Objects.requireNonNull(createdAt, "createdAt must not be null");
     Objects.requireNonNull(updatedAt, "updatedAt must not be null");
   }

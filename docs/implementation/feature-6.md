@@ -8,7 +8,9 @@ run-package/metrics core is `DONE / PUBLISHED` through commit `afcabe7` and
 [GitHub Actions run #26](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33274839393). No
 four-baseline result has been published yet. Provider and non-MemOS baseline primitives are
 `DONE / PUBLISHED` through commit `367e0fa` and
-[GitHub Actions run #28](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33276271008).
+[GitHub Actions run #28](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33276271008). The
+source-level MemOS materialization status endpoint and bounded wait client are implemented in the
+current candidate; remote PostgreSQL/publication verification is pending.
 
 ## Product workload
 
@@ -127,6 +129,24 @@ evidence budget. These are runner primitives and do not constitute an executed b
 
 Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
 documentation gates in GitHub Actions run `#28`.
+
+## Observable MemOS settlement
+
+The current candidate adds an authenticated
+`GET /v1/source-events/{sourceEventId}/materialization` endpoint. It derives one content-free
+source status from the complete durable job chain: any `DEAD` job is `FAILED`, all jobs
+`SUCCEEDED` is `SUCCEEDED`, and every other state is `PROCESSING`. Per-job diagnostics include
+type, state, attempt bounds, bounded error class, replay count, and lifecycle timestamps, but omit
+source/provider payloads, credentials, lease identity, and lease tokens. Scope mismatch and
+absence share the same `404` result.
+
+The Python MemOS client uses per-request and total deadlines and polls this observable state rather
+than applying a fixed post-ingestion sleep. Its strict decoder independently derives the aggregate
+state, verifies source/job identities, pipeline ordering, terminal/schedule/lease invariants, and
+aggregate timestamps, and turns transport, malformed response, terminal failure, and total-timeout
+conditions into content-safe error classes. This closes the harness mechanism needed to measure
+freshness; it does not establish the distribution, an SLO, or a baseline result. The unified
+ingestion/retrieval/answer runner remains incomplete.
 
 ### Provider-contract spike
 

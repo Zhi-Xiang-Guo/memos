@@ -51,17 +51,6 @@ public final class MaterializationJobController {
   }
 
   private static MaterializationJobResponse response(MaterializationJob job) {
-    return new MaterializationJobResponse(
-        job.jobId().toString(),
-        job.sourceEventId().toString(),
-        job.state().name(),
-        job.attempt(),
-        job.maxAttempts(),
-        job.nextAttemptAt(),
-        job.leaseExpiresAt(),
-        job.errorClass() == null ? null : job.errorClass().value(),
-        job.replayCount(),
-        job.createdAt(),
-        job.updatedAt());
+    return MaterializationJobResponse.from(job);
   }
 }

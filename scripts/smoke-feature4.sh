@@ -67,6 +67,24 @@ db_query() {
     -d "${MEMOS_DB_NAME:-memos}" -Atqc "$1"
 }
 
+expect_http() {
+  local label=$1
+  local expected=$2
+  local output=$3
+  shift 3
+  local status=
+  if ! status=$(curl --silent --show-error --output "$output" --write-out '%{http_code}' "$@"); then
+    echo "$label failed before receiving an HTTP response." >&2
+    return 1
+  fi
+  if [[ $status != "$expected" ]]; then
+    local error_code
+    error_code=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("code", "UNKNOWN"))' "$output" 2>/dev/null || echo UNKNOWN)
+    echo "$label returned HTTP $status code=$error_code" >&2
+    return 1
+  fi
+}
+
 wait_for_projection() {
   local expected_sequence=$1
   local state=
@@ -184,25 +202,25 @@ assert response["trace"]["embeddingModelVersion"] == "deterministic-hashing-64-v
 assert {component["source"] for component in response["memories"][0]["components"]} >= {"VECTOR", "LEXICAL"}
 PY
 
-curl --fail --silent --output "$retrieval_file" \
+expect_http 'cross-scope retrieval' 200 "$retrieval_file" \
   -H 'Content-Type: application/json' -H "X-Tenant-Id: $tenant_id" \
   -H 'X-User-Id: foreign-user' -H "X-Agent-Id: $agent_id" \
   --data "$retrieval_body" http://localhost:8080/v1/retrieval
 python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["memories"] == []' "$retrieval_file"
 
-curl --fail --silent --output "$retrieval_file" \
+expect_http 'gated retrieval' 200 "$retrieval_file" \
   -H 'Content-Type: application/json' "${scope_headers[@]}" \
   --data '{"query":"thanks"}' http://localhost:8080/v1/retrieval
 python3 -c 'import json,sys; value=json.load(open(sys.argv[1])); assert value["gate"]["retrieve"] is False and value["memories"] == []' "$retrieval_file"
 
-curl --fail --silent --dump-header "$headers_file" "${scope_headers[@]}" \
-  http://localhost:8080/v1/memories/"$memory_id" >"$retrieval_file"
+expect_http 'memory inspection' 200 "$retrieval_file" --dump-header "$headers_file" \
+  "${scope_headers[@]}" http://localhost:8080/v1/memories/"$memory_id"
 etag=$(awk 'tolower($1) == "etag:" {gsub("\r", "", $2); print $2}' "$headers_file")
 version_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["versions"][0]["versionId"])' "$retrieval_file")
 test -n "$etag"
 
 invalidation_body=$(printf '{"versionId":"%s","sourceEventId":"%s","reason":"USER_INVALIDATION"}' "$version_id" "$source_event_id")
-curl --fail --silent --output "$mutation_file" \
+expect_http 'memory invalidation' 200 "$mutation_file" \
   -H 'Content-Type: application/json' -H "Idempotency-Key: feature4-invalidate-$suffix" \
   -H "If-Match: $etag" "${scope_headers[@]}" --data "$invalidation_body" \
   http://localhost:8080/v1/memories/"$memory_id"/invalidations
@@ -212,7 +230,7 @@ wait_for_projection 2
 test "$(db_query "SELECT projected_version_count FROM memos.memory_projection_checkpoint WHERE tenant_id = '$tenant_id' AND memory_id = '$memory_id'::uuid")" = 0
 test "$(db_query "SELECT count(*) FROM memos.memory_search_projection WHERE tenant_id = '$tenant_id' AND memory_id = '$memory_id'::uuid")" = 0
 
-curl --fail --silent --output "$retrieval_file" \
+expect_http 'post-invalidation retrieval' 200 "$retrieval_file" \
   -H 'Content-Type: application/json' "${scope_headers[@]}" \
   --data "$retrieval_body" http://localhost:8080/v1/retrieval
 python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["memories"] == []' "$retrieval_file"

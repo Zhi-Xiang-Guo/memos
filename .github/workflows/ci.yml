@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: temurin
-          java-version: '25.0.4.1'
+          java-version: '25'
           cache: maven
           cache-dependency-path: '**/pom.xml'
       - run: ./mvnw -B -ntp clean verify
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: temurin
-          java-version: '25.0.4.1'
+          java-version: '25'
       - run: docker compose up -d --wait postgres
       - run: ./scripts/smoke.sh
       - run: ./scripts/smoke-feature1.sh

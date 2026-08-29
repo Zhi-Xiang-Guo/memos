@@ -1,5 +1,6 @@
 package dev.memos.api.http;
 
+import dev.memos.governance.DeletionRequestException;
 import dev.memos.ingestion.IngestionConflictException;
 import dev.memos.materialization.TemporalMutationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -71,15 +72,36 @@ public class ApiExceptionHandler {
         request);
   }
 
-  @ExceptionHandler(OperatorAccessDeniedException.class)
-  ProblemDetail handleOperatorAccessDenied(
-      OperatorAccessDeniedException exception, HttpServletRequest request) {
+  @ExceptionHandler(DeletionNotFoundException.class)
+  ProblemDetail handleDeletionNotFound(
+      DeletionNotFoundException exception, HttpServletRequest request) {
     return problem(
-        HttpStatus.FORBIDDEN,
-        "Operator access denied",
-        "OPERATOR_ACCESS_DENIED",
-        "The operator diagnostic credential is missing or invalid.",
+        HttpStatus.NOT_FOUND,
+        "Deletion operation not found",
+        "DELETION_NOT_FOUND",
+        "The deletion operation was not found.",
         request);
+  }
+
+  @ExceptionHandler(DeletionRequestException.class)
+  ProblemDetail handleDeletionRequest(
+      DeletionRequestException exception, HttpServletRequest request) {
+    return switch (exception.failure()) {
+      case NOT_FOUND ->
+          problem(
+              HttpStatus.NOT_FOUND,
+              "Deletion target not found",
+              "DELETION_TARGET_NOT_FOUND",
+              "The deletion target was not found in the authenticated scope.",
+              request);
+      case IDEMPOTENCY_CONFLICT ->
+          problem(
+              HttpStatus.CONFLICT,
+              "Deletion conflict",
+              "DELETION_IDEMPOTENCY_CONFLICT",
+              "The idempotency key is already bound to different immutable input.",
+              request);
+    };
   }
 
   @ExceptionHandler(TemporalMutationException.class)

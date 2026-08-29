@@ -1,0 +1,13 @@
+{
+  "fixture_version": "memory-poisoning-boundary-v1",
+  "context_policy_version": "evidence-context-v1",
+  "case_file": "cases.json",
+  "case_sha256": "b915bba484f09c53d7d979d8bb8e17f2cfc80ded2244914d101ce06bacde7d42",
+  "case_count": 4,
+  "evidence_grade": "DETERMINISTIC_CONFORMANCE",
+  "required_observations": [
+    "single-untrusted-root",
+    "no-injected-elements",
+    "round-trip-text-preserved"
+  ]
+}

@@ -1,6 +1,9 @@
 package dev.memos.api.http;
 
 import dev.memos.adapters.spring.RetrievalProperties;
+import dev.memos.api.security.ActorContextResolver;
+import dev.memos.audit.TraceAccessAudit;
+import dev.memos.audit.TraceAccessAuditEvent;
 import dev.memos.context.ContextAssembly;
 import dev.memos.context.ContextBudget;
 import dev.memos.context.MemoryContextAssembler;
@@ -13,14 +16,12 @@ import dev.memos.retrieval.RetrievalQuery;
 import dev.memos.retrieval.RetrievalResult;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import org.slf4j.MDC;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,6 +35,8 @@ public final class MemoryRetrievalController {
   private final HybridRetrievalService retrieval;
   private final MemoryContextAssembler contexts;
   private final ScopeContextResolver scopeResolver;
+  private final ActorContextResolver actors;
+  private final TraceAccessAudit traceAccessAudit;
   private final RetrievalProperties properties;
   private final Clock clock;
 
@@ -41,11 +44,15 @@ public final class MemoryRetrievalController {
       HybridRetrievalService retrieval,
       MemoryContextAssembler contexts,
       ScopeContextResolver scopeResolver,
+      ActorContextResolver actors,
+      TraceAccessAudit traceAccessAudit,
       RetrievalProperties properties,
       Clock clock) {
     this.retrieval = retrieval;
     this.contexts = contexts;
     this.scopeResolver = scopeResolver;
+    this.actors = actors;
+    this.traceAccessAudit = traceAccessAudit;
     this.properties = properties;
     this.clock = clock;
   }
@@ -58,11 +65,18 @@ public final class MemoryRetrievalController {
 
   @PostMapping("/trace")
   RetrievalResponses.Response trace(
-      @RequestHeader(value = "X-MemOS-Operator-Key", required = false) String operatorKey,
-      @Valid @RequestBody MemoryRetrievalRequest body,
-      HttpServletRequest request) {
-    authorizeOperator(operatorKey);
-    return execute(body, request, true);
+      @Valid @RequestBody MemoryRetrievalRequest body, HttpServletRequest request) {
+    RetrievalResponses.Response response = execute(body, request, true);
+    var actor = actors.resolveActor(request);
+    traceAccessAudit.record(
+        new TraceAccessAuditEvent(
+            actor.scope().tenantId(),
+            actor.scope().userId(),
+            actor.scope().agentId(),
+            actor.subjectId(),
+            requiredTraceId(),
+            clock.instant()));
+    return response;
   }
 
   private RetrievalResponses.Response execute(
@@ -163,19 +177,6 @@ public final class MemoryRetrievalController {
     return new LineageScope(value.tenantId(), value.userId(), value.agentId());
   }
 
-  private void authorizeOperator(String supplied) {
-    String configured = properties.operatorKey();
-    if (configured == null || configured.isBlank() || supplied == null) {
-      throw new OperatorAccessDeniedException();
-    }
-    boolean matches =
-        MessageDigest.isEqual(
-            configured.getBytes(StandardCharsets.UTF_8), supplied.getBytes(StandardCharsets.UTF_8));
-    if (!matches) {
-      throw new OperatorAccessDeniedException();
-    }
-  }
-
   private static RetrievalMode mode(String value) {
     if (value == null) {
       return RetrievalMode.HYBRID;
@@ -193,5 +194,13 @@ public final class MemoryRetrievalController {
       throw new IllegalArgumentException(field + " must be in [" + min + "," + max + "]");
     }
     return actual;
+  }
+
+  private static String requiredTraceId() {
+    String traceId = MDC.get(TraceIdFilter.TRACE_ID_KEY);
+    if (traceId == null || traceId.isBlank()) {
+      throw new IllegalStateException("request trace is unavailable");
+    }
+    return traceId;
   }
 }

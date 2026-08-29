@@ -184,6 +184,7 @@ public final class JdbcTemporalMemoryAuthority
                 ON transition.tenant_id = lineage.tenant_id
                AND transition.memory_id = lineage.memory_id
              WHERE lineage.tenant_id = ? AND lineage.user_id = ? AND lineage.agent_id = ?
+               AND lineage.lifecycle_state = 'ACTIVE'
                AND (?::varchar IS NULL OR lineage.memory_type = ?)
                AND (?::uuid IS NULL OR lineage.memory_id > ?)
                AND (
@@ -317,6 +318,7 @@ public final class JdbcTemporalMemoryAuthority
             """
             SELECT * FROM memos.memory_lineage
              WHERE tenant_id = ? AND user_id = ? AND agent_id = ?
+               AND lifecycle_state = 'ACTIVE'
                AND memory_type = ? AND subject_kind = ?
                AND subject_label IS NOT DISTINCT FROM ?
                AND predicate = ?
@@ -1032,6 +1034,7 @@ public final class JdbcTemporalMemoryAuthority
             """
             SELECT * FROM memos.memory_lineage
              WHERE tenant_id = ? AND user_id = ? AND agent_id = ? AND memory_id = ?
+               AND lifecycle_state = 'ACTIVE'
             """
                 + (lock ? " FOR UPDATE" : ""),
             (result, row) -> mapLineage(result),

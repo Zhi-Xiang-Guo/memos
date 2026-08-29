@@ -39,6 +39,23 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
 
   private AcceptanceResult acceptInTransaction(
       SourceEvent sourceEvent, MaterializationIntent intent) {
+    jdbc.queryForObject(
+        "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
+        Long.class,
+        JdbcDeletionStore.userScopeLock(
+            sourceEvent.scope().tenantId(), sourceEvent.scope().userId()));
+    Integer erasedScope =
+        jdbc.queryForObject(
+            """
+            SELECT count(*) FROM memos.deletion_request
+             WHERE tenant_id = ? AND target_type = 'USER' AND target_user_id = ?
+            """,
+            Integer.class,
+            sourceEvent.scope().tenantId(),
+            sourceEvent.scope().userId());
+    if (erasedScope != null && erasedScope > 0) {
+      return new Conflict(IngestionConflict.USER_SCOPE_ERASED);
+    }
     int inserted =
         jdbc.update(
             """
@@ -106,6 +123,9 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
         findExisting(
             "se.idempotency_key = ?", proposed.scope().tenantId(), proposed.idempotencyKey());
     if (byIdempotency != null) {
+      if (!"ACTIVE".equals(byIdempotency.deletionState())) {
+        return new Conflict(IngestionConflict.SOURCE_ERASED);
+      }
       return sameRequest(proposed, byIdempotency)
           ? accepted(byIdempotency, IngestionDisposition.IDEMPOTENT_REPLAY)
           : new Conflict(IngestionConflict.IDEMPOTENCY_KEY_REUSED);
@@ -114,6 +134,9 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
     ExistingAcceptance bySource =
         findExisting("se.source_id = ?", proposed.scope().tenantId(), proposed.sourceId());
     if (bySource != null) {
+      if (!"ACTIVE".equals(bySource.deletionState())) {
+        return new Conflict(IngestionConflict.SOURCE_ERASED);
+      }
       return sameRequest(proposed, bySource)
           ? accepted(bySource, IngestionDisposition.SOURCE_REPLAY)
           : new Conflict(IngestionConflict.SOURCE_ID_REUSED);
@@ -126,6 +149,7 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
         jdbc.query(
             """
             SELECT se.source_event_id, se.source_id, se.request_fingerprint, se.received_at,
+                   se.deletion_state,
                    job.job_id
             FROM memos.source_event se
             JOIN memos.outbox_job job
@@ -141,7 +165,8 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
                     result.getString("source_id"),
                     result.getBytes("request_fingerprint"),
                     result.getTimestamp("received_at").toInstant(),
-                    result.getObject("job_id", UUID.class)),
+                    result.getObject("job_id", UUID.class),
+                    result.getString("deletion_state")),
             tenantId,
             value);
     if (matches.size() > 1) {
@@ -182,5 +207,6 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
       String sourceId,
       byte[] requestFingerprint,
       Instant acceptedAt,
-      UUID jobId) {}
+      UUID jobId,
+      String deletionState) {}
 }

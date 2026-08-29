@@ -50,7 +50,11 @@ Idempotency-Key: client-stable-key
 Content-Type: application/json
 ```
 
-The trusted upstream boundary supplies `X-Tenant-Id`, `X-User-Id`, and `X-Agent-Id` headers. The body carries `sessionId`, `sourceId`, `actorType`, `sourceType`, `trustLevel`, `occurredAt`, and the policy-controlled payload. Scope cannot be overridden by the body. This header resolver demonstrates application/storage isolation; it is not a claim of production authentication, which remains Feature 5 work.
+At Feature 1 publication time, a trusted upstream supplied `X-Tenant-Id`, `X-User-Id`, and
+`X-Agent-Id`; that historical boundary is `DEPRECATED`. Feature 5 removed the resolver. The
+current runtime accepts scope only from verified bearer-token claims. The body still carries
+`sessionId`, `sourceId`, `actorType`, `sourceType`, `trustLevel`, `occurredAt`, and the
+policy-controlled payload, and it cannot override authenticated scope.
 
 The first accepted request returns `202 Accepted`. Its receipt includes the stable source-event ID, source ID, materialization-job ID, acceptance time, duplicate indicator, and current materialization state. An exact idempotent replay returns `200 OK` with the same stable source/job identity. A key or source reuse with different immutable request data returns `409 Conflict` through the repository's RFC 9457 error convention.
 
@@ -70,7 +74,9 @@ POST /v1/materialization-jobs/{jobId}/replay
 
 Replay is an operational command, scoped to the same tenant context as inspection. It may move `DEAD`, `RETRY_WAIT`, or an expired `CLAIMED` job back to `PENDING`; it reuses the original job and semantic key, resets `attempt` to zero, increments `replay_count`, clears lease/error fields, and sets `next_attempt_at` to the database current time. It never creates a second source event or a second logical intent. Replaying an ineligible job is a conflict.
 
-Feature 1 does not provide a complete production authentication or operator-role system. Deployment must not treat possession of a job ID as authorization; the stricter ACL and operator policies belong to Feature 5.
+Feature 1 itself did not provide a production authentication or operator-role system. Feature 5
+now authenticates and scopes this API, while possession of a job ID remains insufficient for
+authorization.
 
 ## Atomicity and idempotency
 

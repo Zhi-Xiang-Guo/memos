@@ -44,3 +44,9 @@ vectors, structured/temporal indexes, hard scope/truth/time filters, and an expl
 watermark. Integration and runtime publication gates are pending. The six-case deterministic
 fixture validates retrieval-policy mechanics only; this ADR remains `PROPOSED` until Feature 6
 measures a representative corpus and load profile.
+
+Feature 5 adds implementation evidence for the authority/projection distinction: governed memory
+or user erasure first removes vector/FTS/checkpoint rows, then a fenced PostgreSQL transaction
+purges retained authoritative content and leaves opaque tombstones. Old projection jobs cannot
+replay an inactive lineage. This validates deletion consistency for the current single-database
+topology, not representative search capacity or future external projection deletion.

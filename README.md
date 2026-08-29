@@ -8,11 +8,11 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 ## Current status
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–4 are published. Feature 4's rebuildable vector/FTS projection, hybrid retrieval, trace boundary, evidence-budgeted context, PostgreSQL tests, and full runtime smoke passed [GitHub Actions run #17](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33267375064). There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–4 are published. Feature 5 authentication, RBAC, governed erasure, content-safe audit, and poisoning-boundary work is implemented locally; publication and remote PostgreSQL/runtime verification are pending. There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
 
 - Research: `DONE`
 - Architecture: `DONE` (ADRs remain `PROPOSED` until implementation validates them)
-- MVP implementation: `DOING` — Feature 5 is next and has not started (`Features 0–4: published`)
+- MVP implementation: `DOING` — Feature 5 is `IMPLEMENTED / PUBLICATION PENDING` (`Features 0–4: published`)
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - Initial repository and Features 0–4 publication: `DONE`
@@ -171,15 +171,17 @@ To review the design before running it:
 3. Challenge the [recommended architecture](docs/architecture/03-recommended-architecture.md) against the alternatives.
 4. Inspect the [MVP plan](docs/architecture/04-mvp-plan.md) and [open questions](docs/open-questions.md).
 
-Feature 1 provides the first business API. Scope headers represent a trusted-upstream boundary for the reference implementation; they demonstrate tenant/user/agent isolation but are not production authentication.
+Feature 1 provides the first business API. The current runtime derives tenant/user/agent scope only from a verified bearer token. Generate a short-lived local token before calling a business endpoint:
 
 ```bash
+token=$(python3 scripts/generate-dev-jwt.py \
+  --tenant tenant-a --user user-a --agent agent-a \
+  --subject local-user-a --role USER)
+
 curl --request POST http://localhost:8080/v1/source-events \
   --header 'Content-Type: application/json' \
   --header 'Idempotency-Key: message-123' \
-  --header 'X-Tenant-Id: tenant-a' \
-  --header 'X-User-Id: user-a' \
-  --header 'X-Agent-Id: agent-a' \
+  --header "Authorization: Bearer $token" \
   --data '{
     "sourceId":"message-123",
     "sessionId":"session-a",
@@ -191,13 +193,15 @@ curl --request POST http://localhost:8080/v1/source-events \
   }'
 ```
 
-The `202 Accepted` receipt contains stable source-event and materialization-job IDs. Inspect `GET /v1/materialization-jobs/{jobId}` with the same three scope headers, or explicitly replay eligible incomplete work with `POST /v1/materialization-jobs/{jobId}/replay`. See the [Feature 1 implementation note](docs/implementation/feature-1.md) for conflict, lease, and failure semantics.
+The `202 Accepted` receipt contains stable source-event and materialization-job IDs. Inspect `GET /v1/materialization-jobs/{jobId}` with the same bearer token, or explicitly replay eligible incomplete work with `POST /v1/materialization-jobs/{jobId}/replay`. See the [Feature 1 implementation note](docs/implementation/feature-1.md) for conflict, lease, and failure semantics.
 
 Feature 2 replaces the no-op worker effect with structured candidate extraction. The credential-free default fake recognizes one stable local example (`I prefer a dark editor theme.`) and safely returns no candidates for unknown content; it exists to verify plumbing, not model quality. Set `MEMOS_EXTRACTION_PROVIDER=openai-compatible` only with an explicit base URL, fixed model snapshot, API key, and timeout. Regardless of provider, strict application code validates `memory-candidate.v1`, computes trust/sensitivity/write policy, and erases rejected or review proposal content before persistence. See the [Feature 2 implementation note](docs/implementation/feature-2.md).
 
 Feature 3 consumes accepted candidates into a PostgreSQL authority with stable lineages, immutable retained assertion versions, append-only state transitions, source/run/candidate provenance, a rebuildable current-state projection, and a durable `PROJECTION_BUILD` intent for Feature 4. `GET /v1/memories` and its inspect/history/current/as-of/diff variants are hard-scoped by tenant/user/agent. Correction and invalidation require existing governed evidence, an idempotency key, and a strong numeric `If-Match` lock version. See the [Feature 3 implementation note](docs/implementation/feature-3.md).
 
-Feature 4 asynchronously turns the latest authoritative transition into a rebuildable pgvector/FTS projection, then exposes `POST /v1/retrieval` for hybrid evidence and token-budgeted context. `POST /v1/retrieval/trace` adds component diagnostics behind a temporary operator key and is not a production authentication boundary. The default hashing embedding validates local plumbing only. See the [Feature 4 implementation note](docs/implementation/feature-4.md).
+Feature 4 asynchronously turns the latest authoritative transition into a rebuildable pgvector/FTS projection, then exposes `POST /v1/retrieval` for hybrid evidence and token-budgeted context. `POST /v1/retrieval/trace` exposes component diagnostics only to a verified `OPERATOR` role and writes a content-safe access audit. The default hashing embedding validates local plumbing only. See the [Feature 4 implementation note](docs/implementation/feature-4.md).
+
+Feature 5 replaces forgeable scope headers and the temporary operator key with signed JWT claim validation and `USER`, `OPERATOR`, and `PRIVACY_ADMIN` roles. It adds memory/user erasure workflows, immediate projection hiding, lease-fenced retry/dead/requeue processing, opaque append-only tombstones, replay/resurrection guards, and a deterministic hostile-memory rendering fixture. The local HS256 secret is a development/reference mode, not a production identity-provider or key-rotation claim. See the [Feature 5 implementation note](docs/implementation/feature-5.md).
 
 ## Design principles
 

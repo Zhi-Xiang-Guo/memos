@@ -93,9 +93,11 @@ proved, a single-valued transition conflicts rather than selecting a winner.
 
 ## HTTP contract
 
-All endpoints require the trusted-upstream `X-Tenant-Id`, `X-User-Id`, and `X-Agent-Id` headers.
-Every repository/use-case call carries the resolved hard scope. A memory that exists outside the
-caller scope is indistinguishable from an absent memory and returns the same content-safe `404`.
+At Feature 3 publication time, endpoints used trusted-upstream `X-Tenant-Id`, `X-User-Id`, and
+`X-Agent-Id` headers; that resolver is now `DEPRECATED` and removed. Feature 5 derives the same
+hard scope from verified bearer-token claims. Every repository/use-case call carries the resolved
+scope. A memory that exists outside the caller scope is indistinguishable from an absent memory
+and returns the same content-safe `404`.
 
 | Method and path | Contract |
 |---|---|

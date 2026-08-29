@@ -70,7 +70,11 @@ user_id="feature3-user-$suffix"
 agent_id="feature3-agent-$suffix"
 source_id="feature3-source-$suffix"
 body=$(printf '{"sourceId":"%s","sessionId":"feature3-session","actorType":"USER","sourceType":"CONVERSATION_MESSAGE","trustLevel":"DIRECT_USER","occurredAt":"2026-08-27T00:00:00Z","payload":{"content":"I prefer a dark editor theme."}}' "$source_id")
-scope_headers=(-H "X-Tenant-Id: $tenant_id" -H "X-User-Id: $user_id" -H "X-Agent-Id: $agent_id")
+user_token=$(python3 scripts/generate-dev-jwt.py --tenant "$tenant_id" --user "$user_id" \
+  --agent "$agent_id" --subject "feature3-subject-$suffix" --role USER)
+foreign_token=$(python3 scripts/generate-dev-jwt.py --tenant "$tenant_id" --user foreign-user \
+  --agent "$agent_id" --subject "feature3-foreign-$suffix" --role USER)
+scope_headers=(-H "Authorization: Bearer $user_token")
 
 curl --fail --silent --output "$receipt_file" \
   -H 'Content-Type: application/json' \
@@ -201,7 +205,7 @@ assert len(diff["transitions"]) >= 2
 PY
 
 wrong_scope_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
-  -H "X-Tenant-Id: $tenant_id" -H 'X-User-Id: foreign-user' -H "X-Agent-Id: $agent_id" \
+  -H "Authorization: Bearer $foreign_token" \
   http://localhost:8080/v1/memories/"$memory_id")
 test "$wrong_scope_status" = 404
 

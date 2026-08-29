@@ -76,6 +76,7 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
                              AND job.attempt < job.max_attempts
                          )
                      ) AND job.job_type = ANY (string_to_array(?, ','))
+                       AND source.deletion_state = 'ACTIVE'
                      ORDER BY COALESCE(job.next_attempt_at, job.lease_expires_at),
                               job.created_at, job.job_id
                      FOR UPDATE OF job SKIP LOCKED
@@ -269,11 +270,13 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
                    job.state IN ('DEAD', 'RETRY_WAIT')
                    OR (job.state = 'CLAIMED' AND job.lease_expires_at <= clock_timestamp())
                )
+               AND job.error_class IS DISTINCT FROM 'GOVERNED_ERASURE'
                AND EXISTS (
                    SELECT 1 FROM memos.source_event source
                     WHERE source.tenant_id = job.tenant_id
                       AND source.source_event_id = job.source_event_id
                       AND source.user_id = ? AND source.agent_id = ?
+                      AND source.deletion_state = 'ACTIVE'
                )
             """,
             jobId.value(),

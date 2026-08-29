@@ -51,3 +51,9 @@ integration tests and the projection/retrieval/invalidation/restart smoke. The A
 `PROPOSED` because Feature 6 has not run held-out external benchmarks. Deterministic conformance
 is implementation evidence, not real retrieval/model quality, latency, scale, cost, or safety
 evidence.
+
+Feature 5 implements the governed-erasure exception: retained versions/candidates and selected
+transition metadata can change only inside a currently claimed, unexpired erasure transaction;
+lineages become `ERASED`, rebuildable projections are deleted, and opaque append-only tombstones
+block resurrection. Remote PostgreSQL/publication verification remains pending, and the ADR still
+requires Feature 6 quality validation.

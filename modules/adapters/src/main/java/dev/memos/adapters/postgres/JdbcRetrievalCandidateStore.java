@@ -34,6 +34,12 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
       """;
   private static final String VISIBILITY =
       """
+               AND EXISTS (
+                   SELECT 1 FROM memos.memory_lineage visible_lineage
+                    WHERE visible_lineage.tenant_id = projection.tenant_id
+                      AND visible_lineage.memory_id = projection.memory_id
+                      AND visible_lineage.lifecycle_state = 'ACTIVE'
+               )
                AND (?::text <> 'PRESENT'
                     OR projection.truth_status IN ('CURRENT', 'CONFLICTED'))
                AND (?::timestamptz IS NULL

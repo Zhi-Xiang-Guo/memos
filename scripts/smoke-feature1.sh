@@ -43,13 +43,15 @@ source_id="smoke-source-$suffix"
 idempotency_key="smoke-key-$suffix"
 marker="feature1-sensitive-marker-$suffix"
 body=$(printf '{"sourceId":"%s","sessionId":"smoke-session","actorType":"USER","sourceType":"CONVERSATION_MESSAGE","trustLevel":"DIRECT_USER","occurredAt":"2026-08-26T12:00:00Z","payload":{"content":"%s"}}' "$source_id" "$marker")
+user_token=$(python3 scripts/generate-dev-jwt.py --tenant smoke-tenant --user smoke-user \
+  --agent smoke-agent --subject smoke-subject --role USER)
+foreign_token=$(python3 scripts/generate-dev-jwt.py --tenant smoke-tenant --user other-user \
+  --agent smoke-agent --subject other-subject --role USER)
 
 status=$(curl --silent --output "$receipt_file" --write-out '%{http_code}' \
   -H 'Content-Type: application/json' \
   -H "Idempotency-Key: $idempotency_key" \
-  -H 'X-Tenant-Id: smoke-tenant' \
-  -H 'X-User-Id: smoke-user' \
-  -H 'X-Agent-Id: smoke-agent' \
+  -H "Authorization: Bearer $user_token" \
   --data "$body" \
   http://localhost:8080/v1/source-events)
 test "$status" = 202
@@ -57,9 +59,7 @@ test "$status" = 202
 duplicate_status=$(curl --silent --output "$duplicate_file" --write-out '%{http_code}' \
   -H 'Content-Type: application/json' \
   -H "Idempotency-Key: $idempotency_key" \
-  -H 'X-Tenant-Id: smoke-tenant' \
-  -H 'X-User-Id: smoke-user' \
-  -H 'X-Agent-Id: smoke-agent' \
+  -H "Authorization: Bearer $user_token" \
   --data "$body" \
   http://localhost:8080/v1/source-events)
 test "$duplicate_status" = 200
@@ -72,16 +72,14 @@ conflicting_body=${body/$source_id/conflicting-$source_id}
 conflict_status=$(curl --silent --output "$conflict_file" --write-out '%{http_code}' \
   -H 'Content-Type: application/json' \
   -H "Idempotency-Key: $idempotency_key" \
-  -H 'X-Tenant-Id: smoke-tenant' \
-  -H 'X-User-Id: smoke-user' \
-  -H 'X-Agent-Id: smoke-agent' \
+  -H "Authorization: Bearer $user_token" \
   --data "$conflicting_body" \
   http://localhost:8080/v1/source-events)
 test "$conflict_status" = 409
 python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["code"] == "IDEMPOTENCY_KEY_REUSED"' "$conflict_file"
 
 job_url="http://localhost:8080/v1/materialization-jobs/$job_id"
-scope_headers=(-H 'X-Tenant-Id: smoke-tenant' -H 'X-User-Id: smoke-user' -H 'X-Agent-Id: smoke-agent')
+scope_headers=(-H "Authorization: Bearer $user_token")
 pending=$(curl --fail --silent "${scope_headers[@]}" "$job_url")
 python3 -c 'import json,sys; assert json.loads(sys.argv[1])["state"] == "PENDING"' "$pending"
 
@@ -96,7 +94,7 @@ test "$state" = SUCCEEDED
 
 status_body=$(curl --fail --silent "${scope_headers[@]}" "$job_url")
 wrong_scope_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
-  -H 'X-Tenant-Id: smoke-tenant' -H 'X-User-Id: other-user' -H 'X-Agent-Id: smoke-agent' \
+  -H "Authorization: Bearer $foreign_token" \
   "$job_url")
 test "$wrong_scope_status" = 404
 replay_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \

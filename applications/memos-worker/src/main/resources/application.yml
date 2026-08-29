@@ -10,6 +10,17 @@ spring:
     clean-disabled: true
     validate-migration-naming: true
 memos:
+  audit:
+    policy-version: ${MEMOS_AUDIT_POLICY_VERSION:access-control-v1}
+  deletion:
+    policy-version: ${MEMOS_DELETION_POLICY_VERSION:privacy-v1}
+    max-attempts: ${MEMOS_DELETION_MAX_ATTEMPTS:5}
+    worker-id: ${MEMOS_DELETION_WORKER_ID:}
+    poll-delay: ${MEMOS_DELETION_POLL_DELAY:1s}
+    batch-size: ${MEMOS_DELETION_BATCH_SIZE:8}
+    lease-duration: ${MEMOS_DELETION_LEASE_DURATION:30s}
+    backoff-base: ${MEMOS_DELETION_BACKOFF_BASE:1s}
+    backoff-cap: ${MEMOS_DELETION_BACKOFF_CAP:60s}
   ingestion:
     policy-version: ${MEMOS_INGESTION_POLICY_VERSION:ingestion-v1}
     model-version: ${MEMOS_MATERIALIZATION_MODEL_VERSION:deterministic-fake-v1}
@@ -33,7 +44,6 @@ memos:
     reranking-enabled: ${MEMOS_RERANKING_ENABLED:false}
     reranker-timeout: ${MEMOS_RERANKER_TIMEOUT:150ms}
     rrf-k: ${MEMOS_RRF_K:60}
-    operator-key: ${MEMOS_OPERATOR_KEY:local-operator-key}
   worker:
     enabled: true
     worker-id: ${MEMOS_WORKER_ID:}

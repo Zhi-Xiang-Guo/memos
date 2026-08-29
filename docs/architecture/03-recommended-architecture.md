@@ -145,7 +145,12 @@ Job ID/type, aggregate/source/version ID, policy and projection/model version, s
 
 ### `deletion_request` and tombstone
 
-Operation ID, scope/target, requester, policy basis, state per projection, retry metadata, completion timestamp, and a non-content resurrection guard based on opaque IDs/generation state rather than a raw content hash. If a keyed HMAC is ever used, its key lifecycle and erasure semantics are part of the threat model, not assumed.
+Feature 5 implements operation ID, scope/target, requester, policy basis, state per projection,
+retry/lease metadata, and completion time. Request-time hiding removes projections before the
+fenced worker purges authoritative content. `DEAD` remains isolated and can only return to
+`PENDING` through tenant-bound privacy-admin requeue. Resurrection guards are append-only opaque
+source/lineage IDs rather than raw content hashes. If a keyed HMAC is ever used, its key lifecycle
+and erasure semantics remain part of the threat model, not assumed.
 
 ### `audit_event`
 
@@ -227,6 +232,9 @@ The benchmark, not architecture prose, chooses weights, K, fusion constant, rera
 - Sensitive categories carry policy actions: reject, redact/tokenize, encrypt/restrict, or review.
 - Content encryption and key management details require threat-model and deployment context; no unsupported “encrypted” claim will be made in MVP docs.
 - Delete operations cover source-retention policy, retained memory payloads, projections, jobs, and cache (none initially); only policy-permitted non-content tombstones/audit facts remain.
+- Feature 5 authenticates application scope from signed claims and implements this PostgreSQL-only
+  deletion boundary. Production IdP/key lifecycle, RLS, backups/WAL, replicas, and future external
+  projection/provider erasure remain deployment or later-architecture work.
 
 ## Observability
 

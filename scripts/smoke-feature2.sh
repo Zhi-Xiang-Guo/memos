@@ -46,13 +46,13 @@ curl --fail --silent http://localhost:8080/readyz >/dev/null
 suffix="$(date +%s)-$$"
 source_id="feature2-source-$suffix"
 body=$(printf '{"sourceId":"%s","sessionId":"feature2-session","actorType":"USER","sourceType":"CONVERSATION_MESSAGE","trustLevel":"DIRECT_USER","occurredAt":"2026-08-27T00:00:00Z","payload":{"content":"I prefer a dark editor theme."}}' "$source_id")
+user_token=$(python3 scripts/generate-dev-jwt.py --tenant feature2-tenant --user feature2-user \
+  --agent feature2-agent --subject feature2-subject --role USER)
 
 curl --fail --silent --output "$receipt_file" \
   -H 'Content-Type: application/json' \
   -H "Idempotency-Key: feature2-key-$suffix" \
-  -H 'X-Tenant-Id: feature2-tenant' \
-  -H 'X-User-Id: feature2-user' \
-  -H 'X-Agent-Id: feature2-agent' \
+  -H "Authorization: Bearer $user_token" \
   --data "$body" \
   http://localhost:8080/v1/source-events
 job_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["materializationJobId"])' "$receipt_file")
@@ -60,7 +60,7 @@ job_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["materi
 "$java_bin" -jar "$worker_jar" >"$worker_log" 2>&1 &
 worker_pid=$!
 job_url="http://localhost:8080/v1/materialization-jobs/$job_id"
-scope_headers=(-H 'X-Tenant-Id: feature2-tenant' -H 'X-User-Id: feature2-user' -H 'X-Agent-Id: feature2-agent')
+scope_headers=(-H "Authorization: Bearer $user_token")
 state=PENDING
 for _ in {1..120}; do
   state=$(curl --fail --silent "${scope_headers[@]}" "$job_url" | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')

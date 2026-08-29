@@ -1,9 +1,11 @@
 package dev.memos.api.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.memos.adapters.spring.RetrievalProperties;
+import dev.memos.api.security.AuthenticatedActor;
+import dev.memos.api.security.MemosRoles;
+import dev.memos.audit.TraceAccessAuditEvent;
 import dev.memos.context.CodePointTokenCounter;
 import dev.memos.context.MemoryContextAssembler;
 import dev.memos.domain.candidate.MemoryType;
@@ -28,10 +30,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 class MemoryRetrievalControllerTest {
@@ -39,11 +43,13 @@ class MemoryRetrievalControllerTest {
   private static final LineageScope SCOPE = new LineageScope("tenant-a", "user-a", "agent-a");
 
   private AtomicReference<LineageScope> observedScope;
+  private AtomicReference<TraceAccessAuditEvent> traceAudit;
   private MemoryRetrievalController controller;
 
   @BeforeEach
   void setUp() {
     observedScope = new AtomicReference<>();
+    traceAudit = new AtomicReference<>();
     RetrievalCandidateStore store =
         query -> {
           observedScope.set(query.scope());
@@ -68,13 +74,18 @@ class MemoryRetrievalControllerTest {
             "embedding-v1",
             "reranker-v1");
     RetrievalProperties properties =
-        new RetrievalProperties(
-            "embedding-v1", "reranker-v1", true, Duration.ofMillis(150), 60, "operator-secret");
+        new RetrievalProperties("embedding-v1", "reranker-v1", true, Duration.ofMillis(150), 60);
     controller =
         new MemoryRetrievalController(
             service,
             new MemoryContextAssembler(new CodePointTokenCounter()),
             ignored -> new MemoryScope("tenant-a", "user-a", "agent-a"),
+            ignored ->
+                new AuthenticatedActor(
+                    new MemoryScope("tenant-a", "user-a", "agent-a"),
+                    "operator-subject",
+                    Set.of(MemosRoles.OPERATOR)),
+            traceAudit::set,
             properties,
             Clock.fixed(NOW, ZoneOffset.UTC));
   }
@@ -103,19 +114,24 @@ class MemoryRetrievalControllerTest {
   }
 
   @Test
-  void operatorTraceRequiresAConstantTimeCheckedCredential() {
+  void traceIncludesDiagnosticSignalsAfterTheSecurityFilterAuthorizesIt() {
     MemoryRetrievalRequest body =
         new MemoryRetrievalRequest("theme", null, null, null, null, null, null, false, null);
 
-    assertThatThrownBy(() -> controller.trace("wrong", body, new MockHttpServletRequest()))
-        .isInstanceOf(OperatorAccessDeniedException.class);
-
-    RetrievalResponses.Response response =
-        controller.trace("operator-secret", body, new MockHttpServletRequest());
-    assertThat(response.trace()).isNotNull();
-    assertThat(response.memories().getFirst().components())
-        .singleElement()
-        .satisfies(component -> assertThat(component.source()).isEqualTo("VECTOR"));
+    MDC.put(TraceIdFilter.TRACE_ID_KEY, "trace-access-1");
+    try {
+      RetrievalResponses.Response response = controller.trace(body, new MockHttpServletRequest());
+      assertThat(response.trace()).isNotNull();
+      assertThat(response.memories().getFirst().components())
+          .singleElement()
+          .satisfies(component -> assertThat(component.source()).isEqualTo("VECTOR"));
+      assertThat(traceAudit.get())
+          .isEqualTo(
+              new TraceAccessAuditEvent(
+                  "tenant-a", "user-a", "agent-a", "operator-subject", "trace-access-1", NOW));
+    } finally {
+      MDC.remove(TraceIdFilter.TRACE_ID_KEY);
+    }
   }
 
   private static ProjectedMemory memory() {

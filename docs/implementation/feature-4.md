@@ -72,12 +72,11 @@ authorization, visibility, destructive actions, or projection state.
 
 ## HTTP and context contract
 
-Both retrieval endpoints require the trusted-upstream scope headers used by Features 1–3.
-Ordinary responses contain ranked evidence, source-event provenance, projection watermark, and a
-bounded context block, but omit raw component diagnostics. `/v1/retrieval/trace` additionally
-exposes component ranks/raw scores and provider trace fields only after a constant-time comparison
-with the configured temporary operator key. Feature 5 must replace this development boundary with
-real authentication and RBAC.
+At Feature 4 publication time, retrieval used the trusted-upstream scope headers from Features
+1–3 and protected `/v1/retrieval/trace` with a temporary operator key. Both mechanisms are now
+`DEPRECATED` and removed. Feature 5 requires a verified bearer token for both endpoints and the
+`OPERATOR` role for trace access; successful trace access is written to the append-only,
+content-safe audit table. Ordinary responses continue to omit raw component diagnostics.
 
 The context assembler:
 

@@ -9,8 +9,7 @@ public record RetrievalProperties(
     String rerankerModelVersion,
     boolean rerankingEnabled,
     Duration rerankerTimeout,
-    int rrfK,
-    String operatorKey) {
+    int rrfK) {
   public RetrievalProperties {
     if (rerankerTimeout == null) {
       rerankerTimeout = Duration.ofMillis(150);

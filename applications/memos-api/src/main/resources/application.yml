@@ -10,6 +10,20 @@ spring:
     clean-disabled: true
     validate-migration-naming: true
 memos:
+  audit:
+    policy-version: ${MEMOS_AUDIT_POLICY_VERSION:access-control-v1}
+  security:
+    issuer: ${MEMOS_JWT_ISSUER:memos-local}
+    audience: ${MEMOS_JWT_AUDIENCE:memos-api}
+    hmac-secret: ${MEMOS_JWT_HMAC_SECRET:memos-local-development-secret-change-me-now}
+  deletion:
+    policy-version: ${MEMOS_DELETION_POLICY_VERSION:privacy-v1}
+    max-attempts: ${MEMOS_DELETION_MAX_ATTEMPTS:5}
+    worker-id: ""
+    batch-size: 8
+    lease-duration: 30s
+    backoff-base: 1s
+    backoff-cap: 60s
   ingestion:
     policy-version: ${MEMOS_INGESTION_POLICY_VERSION:ingestion-v1}
     model-version: ${MEMOS_MATERIALIZATION_MODEL_VERSION:deterministic-fake-v1}
@@ -31,7 +45,6 @@ memos:
     reranking-enabled: ${MEMOS_RERANKING_ENABLED:false}
     reranker-timeout: ${MEMOS_RERANKER_TIMEOUT:150ms}
     rrf-k: ${MEMOS_RRF_K:60}
-    operator-key: ${MEMOS_OPERATOR_KEY:local-operator-key}
 server:
   port: ${MEMOS_API_PORT:8080}
 management:

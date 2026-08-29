@@ -109,7 +109,13 @@ user_id="feature4-user-$suffix"
 agent_id="feature4-agent-$suffix"
 source_id="feature4-source-$suffix"
 body=$(printf '{"sourceId":"%s","sessionId":"feature4-session","actorType":"USER","sourceType":"CONVERSATION_MESSAGE","trustLevel":"DIRECT_USER","occurredAt":"2026-08-30T00:00:00Z","payload":{"content":"I prefer a dark editor theme."}}' "$source_id")
-scope_headers=(-H "X-Tenant-Id: $tenant_id" -H "X-User-Id: $user_id" -H "X-Agent-Id: $agent_id")
+user_token=$(python3 scripts/generate-dev-jwt.py --tenant "$tenant_id" --user "$user_id" \
+  --agent "$agent_id" --subject "feature4-subject-$suffix" --role USER)
+operator_token=$(python3 scripts/generate-dev-jwt.py --tenant "$tenant_id" --user "$user_id" \
+  --agent "$agent_id" --subject "feature4-operator-$suffix" --role OPERATOR)
+foreign_token=$(python3 scripts/generate-dev-jwt.py --tenant "$tenant_id" --user foreign-user \
+  --agent "$agent_id" --subject "feature4-foreign-$suffix" --role USER)
+scope_headers=(-H "Authorization: Bearer $user_token")
 
 curl --fail --silent --output "$receipt_file" \
   -H 'Content-Type: application/json' \
@@ -177,14 +183,14 @@ print(
 PY
 
 wrong_trace_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
-  -H 'Content-Type: application/json' -H 'X-MemOS-Operator-Key: wrong' \
+  -H 'Content-Type: application/json' \
   "${scope_headers[@]}" --data "$trace_body" \
   http://localhost:8080/v1/retrieval/trace)
 test "$wrong_trace_status" = 403
 
 trace_status=$(curl --silent --show-error --output "$trace_file" --write-out '%{http_code}' \
-  -H 'Content-Type: application/json' -H 'X-MemOS-Operator-Key: local-operator-key' \
-  "${scope_headers[@]}" --data "$trace_body" \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $operator_token" \
+  --data "$trace_body" \
   http://localhost:8080/v1/retrieval/trace)
 if [[ $trace_status != 200 ]]; then
   trace_error_code=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("code", "UNKNOWN"))' "$trace_file" 2>/dev/null || echo UNKNOWN)
@@ -203,8 +209,7 @@ assert {component["source"] for component in response["memories"][0]["components
 PY
 
 expect_http 'cross-scope retrieval' 200 "$retrieval_file" \
-  -H 'Content-Type: application/json' -H "X-Tenant-Id: $tenant_id" \
-  -H 'X-User-Id: foreign-user' -H "X-Agent-Id: $agent_id" \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $foreign_token" \
   --data "$retrieval_body" http://localhost:8080/v1/retrieval
 python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["memories"] == []' "$retrieval_file"
 

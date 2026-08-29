@@ -219,7 +219,16 @@ etag=$(awk 'tolower($1) == "etag:" {gsub("\r", "", $2); print $2}' "$headers_fil
 version_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["versions"][0]["versionId"])' "$retrieval_file")
 test -n "$etag"
 
-invalidation_body=$(printf '{"versionId":"%s","sourceEventId":"%s","reason":"USER_INVALIDATION"}' "$version_id" "$source_event_id")
+invalidation_source_id="feature4-invalidation-$suffix"
+invalidation_source_body=$(printf '{"sourceId":"%s","sessionId":"feature4-session","actorType":"USER","sourceType":"DIRECT_MEMORY_COMMAND","trustLevel":"DIRECT_USER","occurredAt":"2026-08-30T00:01:00Z","payload":{"content":"Forget the selected memory."}}' "$invalidation_source_id")
+expect_http 'invalidation evidence ingestion' 202 "$receipt_file" \
+  -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: feature4-invalidation-source-$suffix" \
+  "${scope_headers[@]}" --data "$invalidation_source_body" \
+  http://localhost:8080/v1/source-events
+invalidation_source_event_id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sourceEventId"])' "$receipt_file")
+
+invalidation_body=$(printf '{"versionId":"%s","sourceEventId":"%s","reason":"USER_INVALIDATION"}' "$version_id" "$invalidation_source_event_id")
 expect_http 'memory invalidation' 200 "$mutation_file" \
   -H 'Content-Type: application/json' -H "Idempotency-Key: feature4-invalidate-$suffix" \
   -H "If-Match: $etag" "${scope_headers[@]}" --data "$invalidation_body" \

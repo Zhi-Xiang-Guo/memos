@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -359,7 +360,27 @@ public final class JdbcDeletionStore implements DeletionStore {
       return transactions.execute(status -> eraseInTransaction(deletion, completedAt));
     } catch (LeaseLostRollbackException exception) {
       return DeletionStoreResult.LEASE_LOST;
+    } catch (DataAccessException exception) {
+      if (!hasValidLease(deletion)) {
+        return DeletionStoreResult.LEASE_LOST;
+      }
+      throw exception;
     }
+  }
+
+  private boolean hasValidLease(ClaimedDeletion deletion) {
+    Integer activeLease =
+        jdbc.queryForObject(
+            """
+            SELECT count(*) FROM memos.deletion_request
+             WHERE operation_id = ? AND state = 'CLAIMED' AND lease_owner = ?
+               AND lease_token = ? AND lease_expires_at > clock_timestamp()
+            """,
+            Integer.class,
+            deletion.operation().operationId(),
+            deletion.workerId(),
+            deletion.leaseToken());
+    return activeLease != null && activeLease == 1;
   }
 
   private DeletionStoreResult eraseInTransaction(ClaimedDeletion deletion, Instant completedAt) {

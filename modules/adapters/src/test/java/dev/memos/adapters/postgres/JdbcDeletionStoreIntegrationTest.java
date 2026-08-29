@@ -142,10 +142,10 @@ class JdbcDeletionStoreIntegrationTest {
     assertThatThrownBy(
             () ->
                 requestMemory(
-                    fixture.scope(),
+                    new MemoryScope(fixture.tenantId(), fixture.userId(), "other-agent"),
                     fixture.memoryId(),
                     "delete-key",
-                    DeletionPolicyBasis.LEGAL_ERASURE))
+                    DeletionPolicyBasis.USER_REQUEST))
         .isInstanceOf(DeletionRequestException.class)
         .extracting(exception -> ((DeletionRequestException) exception).failure())
         .isEqualTo(DeletionRequestFailure.IDEMPOTENCY_CONFLICT);

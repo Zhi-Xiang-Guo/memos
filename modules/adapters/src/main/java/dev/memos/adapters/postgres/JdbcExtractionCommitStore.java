@@ -13,8 +13,9 @@ import dev.memos.materialization.DownstreamMaterializationIntent;
 import dev.memos.materialization.ExtractionAttemptStartResult;
 import dev.memos.materialization.ExtractionCommitResult;
 import dev.memos.materialization.ExtractionCommitStore;
+import dev.memos.materialization.JobFailureKind;
 import dev.memos.materialization.ProviderCallMetadata;
-import dev.memos.materialization.RecordTransientExtractionFailure;
+import dev.memos.materialization.RecordExtractionFailure;
 import dev.memos.materialization.StartExtractionAttempt;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -352,12 +353,12 @@ public final class JdbcExtractionCommitStore implements ExtractionCommitStore {
   }
 
   @Override
-  public void recordTransientFailure(RecordTransientExtractionFailure command) {
+  public void recordFailure(RecordExtractionFailure command) {
     Objects.requireNonNull(command, "command must not be null");
-    transactions.executeWithoutResult(status -> recordTransientInTransaction(command));
+    transactions.executeWithoutResult(status -> recordFailureInTransaction(command));
   }
 
-  private void recordTransientInTransaction(RecordTransientExtractionFailure command) {
+  private void recordFailureInTransaction(RecordExtractionFailure command) {
     if (!holdsCurrentLease(lockJob(command.job()), command.job())) {
       return;
     }
@@ -365,12 +366,13 @@ public final class JdbcExtractionCommitStore implements ExtractionCommitStore {
     jdbc.update(
         """
         UPDATE memos.extraction_attempt
-           SET state = 'TRANSIENT_FAILURE', provider_call_id = ?, finished_at = ?,
+           SET state = ?, provider_call_id = ?, finished_at = ?,
                input_tokens = ?, output_tokens = ?, model_calls = ?, duration_ms = ?,
                finish_reason = NULL, error_class = ?
          WHERE attempt_id = ? AND tenant_id = ? AND job_id = ? AND lease_token = ?
            AND state = 'STARTED'
         """,
+        command.kind() == JobFailureKind.TRANSIENT ? "TRANSIENT_FAILURE" : "PERMANENT_FAILURE",
         metadata == null ? null : metadata.providerCallId(),
         Timestamp.from(command.recordedAt()),
         metadata == null ? null : metadata.tokenUsage().inputTokens(),

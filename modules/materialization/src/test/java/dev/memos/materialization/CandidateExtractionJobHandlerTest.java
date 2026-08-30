@@ -3,6 +3,7 @@ package dev.memos.materialization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.memos.domain.candidate.EvidenceTrust;
@@ -100,6 +101,42 @@ class CandidateExtractionJobHandlerTest {
     assertNull(commitStore.success);
   }
 
+  @Test
+  void modelVersionMismatchFailsPermanentlyWithoutCallingProvider() {
+    CapturingCommitStore commitStore = new CapturingCommitStore();
+    ProviderFake provider = new ProviderFake(validPreferenceJson());
+    ClaimedJob mismatched = job("retired-model-version");
+
+    JobHandlingException failure =
+        assertThrows(
+            JobHandlingException.class,
+            () -> handler(provider, commitStore, activeSource()).handle(mismatched));
+
+    assertEquals(JobFailureKind.PERMANENT, failure.kind());
+    assertEquals("ExtractionModelVersionMismatch", failure.errorClass().value());
+    assertFalse(provider.called);
+    assertNull(commitStore.failure);
+  }
+
+  @Test
+  void providerPermanentFailureIsRecordedAndReturnedAsPermanent() {
+    CapturingCommitStore commitStore = new CapturingCommitStore();
+    ProviderFake provider =
+        new ProviderFake(
+            CandidateExtractionProviderException.permanentFailure(
+                "OLLAMA_EXTRACTION_MODEL_DRIFT", null));
+
+    JobHandlingException failure =
+        assertThrows(
+            JobHandlingException.class,
+            () -> handler(provider, commitStore, activeSource()).handle(job()));
+
+    assertEquals(JobFailureKind.PERMANENT, failure.kind());
+    assertEquals("OLLAMA_EXTRACTION_MODEL_DRIFT", failure.errorClass().value());
+    assertEquals(JobFailureKind.PERMANENT, commitStore.failure.kind());
+    assertEquals("OLLAMA_EXTRACTION_MODEL_DRIFT", commitStore.failure.errorClass().value());
+  }
+
   private static CandidateExtractionJobHandler handler(
       ProviderFake provider, CapturingCommitStore commitStore, SourceForExtraction source) {
     ExtractionIdentifierGenerator identifiers = new FixedIdentifiers();
@@ -136,6 +173,10 @@ class CandidateExtractionJobHandlerTest {
   }
 
   private static ClaimedJob job() {
+    return job("deterministic-fixture-v1");
+  }
+
+  private static ClaimedJob job(String modelVersion) {
     return new ClaimedJob(
         new JobId(new UUID(0, 1)),
         JobType.MATERIALIZE_SOURCE,
@@ -143,7 +184,7 @@ class CandidateExtractionJobHandlerTest {
         new UUID(0, 2),
         new SemanticJobKey("MATERIALIZE_SOURCE/source/write-policy-v1"),
         "ingestion-v1",
-        "deterministic-fixture-v1",
+        modelVersion,
         1,
         5,
         new WorkerId("worker-1"),
@@ -181,15 +222,25 @@ class CandidateExtractionJobHandlerTest {
 
   private static final class ProviderFake implements StructuredCandidateExtractionPort {
     private final String rawJson;
+    private final RuntimeException failure;
     private boolean called;
 
     private ProviderFake(String rawJson) {
       this.rawJson = rawJson;
+      this.failure = null;
+    }
+
+    private ProviderFake(RuntimeException failure) {
+      this.rawJson = null;
+      this.failure = failure;
     }
 
     @Override
     public RawExtractionResponse extract(CandidateExtractionRequest request) {
       called = true;
+      if (failure != null) {
+        throw failure;
+      }
       return new RawExtractionResponse(
           rawJson,
           new ProviderCallMetadata(
@@ -207,6 +258,7 @@ class CandidateExtractionJobHandlerTest {
     private CommitExtractionSuccess success;
     private CommitInvalidExtraction invalid;
     private CommitSkippedExtraction skipped;
+    private RecordExtractionFailure failure;
 
     @Override
     public ExtractionAttemptStartResult startAttempt(StartExtractionAttempt command) {
@@ -232,7 +284,9 @@ class CandidateExtractionJobHandlerTest {
     }
 
     @Override
-    public void recordTransientFailure(RecordTransientExtractionFailure command) {}
+    public void recordFailure(RecordExtractionFailure command) {
+      failure = command;
+    }
   }
 
   private static final class FixedIdentifiers implements ExtractionIdentifierGenerator {

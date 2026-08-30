@@ -39,7 +39,35 @@ The proposal cannot supply tenant, user, agent, ACL, trust, policy, model, or pe
 
 Provider, model, prompt, schema, and policy versions plus observed duration/token/call usage are application-owned metadata. They are not trusted because a model echoed them. Raw provider JSON, prompts, source bodies, credentials, and unrestricted exception messages are excluded from ordinary logs and authoritative candidate records.
 
-The default adapter remains deterministic and requires no paid provider. A real provider is optional and environment-enabled; selecting it must require an explicit provider, fixed model snapshot, timeout, and secret supplied by the deployment environment.
+The default adapter remains deterministic and requires no paid provider. A real provider is optional and environment-enabled. A request model tag is never persisted as immutable provenance merely because the deployment uses that tag:
+
+- `openai-compatible` sends `model-tag` in the request and records a separately configured
+  `model-version`. That version is deployment-attested; MemOS cannot independently prove a generic
+  endpoint's backing weights or digest.
+- `ollama` verifies the configured tag against `/api/tags`, verifies `completion` capability with
+  `/api/show`, and requires `model-version` to equal `sha256:<model-digest>` before startup
+  succeeds. Native `/api/chat` uses the pinned JSON schema, disables thinking/streaming, and sends
+  the configured deterministic seed.
+- ingestion records the same immutable extraction version in each source job. A worker refuses an
+  active job whose recorded version differs from its provider identity before starting an attempt
+  or calling the provider.
+
+Transient transport, timeout, rate-limit, and server failures remain retryable. Client rejection,
+model drift, capability mismatch, oversized output, and malformed responses are permanent and are
+recorded separately in the extraction-attempt state. Error classes contain no provider body,
+source content, credential, or secret.
+
+Selected real-model example:
+
+```text
+MEMOS_EXTRACTION_PROVIDER=ollama
+MEMOS_EXTRACTION_BASE_URL=<reachable-ollama-base-url>
+MEMOS_EXTRACTION_MODEL_TAG=qwen3:4b
+MEMOS_EXTRACTION_MODEL_VERSION=sha256:359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7
+MEMOS_EXTRACTION_MODEL_DIGEST=359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7
+MEMOS_EXTRACTION_SEED=42
+MEMOS_EXTRACTION_TIMEOUT=300s
+```
 
 ## Deterministic write policy
 
@@ -161,6 +189,8 @@ Feature 2 does not claim or implement:
 | Idempotent replay | Repeated provider/worker delivery produces one logical run and downstream intent | `PASS` |
 | Lease fencing | Stale worker cannot commit an extraction outcome | `PASS` — database-time owner/token fence |
 | Provider transaction boundary | Provider call observes no active database transaction | `PASS` |
+| Extraction identity | Request tag differs from durable version; Ollama verifies full digest/capability; mismatched old job makes zero provider calls | `PASS` — focused adapter/handler tests; PostgreSQL permanent-attempt execution awaits remote CI |
+| Provider failure semantics | Transient failures retry; deterministic provider/config/response failures are permanent and content-safe | `PASS` — focused adapter/handler tests; PostgreSQL integration execution awaits remote CI |
 | Sensitive persistence/logging | Synthetic secret/raw output absent from candidate, quarantine, logs, metrics, and errors | `PASS` — rejected proposal row is `ERASED`; predictions/logs exclude the marker |
 | Prediction completeness | Missing, duplicate, or unexpected cases fail report generation | `PASS` — Python reporter tests |
 | Reporter metrics | Candidate/decision/group/harmful-write metrics mechanically verified | `PASS` — report kind `DETERMINISTIC_FIXTURE`, prediction SHA `828cbe954393f4ba6448ae9a6ae6d75fe2cb638a675d61364be15705823fe9ca`; 17/17 fixture labels conform and harmful writes are 0/5; these are not real-model metrics |

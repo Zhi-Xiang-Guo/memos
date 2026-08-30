@@ -26,7 +26,7 @@ memos:
     backoff-cap: 60s
   ingestion:
     policy-version: ${MEMOS_INGESTION_POLICY_VERSION:ingestion-v1}
-    model-version: ${MEMOS_MATERIALIZATION_MODEL_VERSION:deterministic-fake-v1}
+    model-version: ${MEMOS_EXTRACTION_MODEL_VERSION:deterministic-fixture-v1}
     max-attempts: ${MEMOS_MATERIALIZATION_MAX_ATTEMPTS:5}
   worker:
     enabled: false

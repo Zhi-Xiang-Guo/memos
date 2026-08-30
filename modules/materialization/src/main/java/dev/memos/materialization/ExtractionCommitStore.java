@@ -9,5 +9,5 @@ public interface ExtractionCommitStore {
 
   ExtractionCommitResult commitSkipped(CommitSkippedExtraction command);
 
-  void recordTransientFailure(RecordTransientExtractionFailure command);
+  void recordFailure(RecordExtractionFailure command);
 }

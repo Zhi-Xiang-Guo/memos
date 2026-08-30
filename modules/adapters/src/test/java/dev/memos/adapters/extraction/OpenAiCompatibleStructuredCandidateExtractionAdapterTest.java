@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import dev.memos.materialization.CandidateExtractionProviderException;
 import dev.memos.materialization.CandidateExtractionRequest;
+import dev.memos.materialization.JobFailureKind;
 import dev.memos.materialization.RawExtractionResponse;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -57,7 +59,9 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
       assertThat(result.metadata().latency()).isGreaterThanOrEqualTo(Duration.ZERO);
       assertThat(provider.authorization()).isEqualTo("Bearer " + SYNTHETIC_API_KEY);
       assertThat(provider.requestBody())
-          .contains("\"model\":\"model-snapshot-1\"")
+          .contains("\"model\":\"deployment-model\"")
+          .contains("\"seed\":42")
+          .doesNotContain("\"model\":\"model-snapshot-1\"")
           .contains("memory-candidate.v1")
           .contains("<untrusted_source_content>")
           .contains("I prefer a dark editor theme.");
@@ -68,8 +72,8 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
   void classifiesRateLimitAndServerFailuresWithoutLeakingResponseOrKey() throws Exception {
     for (StatusExpectation expectation :
         List.of(
-            new StatusExpectation(429, StructuredExtractionProviderException.Kind.RATE_LIMIT),
-            new StatusExpectation(503, StructuredExtractionProviderException.Kind.SERVER_ERROR))) {
+            new StatusExpectation(429, "OPENAI_COMPATIBLE_EXTRACTION_RATE_LIMIT"),
+            new StatusExpectation(503, "OPENAI_COMPATIBLE_EXTRACTION_SERVER_ERROR"))) {
       try (LocalProvider provider =
           new LocalProvider(
               expectation.statusCode(),
@@ -80,9 +84,10 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
 
         assertThatThrownBy(() -> adapter.extract(request()))
             .isInstanceOfSatisfying(
-                StructuredExtractionProviderException.class,
+                CandidateExtractionProviderException.class,
                 exception -> {
-                  assertThat(exception.kind()).isEqualTo(expectation.kind());
+                  assertThat(exception.kind()).isEqualTo(JobFailureKind.TRANSIENT);
+                  assertThat(exception.errorClass().value()).isEqualTo(expectation.errorClass());
                   assertThat(exception.toString())
                       .doesNotContain(SYNTHETIC_API_KEY)
                       .doesNotContain("provider-body-must-not-appear-in-exception");
@@ -100,10 +105,10 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
 
       assertThatThrownBy(() -> adapter.extract(request()))
           .isInstanceOfSatisfying(
-              StructuredExtractionProviderException.class,
+              CandidateExtractionProviderException.class,
               exception ->
-                  assertThat(exception.kind())
-                      .isEqualTo(StructuredExtractionProviderException.Kind.TIMEOUT));
+                  assertThat(exception.errorClass().value())
+                      .isEqualTo("OPENAI_COMPATIBLE_EXTRACTION_TIMEOUT"));
     }
   }
 
@@ -142,10 +147,10 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
     try (LocalProvider provider = new LocalProvider(200, response, Duration.ZERO)) {
       assertThatThrownBy(() -> adapter(provider, Duration.ofSeconds(2)).extract(request()))
           .isInstanceOfSatisfying(
-              StructuredExtractionProviderException.class,
+              CandidateExtractionProviderException.class,
               exception ->
-                  assertThat(exception.kind())
-                      .isEqualTo(StructuredExtractionProviderException.Kind.RESPONSE_TOO_LARGE));
+                  assertThat(exception.errorClass().value())
+                      .isEqualTo("OPENAI_COMPATIBLE_EXTRACTION_RESPONSE_TOO_LARGE"));
     }
   }
 
@@ -166,10 +171,10 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
       OpenAiCompatibleStructuredCandidateExtractionAdapter adapter) {
     assertThatThrownBy(() -> adapter.extract(request()))
         .isInstanceOfSatisfying(
-            StructuredExtractionProviderException.class,
+            CandidateExtractionProviderException.class,
             exception ->
-                assertThat(exception.kind())
-                    .isEqualTo(StructuredExtractionProviderException.Kind.MALFORMED_RESPONSE));
+                assertThat(exception.errorClass().value())
+                    .isEqualTo("OPENAI_COMPATIBLE_EXTRACTION_MALFORMED_RESPONSE"));
   }
 
   private static OpenAiCompatibleStructuredCandidateExtractionAdapter adapter(
@@ -178,9 +183,11 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
         HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build(),
         provider.baseUrl(),
         SYNTHETIC_API_KEY,
+        "deployment-model",
         "model-snapshot-1",
         "candidate-extraction-v1",
         "memory-candidate.v1",
+        42,
         timeout,
         StructuredExtractionResources.loadV1());
   }
@@ -205,8 +212,7 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
             Map.of("prompt_tokens", 1, "completion_tokens", 1)));
   }
 
-  private record StatusExpectation(
-      int statusCode, StructuredExtractionProviderException.Kind kind) {}
+  private record StatusExpectation(int statusCode, String errorClass) {}
 
   private static final class LocalProvider implements AutoCloseable {
     private final HttpServer server;

@@ -1,6 +1,7 @@
 package dev.memos.adapters.spring;
 
 import dev.memos.adapters.extraction.DeterministicStructuredCandidateExtractionFake;
+import dev.memos.adapters.extraction.OllamaStructuredCandidateExtractionAdapter;
 import dev.memos.adapters.extraction.OpenAiCompatibleStructuredCandidateExtractionAdapter;
 import dev.memos.adapters.extraction.StructuredExtractionResources;
 import dev.memos.adapters.metrics.InstrumentedStructuredCandidateExtractionPort;
@@ -136,9 +137,23 @@ public class MaterializationConfiguration {
                   HttpClient.newBuilder().connectTimeout(properties.timeout()).build(),
                   URI.create(required(properties.baseUrl(), "memos.extraction.base-url")),
                   required(properties.apiKey(), "memos.extraction.api-key"),
+                  required(properties.modelTag(), "memos.extraction.model-tag"),
                   required(properties.modelVersion(), "memos.extraction.model-version"),
                   required(properties.promptVersion(), "memos.extraction.prompt-version"),
                   required(properties.schemaVersion(), "memos.extraction.schema-version"),
+                  properties.seed(),
+                  properties.timeout(),
+                  StructuredExtractionResources.loadV1());
+          case "ollama" ->
+              new OllamaStructuredCandidateExtractionAdapter(
+                  HttpClient.newBuilder().connectTimeout(properties.timeout()).build(),
+                  URI.create(required(properties.baseUrl(), "memos.extraction.base-url")),
+                  required(properties.modelTag(), "memos.extraction.model-tag"),
+                  required(properties.modelVersion(), "memos.extraction.model-version"),
+                  required(properties.modelDigest(), "memos.extraction.model-digest"),
+                  required(properties.promptVersion(), "memos.extraction.prompt-version"),
+                  required(properties.schemaVersion(), "memos.extraction.schema-version"),
+                  properties.seed(),
                   properties.timeout(),
                   StructuredExtractionResources.loadV1());
           default -> throw new IllegalArgumentException("unsupported memos.extraction.provider");
@@ -150,7 +165,11 @@ public class MaterializationConfiguration {
   @ConditionalOnProperty(prefix = "memos.worker", name = "enabled", havingValue = "true")
   ExtractionProviderIdentity extractionProviderIdentity(ExtractionProperties properties) {
     String provider = required(properties.provider(), "memos.extraction.provider");
-    String observedProvider = "fake".equals(provider) ? "fake" : "openai-compatible";
+    String observedProvider =
+        switch (provider) {
+          case "fake", "openai-compatible", "ollama" -> provider;
+          default -> throw new IllegalArgumentException("unsupported memos.extraction.provider");
+        };
     return new ExtractionProviderIdentity(
         observedProvider,
         required(properties.modelVersion(), "memos.extraction.model-version"),

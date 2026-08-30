@@ -23,16 +23,19 @@ memos:
     backoff-cap: ${MEMOS_DELETION_BACKOFF_CAP:60s}
   ingestion:
     policy-version: ${MEMOS_INGESTION_POLICY_VERSION:ingestion-v1}
-    model-version: ${MEMOS_MATERIALIZATION_MODEL_VERSION:deterministic-fake-v1}
+    model-version: ${MEMOS_EXTRACTION_MODEL_VERSION:deterministic-fixture-v1}
     max-attempts: ${MEMOS_MATERIALIZATION_MAX_ATTEMPTS:5}
   extraction:
     provider: ${MEMOS_EXTRACTION_PROVIDER:fake}
     base-url: ${MEMOS_EXTRACTION_BASE_URL:}
     api-key: ${MEMOS_EXTRACTION_API_KEY:}
+    model-tag: ${MEMOS_EXTRACTION_MODEL_TAG:}
     model-version: ${MEMOS_EXTRACTION_MODEL_VERSION:deterministic-fixture-v1}
+    model-digest: ${MEMOS_EXTRACTION_MODEL_DIGEST:}
     prompt-version: ${MEMOS_EXTRACTION_PROMPT_VERSION:candidate-extraction-v1}
     schema-version: ${MEMOS_EXTRACTION_SCHEMA_VERSION:memory-candidate.v1}
     policy-version: ${MEMOS_EXTRACTION_POLICY_VERSION:write-policy-v1}
+    seed: ${MEMOS_EXTRACTION_SEED:42}
     timeout: ${MEMOS_EXTRACTION_TIMEOUT:30s}
   embedding:
     provider: ${MEMOS_EMBEDDING_PROVIDER:fake}

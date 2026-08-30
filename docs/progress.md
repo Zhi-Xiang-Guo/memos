@@ -110,6 +110,12 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   reports `0.0` for missed or spurious positive cases and reserves `N/A` for the structurally
   inapplicable no-gold/no-prediction case. This is harness evidence, not a storage, quality,
   latency, or cost result.
+- Feature 6's extraction-identity hardening is implemented locally and awaiting publication:
+  OpenAI-compatible request tags are separate from deployment-attested provenance, native Ollama
+  extraction verifies a full digest and completion capability, API/worker jobs share the immutable
+  extraction version, and mismatched old jobs fail permanently without a provider call. Focused
+  adapter/handler tests pass; PostgreSQL and compose execution remain remote gates. This is not a
+  real-model benchmark result.
 
 ## Advanced Memory
 
@@ -164,8 +170,8 @@ Status: `TODO`
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: separate the extraction request tag from
-immutable provenance, add projection reconciliation, then execute the predeclared dev smoke
-against the selected local model snapshots.
+Continue Feature 6 without entering Advanced Memory: publish extraction-identity hardening, add
+projection reconciliation, then execute the predeclared dev smoke against the selected local model
+snapshots.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.

@@ -49,6 +49,18 @@ The first environment observation used Ollama `0.33.2`. A run remains ineligible
 does not record the actual version and IDs or if they differ from the selected experiment
 configuration. A model tag alone is not treated as an immutable snapshot.
 
+The Java extraction path now follows the same boundary. Generic OpenAI-compatible deployments
+send a mutable request tag but persist a separate deployment-attested version. The selected native
+Ollama path verifies the full digest and completion capability at worker startup, requires durable
+identity `sha256:<digest>`, disables thinking and streaming, and uses the frozen seed `42`. API and
+worker ingestion bind job identity from `MEMOS_EXTRACTION_MODEL_VERSION`; the removed
+`MEMOS_MATERIALIZATION_MODEL_VERSION` cannot silently diverge from provider provenance. An active
+old job with a different extraction version fails permanently before a provider call. Focused
+deterministic tests pass locally. A 2026-08-30 local `/api/tags` plus `/api/show` probe observed the
+selected full `qwen3:4b` digest and `completion` capability; PostgreSQL integration and full
+compose verification remain a remote publication gate. This is model-identity implementation
+evidence, not a selected-model run.
+
 ## Smoke dataset
 
 `benchmark/datasets/memos-assistant-smoke/v1` is a MemOS-authored synthetic bilingual dataset. It

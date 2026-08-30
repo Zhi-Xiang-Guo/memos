@@ -24,20 +24,22 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Optional synchronous adapter for OpenAI-compatible chat-completions JSON-schema APIs. */
-public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
+/** Native Ollama structured extraction with startup digest and capability verification. */
+public final class OllamaStructuredCandidateExtractionAdapter
     implements StructuredCandidateExtractionPort {
-  public static final String PROVIDER = "openai-compatible";
+  public static final String PROVIDER = "ollama";
 
   private static final int MAX_HTTP_RESPONSE_BYTES = 1_048_576;
   private static final int MAX_STRUCTURED_OUTPUT_BYTES = 65_536;
 
   private final HttpClient client;
   private final JsonMapper mapper;
-  private final URI endpoint;
-  private final String apiKey;
+  private final URI tagsEndpoint;
+  private final URI showEndpoint;
+  private final URI chatEndpoint;
   private final String modelTag;
   private final String modelVersion;
+  private final String expectedDigest;
   private final String promptVersion;
   private final String schemaVersion;
   private final int seed;
@@ -45,12 +47,12 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
   private final StructuredExtractionResources resources;
   private final Object parsedJsonSchema;
 
-  public OpenAiCompatibleStructuredCandidateExtractionAdapter(
+  public OllamaStructuredCandidateExtractionAdapter(
       HttpClient client,
       URI baseUrl,
-      String apiKey,
       String modelTag,
       String modelVersion,
+      String expectedDigest,
       String promptVersion,
       String schemaVersion,
       int seed,
@@ -58,10 +60,13 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
       StructuredExtractionResources resources) {
     this.client = Objects.requireNonNull(client, "client must not be null");
     this.mapper = JsonMapper.builder().build();
-    this.endpoint = endpoint(Objects.requireNonNull(baseUrl, "baseUrl must not be null"));
-    this.apiKey = requireText(apiKey, "apiKey", 8_192);
+    URI validatedBaseUrl = requireBaseUrl(baseUrl);
+    this.tagsEndpoint = endpoint(validatedBaseUrl, "api/tags");
+    this.showEndpoint = endpoint(validatedBaseUrl, "api/show");
+    this.chatEndpoint = endpoint(validatedBaseUrl, "api/chat");
     this.modelTag = requireText(modelTag, "modelTag", 128);
-    this.modelVersion = requireText(modelVersion, "modelVersion", 128);
+    this.expectedDigest = requireDigest(expectedDigest);
+    this.modelVersion = requireDigestVersion(modelVersion, expectedDigest);
     this.promptVersion = requireText(promptVersion, "promptVersion", 128);
     this.schemaVersion = requireText(schemaVersion, "schemaVersion", 128);
     if (seed < 0) {
@@ -75,6 +80,7 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
     } catch (JacksonException exception) {
       throw new IllegalArgumentException("jsonSchema resource must contain valid JSON", exception);
     }
+    verifyModel();
   }
 
   @Override
@@ -82,79 +88,35 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
     Objects.requireNonNull(request, "request must not be null");
     assertNoActiveTransaction();
     requireMatchingVersions(request);
-    String requestJson = requestJson(request);
-    HttpRequest httpRequest =
-        HttpRequest.newBuilder(endpoint)
-            .timeout(timeout)
-            .header("Authorization", "Bearer " + apiKey)
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(requestJson, StandardCharsets.UTF_8))
-            .build();
 
-    long started = System.nanoTime();
-    try {
-      HttpResponse<InputStream> response =
-          client.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
-      byte[] body = readBounded(response.body(), MAX_HTTP_RESPONSE_BYTES);
-      Duration latency = Duration.ofNanos(Math.max(0L, System.nanoTime() - started));
-      checkStatus(response.statusCode());
-      return parseSuccess(body, latency);
-    } catch (HttpTimeoutException exception) {
-      throw CandidateExtractionProviderException.transientFailure(
-          "OPENAI_COMPATIBLE_EXTRACTION_TIMEOUT", exception);
-    } catch (InterruptedException exception) {
-      Thread.currentThread().interrupt();
-      throw CandidateExtractionProviderException.transientFailure(
-          "OPENAI_COMPATIBLE_EXTRACTION_TRANSPORT", exception);
-    } catch (IOException exception) {
-      throw CandidateExtractionProviderException.transientFailure(
-          "OPENAI_COMPATIBLE_EXTRACTION_TRANSPORT", exception);
+    Map<String, Object> options = new LinkedHashMap<>();
+    options.put("temperature", 0);
+    options.put("seed", seed);
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("model", modelTag);
+    body.put("messages", StructuredExtractionMessages.create(resources, request));
+    body.put("stream", false);
+    body.put("format", parsedJsonSchema);
+    body.put("think", false);
+    body.put("keep_alive", "10m");
+    body.put("options", options);
+
+    ProviderResponse response = post(chatEndpoint, body);
+    Map<?, ?> value = response.value();
+    if (!modelTag.equals(value.get("model"))) {
+      throw permanent("MODEL_DRIFT");
     }
-  }
-
-  private String requestJson(CandidateExtractionRequest request) {
-    Map<String, Object> jsonSchema = new LinkedHashMap<>();
-    jsonSchema.put("name", "memory_candidate_v1");
-    jsonSchema.put("strict", true);
-    jsonSchema.put("schema", parsedJsonSchema);
-
-    Map<String, Object> responseFormat = new LinkedHashMap<>();
-    responseFormat.put("type", "json_schema");
-    responseFormat.put("json_schema", jsonSchema);
-
-    Map<String, Object> requestBody = new LinkedHashMap<>();
-    requestBody.put("model", modelTag);
-    requestBody.put("temperature", 0);
-    requestBody.put("seed", seed);
-    requestBody.put("messages", StructuredExtractionMessages.create(resources, request));
-    requestBody.put("response_format", responseFormat);
-    try {
-      return mapper.writeValueAsString(requestBody);
-    } catch (JacksonException exception) {
-      throw new IllegalStateException("cannot encode structured extraction request", exception);
+    if (!Boolean.TRUE.equals(value.get("done"))) {
+      throw malformed("Ollama chat response is incomplete");
     }
-  }
-
-  private RawExtractionResponse parseSuccess(byte[] body, Duration latency) {
-    Object parsed;
-    try {
-      parsed = mapper.readValue(body, Object.class);
-    } catch (JacksonException exception) {
-      throw malformed("provider response is not valid JSON", exception);
+    Map<?, ?> message = object(value.get("message"), "Ollama chat message");
+    if (!"assistant".equals(message.get("role"))) {
+      throw malformed("Ollama chat response role is invalid");
     }
-    Map<?, ?> root = object(parsed, "provider response");
-    String providerCallId = text(root.get("id"), "provider response id", 200);
-    List<?> choices = list(root.get("choices"), "provider response choices");
-    if (choices.size() != 1) {
-      throw malformed("provider response must contain exactly one choice");
-    }
-    Map<?, ?> choice = object(choices.getFirst(), "provider response choice");
-    Map<?, ?> message = object(choice.get("message"), "provider response message");
     String rawJson = structuredOutput(message.get("content"));
-    Map<?, ?> usage = object(root.get("usage"), "provider response usage");
-    long inputTokens = nonNegativeLong(usage.get("prompt_tokens"), "prompt token count");
-    long outputTokens = nonNegativeLong(usage.get("completion_tokens"), "completion token count");
+    String createdAt = text(value.get("created_at"), "Ollama created_at", 100);
+    long inputTokens = nonNegativeLong(value.get("prompt_eval_count"), "prompt_eval_count");
+    long outputTokens = nonNegativeLong(value.get("eval_count"), "eval_count");
     return new RawExtractionResponse(
         rawJson,
         new ProviderCallMetadata(
@@ -162,17 +124,90 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
             modelVersion,
             promptVersion,
             schemaVersion,
-            providerCallId,
+            "ollama-" + createdAt,
             new ProviderTokenUsage(inputTokens, outputTokens),
-            latency));
+            response.latency()));
+  }
+
+  private void verifyModel() {
+    Map<?, ?> tags = get(tagsEndpoint).value();
+    List<?> models = list(tags.get("models"), "Ollama models");
+    String observedDigest = null;
+    for (Object value : models) {
+      Map<?, ?> model = object(value, "Ollama model");
+      if (modelTag.equals(model.get("name"))) {
+        observedDigest = digestValue(model.get("digest"), "Ollama model digest");
+        break;
+      }
+    }
+    if (observedDigest == null) {
+      throw permanent("MODEL_NOT_FOUND");
+    }
+    if (!expectedDigest.equals(observedDigest)) {
+      throw permanent("MODEL_DRIFT");
+    }
+    Map<?, ?> show = post(showEndpoint, Map.of("model", modelTag, "verbose", false)).value();
+    List<?> capabilities = list(show.get("capabilities"), "Ollama model capabilities");
+    if (capabilities.stream().noneMatch("completion"::equals)) {
+      throw permanent("CAPABILITY_MISMATCH");
+    }
+  }
+
+  private ProviderResponse get(URI uri) {
+    return send(
+        HttpRequest.newBuilder(uri)
+            .timeout(timeout)
+            .header("Accept", "application/json")
+            .GET()
+            .build());
+  }
+
+  private ProviderResponse post(URI uri, Map<String, Object> body) {
+    String encoded;
+    try {
+      encoded = mapper.writeValueAsString(body);
+    } catch (JacksonException exception) {
+      throw new IllegalStateException("cannot encode Ollama extraction request", exception);
+    }
+    return send(
+        HttpRequest.newBuilder(uri)
+            .timeout(timeout)
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(encoded, StandardCharsets.UTF_8))
+            .build());
+  }
+
+  private ProviderResponse send(HttpRequest request) {
+    long started = System.nanoTime();
+    try {
+      HttpResponse<InputStream> response =
+          client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+      byte[] body = readBounded(response.body(), MAX_HTTP_RESPONSE_BYTES);
+      Duration latency = Duration.ofNanos(Math.max(0L, System.nanoTime() - started));
+      checkStatus(response.statusCode());
+      Object parsed;
+      try {
+        parsed = mapper.readValue(body, Object.class);
+      } catch (JacksonException exception) {
+        throw malformed("Ollama response is not valid JSON", exception);
+      }
+      return new ProviderResponse(object(parsed, "Ollama response"), latency);
+    } catch (HttpTimeoutException exception) {
+      throw transientFailure("TIMEOUT", exception);
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw transientFailure("TRANSPORT", exception);
+    } catch (IOException exception) {
+      throw transientFailure("TRANSPORT", exception);
+    }
   }
 
   private static byte[] readBounded(InputStream stream, int maximumBytes) throws IOException {
     try (stream) {
       byte[] body = stream.readNBytes(maximumBytes + 1);
       if (body.length > maximumBytes) {
-        throw CandidateExtractionProviderException.permanentFailure(
-            "OPENAI_COMPATIBLE_EXTRACTION_RESPONSE_TOO_LARGE", null);
+        throw permanent("RESPONSE_TOO_LARGE");
       }
       return body;
     }
@@ -183,15 +218,12 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
       return;
     }
     if (statusCode == 429) {
-      throw CandidateExtractionProviderException.transientFailure(
-          "OPENAI_COMPATIBLE_EXTRACTION_RATE_LIMIT", null);
+      throw transientFailure("RATE_LIMIT", null);
     }
     if (statusCode >= 500) {
-      throw CandidateExtractionProviderException.transientFailure(
-          "OPENAI_COMPATIBLE_EXTRACTION_SERVER_ERROR", null);
+      throw transientFailure("SERVER_ERROR", null);
     }
-    throw CandidateExtractionProviderException.permanentFailure(
-        "OPENAI_COMPATIBLE_EXTRACTION_CLIENT_ERROR", null);
+    throw permanent("CLIENT_ERROR");
   }
 
   private void requireMatchingVersions(CandidateExtractionRequest request) {
@@ -203,7 +235,8 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
     }
   }
 
-  private static URI endpoint(URI baseUrl) {
+  private static URI requireBaseUrl(URI baseUrl) {
+    Objects.requireNonNull(baseUrl, "baseUrl must not be null");
     String scheme = baseUrl.getScheme();
     if (!("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
       throw new IllegalArgumentException("baseUrl must use http or https");
@@ -211,14 +244,18 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
     if (baseUrl.getRawQuery() != null || baseUrl.getRawFragment() != null) {
       throw new IllegalArgumentException("baseUrl must not contain query or fragment components");
     }
+    return baseUrl;
+  }
+
+  private static URI endpoint(URI baseUrl, String path) {
     String encoded = baseUrl.toString();
-    return URI.create((encoded.endsWith("/") ? encoded : encoded + "/") + "chat/completions");
+    return URI.create((encoded.endsWith("/") ? encoded : encoded + "/") + path);
   }
 
   private static Duration requireTimeout(Duration timeout) {
     Objects.requireNonNull(timeout, "timeout must not be null");
-    if (timeout.isZero() || timeout.isNegative() || timeout.compareTo(Duration.ofMinutes(5)) > 0) {
-      throw new IllegalArgumentException("timeout must be positive and at most five minutes");
+    if (timeout.isZero() || timeout.isNegative() || timeout.compareTo(Duration.ofMinutes(30)) > 0) {
+      throw new IllegalArgumentException("timeout must be positive and at most thirty minutes");
     }
     return timeout;
   }
@@ -229,6 +266,28 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
       throw new IllegalArgumentException(name + " must be non-blank and bounded");
     }
     return value;
+  }
+
+  private static String requireDigest(String value) {
+    if (value == null || !value.matches("[0-9a-f]{64}")) {
+      throw new IllegalArgumentException("expectedDigest must be a full lowercase SHA-256 digest");
+    }
+    return value;
+  }
+
+  private static String requireDigestVersion(String version, String digest) {
+    String required = "sha256:" + digest;
+    if (!required.equals(version)) {
+      throw new IllegalArgumentException("modelVersion must equal sha256:modelDigest for Ollama");
+    }
+    return version;
+  }
+
+  private static String digestValue(Object value, String name) {
+    if (value instanceof String digest && digest.matches("[0-9a-f]{64}")) {
+      return digest;
+    }
+    throw malformed(name + " must be a full lowercase SHA-256 digest");
   }
 
   private static Map<?, ?> object(Object value, String name) {
@@ -254,11 +313,10 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
 
   private static String structuredOutput(Object value) {
     if (!(value instanceof String text) || text.isBlank()) {
-      throw malformed("provider structured output must be a non-blank string");
+      throw malformed("Ollama structured output must be a non-blank string");
     }
     if (text.getBytes(StandardCharsets.UTF_8).length > MAX_STRUCTURED_OUTPUT_BYTES) {
-      throw CandidateExtractionProviderException.permanentFailure(
-          "OPENAI_COMPATIBLE_EXTRACTION_RESPONSE_TOO_LARGE", null);
+      throw permanent("RESPONSE_TOO_LARGE");
     }
     return text;
   }
@@ -279,14 +337,23 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
   }
 
   private static CandidateExtractionProviderException malformed(String message) {
-    return CandidateExtractionProviderException.permanentFailure(
-        "OPENAI_COMPATIBLE_EXTRACTION_MALFORMED_RESPONSE", new IllegalArgumentException(message));
+    return malformed(message, null);
   }
 
   private static CandidateExtractionProviderException malformed(String message, Throwable cause) {
     return CandidateExtractionProviderException.permanentFailure(
-        "OPENAI_COMPATIBLE_EXTRACTION_MALFORMED_RESPONSE",
-        new IllegalArgumentException(message, cause));
+        "OLLAMA_EXTRACTION_MALFORMED_RESPONSE", new IllegalArgumentException(message, cause));
+  }
+
+  private static CandidateExtractionProviderException permanent(String suffix) {
+    return CandidateExtractionProviderException.permanentFailure(
+        "OLLAMA_EXTRACTION_" + suffix, null);
+  }
+
+  private static CandidateExtractionProviderException transientFailure(
+      String suffix, Throwable cause) {
+    return CandidateExtractionProviderException.transientFailure(
+        "OLLAMA_EXTRACTION_" + suffix, cause);
   }
 
   private static void assertNoActiveTransaction() {
@@ -295,4 +362,6 @@ public final class OpenAiCompatibleStructuredCandidateExtractionAdapter
           "structured extraction must run outside a database transaction");
     }
   }
+
+  private record ProviderResponse(Map<?, ?> value, Duration latency) {}
 }

@@ -52,6 +52,9 @@ public final class CandidateExtractionJobHandler implements MaterializationJobHa
     if (source.orElseThrow().contentState() != SourceContentState.ACTIVE) {
       return commitSkipped(job, SkippedExtractionReason.SOURCE_NOT_ACTIVE);
     }
+    if (!job.modelVersion().equals(providerIdentity.modelVersion())) {
+      throw JobHandlingException.permanentFailure("ExtractionModelVersionMismatch");
+    }
 
     ExtractionAttemptId attemptId = identifierGenerator.attemptIdFor(job);
     ExtractionAttemptStartResult startResult =
@@ -65,12 +68,16 @@ public final class CandidateExtractionJobHandler implements MaterializationJobHa
     CandidateExtractionEvaluation evaluation;
     try {
       evaluation = extractionService.evaluate(job, source.orElseThrow(), providerIdentity);
+    } catch (CandidateExtractionProviderException exception) {
+      recordFailure(attemptId, job, exception.kind(), exception.errorClass());
+      throw exception.kind() == JobFailureKind.TRANSIENT
+          ? JobHandlingException.transientFailure(exception.errorClass().value())
+          : JobHandlingException.permanentFailure(exception.errorClass().value());
     } catch (RuntimeException exception) {
       String simpleName = exception.getClass().getSimpleName();
       JobErrorClass errorClass =
           new JobErrorClass(simpleName.isBlank() ? "ProviderRuntimeFailure" : simpleName);
-      commitStore.recordTransientFailure(
-          new RecordTransientExtractionFailure(attemptId, job, errorClass, null, clock.instant()));
+      recordFailure(attemptId, job, JobFailureKind.TRANSIENT, errorClass);
       throw JobHandlingException.transientFailure(errorClass.value());
     }
     if (evaluation instanceof InvalidExtractionEvaluation invalid) {
@@ -114,6 +121,15 @@ public final class CandidateExtractionJobHandler implements MaterializationJobHa
                 downstream,
                 clock.instant()));
     return terminalResult(result, JobHandlingResult.COMPLETED_ATOMICALLY);
+  }
+
+  private void recordFailure(
+      ExtractionAttemptId attemptId,
+      ClaimedJob job,
+      JobFailureKind kind,
+      JobErrorClass errorClass) {
+    commitStore.recordFailure(
+        new RecordExtractionFailure(attemptId, job, kind, errorClass, null, clock.instant()));
   }
 
   private JobHandlingResult commitSkipped(ClaimedJob job, SkippedExtractionReason reason) {

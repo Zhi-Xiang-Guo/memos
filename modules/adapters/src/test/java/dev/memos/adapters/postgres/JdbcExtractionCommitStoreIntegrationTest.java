@@ -28,12 +28,15 @@ import dev.memos.materialization.ExtractionAttemptStartResult;
 import dev.memos.materialization.ExtractionCommitResult;
 import dev.memos.materialization.ExtractionProviderIdentity;
 import dev.memos.materialization.ExtractionRunId;
+import dev.memos.materialization.JobErrorClass;
+import dev.memos.materialization.JobFailureKind;
 import dev.memos.materialization.JobId;
 import dev.memos.materialization.JobType;
 import dev.memos.materialization.LeaseToken;
 import dev.memos.materialization.ProviderCallMetadata;
 import dev.memos.materialization.ProviderTokenUsage;
 import dev.memos.materialization.QuarantineId;
+import dev.memos.materialization.RecordExtractionFailure;
 import dev.memos.materialization.SemanticJobKey;
 import dev.memos.materialization.StartExtractionAttempt;
 import dev.memos.materialization.WorkerId;
@@ -243,6 +246,41 @@ class JdbcExtractionCommitStoreIntegrationTest {
                 success(attemptId, runId, new CandidateId(UUID.randomUUID()), fixture.job())))
         .isEqualTo(ExtractionCommitResult.LEASE_LOST);
     assertThat(count("extraction_run", "run_id", runId.value())).isZero();
+  }
+
+  @Test
+  void recordsPermanentProviderFailureUnderTheCurrentLeaseWithoutContent() {
+    Fixture fixture = fixture("tenant-permanent-provider-failure");
+    JdbcExtractionCommitStore store = new JdbcExtractionCommitStore(jdbc, transactions);
+    ExtractionAttemptId attemptId = new ExtractionAttemptId(UUID.randomUUID());
+    Instant startedAt = Instant.now();
+    assertThat(store.startAttempt(start(attemptId, fixture.job(), startedAt)))
+        .isEqualTo(ExtractionAttemptStartResult.STARTED);
+
+    store.recordFailure(
+        new RecordExtractionFailure(
+            attemptId,
+            fixture.job(),
+            JobFailureKind.PERMANENT,
+            new JobErrorClass("OLLAMA_EXTRACTION_MODEL_DRIFT"),
+            null,
+            startedAt.plusSeconds(1)));
+
+    assertThat(
+            jdbc.queryForMap(
+                """
+                SELECT state, error_class, provider_call_id, input_tokens, output_tokens,
+                       model_calls
+                  FROM memos.extraction_attempt
+                 WHERE attempt_id = ?
+                """,
+                attemptId.value()))
+        .containsEntry("state", "PERMANENT_FAILURE")
+        .containsEntry("error_class", "OLLAMA_EXTRACTION_MODEL_DRIFT")
+        .containsEntry("model_calls", 0)
+        .containsEntry("provider_call_id", null)
+        .containsEntry("input_tokens", null)
+        .containsEntry("output_tokens", null);
   }
 
   @Test

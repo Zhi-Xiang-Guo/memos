@@ -10,6 +10,7 @@ import dev.memos.adapters.postgres.JdbcExtractionCommitStore;
 import dev.memos.adapters.postgres.JdbcMaterializationJobStore;
 import dev.memos.adapters.postgres.JdbcProjectionBuildStore;
 import dev.memos.adapters.postgres.JdbcSourceExtractionStore;
+import dev.memos.adapters.postgres.JdbcStorageObservationStore;
 import dev.memos.adapters.postgres.JdbcTemporalMemoryAuthority;
 import dev.memos.adapters.system.DeterministicExtractionIdentifierGenerator;
 import dev.memos.adapters.system.RandomTemporalIdentityGenerator;
@@ -39,6 +40,7 @@ import dev.memos.materialization.ProjectionBuildStore;
 import dev.memos.materialization.ProjectionEmbeddingPort;
 import dev.memos.materialization.RoutedMaterializationJobHandler;
 import dev.memos.materialization.SourceExtractionStore;
+import dev.memos.materialization.StorageObservationStore;
 import dev.memos.materialization.StrictCandidateProposalDecoder;
 import dev.memos.materialization.StructuredCandidateExtractionPort;
 import dev.memos.materialization.TemporalCandidateMaterializationJobHandler;
@@ -73,6 +75,11 @@ public class MaterializationConfiguration {
   MaterializationJobStore materializationJobStore(
       JdbcTemplate jdbc, PlatformTransactionManager transactionManager) {
     return new JdbcMaterializationJobStore(jdbc, new TransactionTemplate(transactionManager));
+  }
+
+  @Bean
+  StorageObservationStore storageObservationStore(JdbcTemplate jdbc) {
+    return new JdbcStorageObservationStore(jdbc);
   }
 
   @Bean

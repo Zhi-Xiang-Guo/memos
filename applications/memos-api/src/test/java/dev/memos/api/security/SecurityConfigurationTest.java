@@ -110,6 +110,12 @@ class SecurityConfigurationTest {
                 .header("Authorization", "Bearer " + operator))
         .andExpect(status().isOk());
 
+    mvc.perform(get("/v1/operations/storage").header("Authorization", "Bearer " + user))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    mvc.perform(get("/v1/operations/storage").header("Authorization", "Bearer " + operator))
+        .andExpect(status().isOk());
+
     mvc.perform(
             post("/v1/admin/deletions/users/victim")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -177,6 +183,9 @@ class SecurityConfigurationTest {
 
     @PostMapping("/v1/retrieval/trace")
     void trace() {}
+
+    @GetMapping("/v1/operations/storage")
+    void storage() {}
 
     @PostMapping("/v1/admin/deletions/users/{userId}")
     void admin() {}

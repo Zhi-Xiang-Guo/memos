@@ -57,6 +57,33 @@ class FakeRuntime:
 
 
 class FakeMemosClient:
+    def __init__(self) -> None:
+        self.storage_calls = 0
+
+    def storage_observation(self, bearer_token: str, **kwargs: Any) -> Any:
+        del bearer_token, kwargs
+        self.storage_calls += 1
+        if self.storage_calls == 1:
+            return SimpleNamespace(
+                scope_row_count=0,
+                scope_row_bytes=0,
+                relations=(),
+                database_table_bytes=1_000,
+                database_index_bytes=2_000,
+                database_total_bytes=3_000,
+            )
+        return SimpleNamespace(
+            scope_row_count=3,
+            scope_row_bytes=400,
+            relations=(
+                SimpleNamespace(relation="memos.outbox_job", row_count=2, row_bytes=240),
+                SimpleNamespace(relation="memos.source_event", row_count=1, row_bytes=160),
+            ),
+            database_table_bytes=1_100,
+            database_index_bytes=2_200,
+            database_total_bytes=3_300,
+        )
+
     def ingest_source_event(
         self,
         event: dict[str, Any],
@@ -209,6 +236,21 @@ def test_unified_runner_emits_every_four_baseline_execution_row() -> None:
         "embedding_tokens": 3,
         "model_calls": 2,
     }
+    assert memos_write["storage"] == {
+        "complete": True,
+        "measurement_method": (
+            "postgresql-pg-column-size-scope-rows-plus-native-relation-delta-v1"
+        ),
+        "retained_bytes": 400,
+        "components": {"memos.outbox_job": 240, "memos.source_event": 160},
+        "counts": {"memos.outbox_job": 2, "memos.source_event": 1},
+        "database_native": {
+            "before": {"table_bytes": 1_000, "index_bytes": 2_000, "total_bytes": 3_000},
+            "after": {"table_bytes": 1_100, "index_bytes": 2_200, "total_bytes": 3_300},
+            "delta": {"table_bytes": 100, "index_bytes": 200, "total_bytes": 300},
+        },
+    }
+    assert all("storage" in row for row in rows.writes)
     memos_retrieval = next(row for row in rows.retrieval if row["baseline"] == "memos")
     assert memos_retrieval["selected_event_ids"] == ["event-1"]
     assert memos_retrieval["tokenizer_verification_tokens"] == 1

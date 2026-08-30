@@ -7,6 +7,9 @@ import pytest
 from memos_benchmark.baselines import (
     BaselineError,
     full_history_context,
+    measure_full_history_storage,
+    measure_raw_vector_storage,
+    measure_rolling_summary_storage,
     prepare_raw_vector,
     prepare_rolling_summary,
     raw_vector_context,
@@ -233,3 +236,57 @@ def test_raw_vector_requires_exactly_one_query_embedding() -> None:
 
     with pytest.raises(BaselineError, match="query embedding count"):
         raw_vector_context(state, "find alpha", "e2", runtime, "embed", 2, 100)
+
+
+def test_local_storage_measurements_use_declared_byte_representations() -> None:
+    runtime = FakeRuntime(
+        [
+            {
+                "facts": [
+                    {
+                        "content": "alpha",
+                        "status": "CURRENT",
+                        "time_qualifier": None,
+                        "evidence_ids": ["e1"],
+                    }
+                ]
+            },
+            {
+                "facts": [
+                    {
+                        "content": "beta",
+                        "status": "CURRENT",
+                        "time_qualifier": None,
+                        "evidence_ids": ["e2"],
+                    }
+                ]
+            },
+        ]
+    )
+    summary = prepare_rolling_summary(
+        _scenario(), runtime, "chat", "summarize", {"type": "object"}, 0, 42, 1
+    )
+    vectors = prepare_raw_vector(_scenario(), FakeRuntime(), "embed", repetition=1)
+
+    history_storage = measure_full_history_storage(_scenario())
+    summary_storage = measure_rolling_summary_storage(summary, recent_turns=1)
+    vector_storage = measure_raw_vector_storage(vectors)
+
+    assert history_storage["measurement_method"] == "canonical-json-utf8-retained-events-v1"
+    assert history_storage["counts"] == {"events": 2}
+    assert history_storage["retained_bytes"] == sum(history_storage["components"].values())
+    assert summary_storage["measurement_method"] == (
+        "canonical-json-utf8-final-summary-plus-recent-turns-v1"
+    )
+    assert summary_storage["counts"] == {"facts": 1, "recent_events": 1}
+    assert summary_storage["retained_bytes"] == sum(summary_storage["components"].values())
+    assert vector_storage["measurement_method"] == (
+        "canonical-json-utf8-events-plus-dense-float32-le-v1"
+    )
+    assert vector_storage["components"]["dense_float32_le"] == 16
+    assert vector_storage["counts"] == {
+        "events": 2,
+        "vectors": 2,
+        "vector_dimensions": 4,
+    }
+    assert vector_storage["retained_bytes"] == sum(vector_storage["components"].values())

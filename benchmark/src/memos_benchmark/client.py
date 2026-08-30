@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -11,6 +12,30 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from uuid import UUID
+
+STORAGE_RELATIONS = (
+    "memos.audit_event",
+    "memos.candidate_policy_decision",
+    "memos.deletion_request",
+    "memos.erasure_tombstone",
+    "memos.extraction_attempt",
+    "memos.extraction_run",
+    "memos.materialization_result",
+    "memos.memory_candidate",
+    "memos.memory_current_state",
+    "memos.memory_lineage",
+    "memos.memory_mutation_request",
+    "memos.memory_projection_checkpoint",
+    "memos.memory_quarantine",
+    "memos.memory_search_projection",
+    "memos.memory_source",
+    "memos.memory_state_transition",
+    "memos.memory_status_change",
+    "memos.memory_version",
+    "memos.outbox_job",
+    "memos.projection_provider_usage",
+    "memos.source_event",
+)
 
 MAX_RESPONSE_BYTES = 1024 * 1024
 MATERIALIZATION_STATES = {"PROCESSING", "SUCCEEDED", "FAILED"}
@@ -110,6 +135,23 @@ class RetrievalResponse:
     trace: RetrievalTrace
 
 
+@dataclass(frozen=True)
+class StorageRelationObservation:
+    relation: str
+    row_count: int
+    row_bytes: int
+
+
+@dataclass(frozen=True)
+class StorageObservation:
+    scope_row_count: int
+    scope_row_bytes: int
+    relations: tuple[StorageRelationObservation, ...]
+    database_table_bytes: int
+    database_index_bytes: int
+    database_total_bytes: int
+
+
 class MemosClient:
     def __init__(
         self,
@@ -146,6 +188,14 @@ class MemosClient:
             timeout_seconds,
         )
         return _source_materialization(payload, canonical_source_id)
+
+    def storage_observation(
+        self, bearer_token: str, timeout_seconds: float = 10.0
+    ) -> StorageObservation:
+        if not bearer_token:
+            raise ValueError("bearer_token must not be empty")
+        payload = self._get_json("/v1/operations/storage", bearer_token, timeout_seconds)
+        return _storage_observation(payload)
 
     def ingest_source_event(
         self,
@@ -286,6 +336,67 @@ class MemosClient:
         if not isinstance(payload, dict):
             raise MemosClientError("MALFORMED_RESPONSE", "MemOS response is not an object")
         return payload
+
+
+def _storage_observation(payload: dict[str, Any]) -> StorageObservation:
+    if set(payload) != {"schemaVersion", "scope", "database"}:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS storage response is invalid")
+    if payload["schemaVersion"] != "memos-storage-observation.v1":
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS storage schema is unsupported")
+    scope = payload["scope"]
+    database = payload["database"]
+    if not isinstance(scope, dict) or set(scope) != {"rowCount", "rowBytes", "relations"}:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS scope storage is invalid")
+    if not isinstance(database, dict) or set(database) != {
+        "tableBytes",
+        "indexBytes",
+        "totalBytes",
+    }:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS database storage is invalid")
+    raw_relations = scope["relations"]
+    if not isinstance(raw_relations, list) or not raw_relations or len(raw_relations) > 64:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS storage relations are invalid")
+    relations: list[StorageRelationObservation] = []
+    names: set[str] = set()
+    for value in raw_relations:
+        if not isinstance(value, dict) or set(value) != {"relation", "rowCount", "rowBytes"}:
+            raise MemosClientError("MALFORMED_RESPONSE", "MemOS storage relation is invalid")
+        relation = value["relation"]
+        if (
+            not isinstance(relation, str)
+            or re.fullmatch(r"memos\.[a-z][a-z0-9_]{0,126}", relation) is None
+            or relation in names
+        ):
+            raise MemosClientError("MALFORMED_RESPONSE", "MemOS storage relation is invalid")
+        names.add(relation)
+        row_count = _non_negative_int(value["rowCount"], "storage.relation.rowCount")
+        row_bytes = _non_negative_int(value["rowBytes"], "storage.relation.rowBytes")
+        if row_count == 0 and row_bytes != 0:
+            raise MemosClientError("MALFORMED_RESPONSE", "empty storage relation has bytes")
+        relations.append(StorageRelationObservation(relation, row_count, row_bytes))
+    if tuple(value.relation for value in relations) != STORAGE_RELATIONS:
+        raise MemosClientError(
+            "MALFORMED_RESPONSE", "MemOS storage relation contract is incomplete or unordered"
+        )
+    scope_row_count = _non_negative_int(scope["rowCount"], "storage.scope.rowCount")
+    scope_row_bytes = _non_negative_int(scope["rowBytes"], "storage.scope.rowBytes")
+    if scope_row_count != sum(value.row_count for value in relations) or scope_row_bytes != sum(
+        value.row_bytes for value in relations
+    ):
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS scope storage totals are invalid")
+    table_bytes = _non_negative_int(database["tableBytes"], "storage.database.tableBytes")
+    index_bytes = _non_negative_int(database["indexBytes"], "storage.database.indexBytes")
+    total_bytes = _non_negative_int(database["totalBytes"], "storage.database.totalBytes")
+    if total_bytes != table_bytes + index_bytes:
+        raise MemosClientError("MALFORMED_RESPONSE", "MemOS database storage totals are invalid")
+    return StorageObservation(
+        scope_row_count,
+        scope_row_bytes,
+        tuple(relations),
+        table_bytes,
+        index_bytes,
+        total_bytes,
+    )
 
 
 def _source_receipt(payload: dict[str, Any]) -> SourceEventReceipt:

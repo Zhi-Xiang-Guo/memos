@@ -236,6 +236,13 @@ remotely verify the Java implementation and regression gates. The runner-side as
 regression-tested with deterministic fakes but has not run against the selected Ollama models. See the
 [Feature 6 implementation note](docs/implementation/feature-6.md).
 
+The current Feature 6 candidate also measures each baseline's declared retained representation,
+uses PostgreSQL `pg_column_size(record)` for exact-scope MemOS rows, records database-native
+table/index allocation deltas separately, and mechanically generates `storage.json` and
+`report.md`. The verifier independently regenerates both files and rejects rehashed edits. These
+mechanics pass local API and Python tests; PostgreSQL publication verification and every
+selected-model result remain pending.
+
 ## Design principles
 
 - Evidence and interpretations are append-only while retained; corrections add records, while policy/legal erasure may remove content and leave only a non-content tombstone.

@@ -210,7 +210,7 @@ Hosted model aliases that can drift are called out explicitly; a date is not pro
 
 The v1 immutable layout, verifier, and four-baseline runner are published through commit
 `db213df` and GitHub Actions run `#35`. The selected model path has not executed and the
-storage/result-rendering gates are still in progress:
+storage/result-rendering candidate still requires remote PostgreSQL publication verification:
 
 ```text
 benchmark-artifacts/<run-id>/
@@ -222,7 +222,9 @@ benchmark-artifacts/<run-id>/
   timings.jsonl
   costs.json
   metrics.json
+  storage.json
   failures.md
+  report.md
   integrity.json
 ```
 
@@ -230,12 +232,16 @@ Only small, license-compatible artifacts are committed. Large/upstream datasets 
 
 ## Integrity rules
 
-- `metrics.json`, `costs.json`, and `failures.md` are mechanically regenerated from raw rows; the
-  result-table renderer remains pending.
+- `metrics.json`, `costs.json`, `storage.json`, `failures.md`, and `report.md` are mechanically
+  regenerated from raw rows; the verifier byte-compares every derived artifact.
 - `integrity.json` pins every raw and derived artifact; checksum updates alone cannot bypass the
   independent regeneration checks.
 - Every baseline/scenario/repetition has one preprocessing/write row with explicit usage; absent
   usage is invalid, while known-incomplete usage is marked incomplete rather than treated as zero.
+- Every write row declares its storage method. Full history uses canonical retained-event UTF-8
+  bytes, rolling summary uses final summary plus declared recent turns, raw vector uses canonical
+  event UTF-8 plus dense float32 bytes, and MemOS uses exact-scope `pg_column_size(record)` bytes.
+  Database-native PostgreSQL allocation deltas remain a separate supplemental observation.
 - Missing values render as `NOT RUN`, never zero.
 - Failed and excluded cases include an explicit reason and remain counted.
 - Manual corrections require a review log and do not overwrite raw outputs.

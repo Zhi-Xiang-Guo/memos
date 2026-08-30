@@ -11,6 +11,7 @@ from memos_benchmark.artifacts import (
     expected_case_rows,
     expected_write_keys,
     generate_costs,
+    generate_storage,
     verify_package,
     write_package,
 )
@@ -160,7 +161,18 @@ def test_run_package_round_trip_is_integral(tmp_path: Path) -> None:
     assert summary["execution_count"] == 12
     assert summary["answer_status"] == {"SUCCESS": 12}
     assert summary["usage_complete"] is True
+    assert summary["storage_complete"] is True
     assert len(summary["package_sha256"]) == 64
+    storage = json.loads((run_dir / "storage.json").read_text(encoding="utf-8"))
+    assert storage == generate_storage(
+        json.loads((run_dir / "manifest.json").read_text(encoding="utf-8")),
+        [json.loads(line) for line in (run_dir / "writes.jsonl").read_text().splitlines()],
+    )
+    report = (run_dir / "report.md").read_text(encoding="utf-8")
+    assert "# MemOS Benchmark Report" in report
+    assert "SMOKE validates harness mechanics only" in report
+    assert "Answer accuracy" in report
+    assert "Storage observation" in report
 
 
 def test_existing_package_and_content_drift_fail_closed(tmp_path: Path) -> None:
@@ -247,6 +259,47 @@ def test_write_execution_set_rejects_missing_rows(tmp_path: Path) -> None:
         verify_package(run_dir, DATASET_MANIFEST)
 
 
+def test_storage_and_report_reject_rehashed_manual_corrections(tmp_path: Path) -> None:
+    storage_run = tmp_path / "storage-run"
+    _write_valid_package(storage_run)
+    storage_path = storage_run / "storage.json"
+    storage = json.loads(storage_path.read_text(encoding="utf-8"))
+    storage["by_baseline"]["memos"]["total_retained_bytes"] = 1
+    storage_path.write_text(json.dumps(storage, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    _rehash(storage_run, "storage.json")
+
+    with pytest.raises(ArtifactPackageError, match="storage.json differs"):
+        verify_package(storage_run, DATASET_MANIFEST)
+
+    report_run = tmp_path / "report-run"
+    _write_valid_package(report_run)
+    report_path = report_run / "report.md"
+    report_path.write_text(
+        report_path.read_text(encoding="utf-8").replace("SMOKE", "FORMAL", 1),
+        encoding="utf-8",
+    )
+    _rehash(report_run, "report.md")
+
+    with pytest.raises(ArtifactPackageError, match="report.md differs"):
+        verify_package(report_run, DATASET_MANIFEST)
+
+
+def test_write_storage_schema_and_completeness_fail_closed(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    _write_valid_package(run_dir)
+    writes_path = run_dir / "writes.jsonl"
+    writes = [json.loads(line) for line in writes_path.read_text(encoding="utf-8").splitlines()]
+    writes[0]["storage"]["complete"] = False
+    writes[0]["storage"]["retained_bytes"] = None
+    writes_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in writes), encoding="utf-8"
+    )
+    _rehash(run_dir, "writes.jsonl")
+
+    with pytest.raises(ArtifactPackageError, match="incomplete storage"):
+        verify_package(run_dir, DATASET_MANIFEST)
+
+
 def _successful_write_rows(
     dataset_manifest: dict[str, object],
     scenarios: list[dict[str, object]],
@@ -266,9 +319,34 @@ def _successful_write_rows(
             "status": "SUCCESS",
             "usage": _zero_usage(),
             "usage_complete": True,
+            "storage": _storage(baseline),
         }
         for baseline, scenario_id, repetition in sorted(keys)
     ]
+
+
+def _storage(baseline: str) -> dict[str, object]:
+    methods = {
+        "full_history": "canonical-json-utf8-retained-events-v1",
+        "rolling_summary": "canonical-json-utf8-final-summary-plus-recent-turns-v1",
+        "raw_turn_vector": "canonical-json-utf8-events-plus-dense-float32-le-v1",
+        "memos": "postgresql-pg-column-size-scope-rows-plus-native-relation-delta-v1",
+    }
+    database_native = None
+    if baseline == "memos":
+        database_native = {
+            "before": {"table_bytes": 100, "index_bytes": 200, "total_bytes": 300},
+            "after": {"table_bytes": 110, "index_bytes": 220, "total_bytes": 330},
+            "delta": {"table_bytes": 10, "index_bytes": 20, "total_bytes": 30},
+        }
+    return {
+        "complete": True,
+        "measurement_method": methods[baseline],
+        "retained_bytes": 100,
+        "components": {"retained_state": 100},
+        "counts": {"items": 1},
+        "database_native": database_native,
+    }
 
 
 def _rehash(run_dir: Path, name: str) -> None:

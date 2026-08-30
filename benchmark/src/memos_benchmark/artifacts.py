@@ -21,7 +21,14 @@ from memos_benchmark.metrics import (
 
 RUN_SCHEMA = "memos-benchmark-run.v1"
 INTEGRITY_SCHEMA = "memos-benchmark-integrity.v1"
+STORAGE_SCHEMA = "memos-benchmark-storage.v1"
 CAMPAIGN_KINDS = {"SMOKE", "FROZEN_TEST"}
+STORAGE_METHOD_BY_BASELINE = {
+    "full_history": "canonical-json-utf8-retained-events-v1",
+    "rolling_summary": "canonical-json-utf8-final-summary-plus-recent-turns-v1",
+    "raw_turn_vector": "canonical-json-utf8-events-plus-dense-float32-le-v1",
+    "memos": "postgresql-pg-column-size-scope-rows-plus-native-relation-delta-v1",
+}
 RAW_FILES = {
     "cases.jsonl",
     "writes.jsonl",
@@ -29,8 +36,8 @@ RAW_FILES = {
     "answers.jsonl",
     "timings.jsonl",
 }
-JSON_FILES = {"manifest.json", "costs.json", "metrics.json"}
-PACKAGE_FILES = RAW_FILES | JSON_FILES | {"failures.md"}
+JSON_FILES = {"manifest.json", "costs.json", "metrics.json", "storage.json"}
+PACKAGE_FILES = RAW_FILES | JSON_FILES | {"failures.md", "report.md"}
 ALL_FILES = PACKAGE_FILES | {"integrity.json"}
 SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 GIT_COMMIT_PATTERN = re.compile(r"[0-9a-f]{40}")
@@ -290,8 +297,12 @@ def write_package(
         _write_jsonl(run_dir / "timings.jsonl", timings)
         _write_json(run_dir / "costs.json", costs)
         _write_json(run_dir / "metrics.json", metrics)
+        storage = generate_storage(manifest, writes)
+        _write_json(run_dir / "storage.json", storage)
         with (run_dir / "failures.md").open("x", encoding="utf-8", newline="\n") as stream:
             stream.write(render_failures_markdown(writes, answers, retrieval, timings))
+        with (run_dir / "report.md").open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(render_report_markdown(manifest, metrics, costs, storage, writes))
         hashes = {name: file_sha256(run_dir / name) for name in sorted(PACKAGE_FILES)}
         integrity = {
             "schema_version": INTEGRITY_SCHEMA,
@@ -455,6 +466,11 @@ def _validate_write_rows(expected: set[tuple[str, str, int]], rows: list[dict[st
         if status != "SUCCESS" and not isinstance(row.get("error_class"), str):
             raise ArtifactPackageError(f"writes row {key} lacks explicit failure/exclusion reason")
         _usage(row)
+        storage = _storage(row)
+        if status == "SUCCESS" and not storage["complete"]:
+            raise ArtifactPackageError(f"writes row {key} has incomplete storage")
+        if status != "SUCCESS" and storage["complete"]:
+            raise ArtifactPackageError(f"failed writes row {key} cannot have complete storage")
 
 
 def _usage(row: dict[str, Any]) -> dict[str, int]:
@@ -469,6 +485,129 @@ def _usage(row: dict[str, Any]) -> dict[str, int]:
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             raise ArtifactPackageError(f"usage.{field} must be a non-negative integer")
     return usage
+
+
+def _storage(row: dict[str, Any]) -> dict[str, Any]:
+    baseline = row.get("baseline")
+    expected_method = STORAGE_METHOD_BY_BASELINE.get(baseline)
+    value = row.get("storage")
+    fields = {
+        "complete",
+        "measurement_method",
+        "retained_bytes",
+        "components",
+        "counts",
+        "database_native",
+    }
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ArtifactPackageError("every write row must contain the exact storage fields")
+    if not isinstance(value["complete"], bool):
+        raise ArtifactPackageError("storage.complete must be boolean")
+    if value["measurement_method"] != expected_method:
+        raise ArtifactPackageError("storage measurement method differs from the baseline contract")
+    components = value["components"]
+    counts = value["counts"]
+    if not isinstance(components, dict) or not isinstance(counts, dict):
+        raise ArtifactPackageError("storage components and counts must be objects")
+    for name, amount in [*components.items(), *counts.items()]:
+        if (
+            not isinstance(name, str)
+            or not name
+            or len(name) > 160
+            or not isinstance(amount, int)
+            or isinstance(amount, bool)
+            or amount < 0
+        ):
+            raise ArtifactPackageError(
+                "storage components and counts must be bounded and non-negative"
+            )
+    if value["complete"]:
+        retained = value["retained_bytes"]
+        if not isinstance(retained, int) or isinstance(retained, bool) or retained < 0:
+            raise ArtifactPackageError("complete storage requires non-negative retained_bytes")
+        if not components or not counts or sum(components.values()) != retained:
+            raise ArtifactPackageError("storage components must exactly sum to retained_bytes")
+    elif value["retained_bytes"] is not None or components or counts:
+        raise ArtifactPackageError("incomplete storage must not present partial observations")
+    database_native = value["database_native"]
+    if baseline == "memos" and value["complete"]:
+        _database_native(database_native)
+    elif database_native is not None:
+        raise ArtifactPackageError("database-native storage is valid only for complete MemOS rows")
+    return value
+
+
+def _database_native(value: Any) -> dict[str, dict[str, int]]:
+    if not isinstance(value, dict) or set(value) != {"before", "after", "delta"}:
+        raise ArtifactPackageError(
+            "MemOS storage requires before/after/delta database observations"
+        )
+    fields = {"table_bytes", "index_bytes", "total_bytes"}
+    for stage in ("before", "after", "delta"):
+        observation = value[stage]
+        if not isinstance(observation, dict) or set(observation) != fields:
+            raise ArtifactPackageError("database storage observation has an unexpected schema")
+        for amount in observation.values():
+            if not isinstance(amount, int) or isinstance(amount, bool):
+                raise ArtifactPackageError("database storage bytes must be integers")
+            if stage != "delta" and amount < 0:
+                raise ArtifactPackageError("database before/after bytes must be non-negative")
+        if observation["total_bytes"] != observation["table_bytes"] + observation["index_bytes"]:
+            raise ArtifactPackageError("database total bytes must equal table plus index bytes")
+    for field in fields:
+        if value["delta"][field] != value["after"][field] - value["before"][field]:
+            raise ArtifactPackageError(
+                "database storage delta differs from before/after observations"
+            )
+    return value
+
+
+def generate_storage(run_manifest: dict[str, Any], writes: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate transparent retained-state observations without merging unlike methods."""
+
+    baselines = run_manifest["execution"]["baselines"]
+    grouped = {baseline: [] for baseline in baselines}
+    for row in writes:
+        baseline = row.get("baseline")
+        if baseline not in grouped:
+            raise ArtifactPackageError("storage row has an unknown baseline")
+        grouped[baseline].append(_storage(row))
+    by_baseline: dict[str, Any] = {}
+    for baseline in baselines:
+        observations = grouped[baseline]
+        complete = bool(observations) and all(value["complete"] for value in observations)
+        retained = [value["retained_bytes"] for value in observations if value["complete"]]
+        component_totals: Counter[str] = Counter()
+        count_totals: Counter[str] = Counter()
+        for value in observations:
+            component_totals.update(value["components"])
+            count_totals.update(value["counts"])
+        database_delta = None
+        if baseline == "memos" and complete:
+            database_delta = {
+                field: sum(value["database_native"]["delta"][field] for value in observations)
+                for field in ("table_bytes", "index_bytes", "total_bytes")
+            }
+        by_baseline[baseline] = {
+            "observations": len(observations),
+            "complete": complete,
+            "measurement_methods": sorted({value["measurement_method"] for value in observations}),
+            "total_retained_bytes": sum(retained) if complete else None,
+            "mean_retained_bytes": round(sum(retained) / len(retained), 3) if complete else None,
+            "component_total_bytes": dict(sorted(component_totals.items())) if complete else {},
+            "count_totals": dict(sorted(count_totals.items())) if complete else {},
+            "database_native_delta_total": database_delta,
+        }
+    return {
+        "schema_version": STORAGE_SCHEMA,
+        "by_baseline": by_baseline,
+        "disclaimer": (
+            "Retained bytes use baseline-specific declared representations. PostgreSQL scope row "
+            "bytes use pg_column_size(record); database-native allocation deltas are supplemental "
+            "and can change in page-sized steps. Methods are disclosed rather than treated as an "
+            "identical physical-storage layer."
+        ),
+    }
 
 
 def generate_costs(
@@ -558,6 +697,159 @@ def render_failures_markdown(
     return "\n".join(lines)
 
 
+def render_report_markdown(
+    manifest: dict[str, Any],
+    metrics: dict[str, Any],
+    costs: dict[str, Any],
+    storage: dict[str, Any],
+    writes: list[dict[str, Any]],
+) -> str:
+    """Render the reviewer-facing result table solely from verified package data."""
+
+    lines = [
+        "# MemOS Benchmark Report",
+        "",
+        f"> {_markdown_text(metrics['disclaimer'])}",
+        "",
+        "## Identity",
+        "",
+        "| Field | Value |",
+        "|---|---|",
+        f"| Run | {_markdown_text(manifest['run_id'])} |",
+        f"| Campaign | {_markdown_text(manifest['campaign_kind'])} |",
+        f"| Dataset | {_markdown_text(metrics['dataset_version'])} |",
+        f"| Split | {_markdown_text(metrics['split'])} |",
+        f"| Repetitions | {metrics['repetitions']} |",
+        f"| Git commit | `{manifest['git']['commit']}` |",
+        f"| Started at | {_markdown_text(manifest['started_at'])} |",
+        f"| Comparison config | `{manifest['comparison_config_sha256']}` |",
+        "",
+        "## Model Identity",
+        "",
+        "| Role | Model |",
+        "|---|---|",
+    ]
+    for role in ("extractor", "summary", "answer", "embedding", "reranker", "judge"):
+        model = manifest["models"][role]
+        if model is None:
+            rendered = "N/A"
+        else:
+            rendered = f"{_markdown_text(model['tag'])} (`{model['ollama_model_id']}`)"
+        lines.append(f"| {_markdown_text(role)} | {rendered} |")
+    lines.extend(
+        [
+            "",
+            "## Quality",
+            "",
+            "| Baseline | Answer accuracy | Temporal accuracy | Contradiction accuracy | "
+            "Abstention F1 | Recall@K | MRR |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for baseline in manifest["execution"]["baselines"]:
+        value = metrics["baselines"][baseline]
+        tracks = value["answer_by_track"]
+        lines.append(
+            f"| {_markdown_text(baseline)} | {_ratio_cell(value['answer']['accuracy'])} | "
+            f"{_track_cell(tracks, 'temporal')} | {_track_cell(tracks, 'contradiction')} | "
+            f"{_ratio_cell(value['abstention']['f1'])} | "
+            f"{_ratio_cell(value['retrieval']['recall_at_k'])} | "
+            f"{_ratio_cell(value['retrieval']['mrr'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Operations",
+            "",
+            "| Baseline | Total latency p95 | Samples | Input tokens | Output tokens | "
+            "Embedding tokens | Model calls | Storage observation |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for baseline in manifest["execution"]["baselines"]:
+        metric = metrics["baselines"][baseline]
+        usage = costs["by_baseline"][baseline]
+        observed = storage["by_baseline"][baseline]
+        usage_values = (
+            [
+                str(usage[field])
+                for field in ("input_tokens", "output_tokens", "embedding_tokens", "model_calls")
+            ]
+            if usage["complete"]
+            else ["N/E"] * 4
+        )
+        storage_value = str(observed["mean_retained_bytes"]) if observed["complete"] else "N/E"
+        lines.append(
+            f"| {_markdown_text(baseline)} | {_number_cell(metric['total_latency_ms']['p95'])} | "
+            f"{metric['total_latency_ms']['samples']} | {' | '.join(usage_values)} | "
+            f"{storage_value} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Storage Measurement",
+            "",
+            "| Baseline | Observations | Complete | Mean retained bytes | Total retained bytes | "
+            "Measurement method | Database-native total delta |",
+            "|---|---:|---|---:|---:|---|---:|",
+        ]
+    )
+    for baseline in manifest["execution"]["baselines"]:
+        observed = storage["by_baseline"][baseline]
+        methods = ", ".join(_markdown_text(value) for value in observed["measurement_methods"])
+        database_delta = observed["database_native_delta_total"]
+        native_total = str(database_delta["total_bytes"]) if database_delta is not None else "N/A"
+        lines.append(
+            f"| {_markdown_text(baseline)} | {observed['observations']} | "
+            f"{'yes' if observed['complete'] else 'no'} | "
+            f"{_established_cell(observed['mean_retained_bytes'], observed['complete'])} | "
+            f"{_established_cell(observed['total_retained_bytes'], observed['complete'])} | "
+            f"{methods} | {native_total} |"
+        )
+    lines.extend(["", _markdown_text(storage["disclaimer"]), "", "## Failures And Exclusions", ""])
+    lines.extend(
+        [
+            "| Baseline | Write failed | Write excluded | Answer failed | Answer excluded |",
+            "|---|---:|---:|---:|---:|",
+        ]
+    )
+    write_status: dict[str, Counter[str]] = {
+        baseline: Counter() for baseline in manifest["execution"]["baselines"]
+    }
+    for row in writes:
+        write_status[row["baseline"]].update([row["status"]])
+    for baseline in manifest["execution"]["baselines"]:
+        answer_status = metrics["baselines"][baseline]["status"]
+        lines.append(
+            f"| {_markdown_text(baseline)} | {write_status[baseline]['FAILED']} | "
+            f"{write_status[baseline]['EXCLUDED']} | {answer_status['FAILED']} | "
+            f"{answer_status['EXCLUDED']} |"
+        )
+    lines.extend(["", _markdown_text(costs["disclaimer"]), ""])
+    return "\n".join(lines)
+
+
+def _markdown_text(value: Any) -> str:
+    return str(value).replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+
+
+def _ratio_cell(value: Any) -> str:
+    return "N/A" if value is None else f"{float(value) * 100:.2f}%"
+
+
+def _track_cell(tracks: dict[str, Any], track: str) -> str:
+    value = tracks.get(track)
+    return "N/A" if value is None else _ratio_cell(value["accuracy"])
+
+
+def _number_cell(value: Any) -> str:
+    return "N/A" if value is None else str(value)
+
+
+def _established_cell(value: Any, complete: bool) -> str:
+    return str(value) if complete else "N/E"
+
+
 def verify_package(run_dir: Path, dataset_manifest_path: Path) -> dict[str, Any]:
     """Verify hashes, coverage, raw status accounting, and regenerated metrics."""
 
@@ -604,15 +896,23 @@ def verify_package(run_dir: Path, dataset_manifest_path: Path) -> dict[str, Any]
     costs = _read_json(run_dir / "costs.json")
     if costs != generate_costs(manifest, writes, retrieval, answers):
         raise ArtifactPackageError("costs.json differs from mechanically regenerated usage")
+    storage = _read_json(run_dir / "storage.json")
+    regenerated_storage = generate_storage(manifest, writes)
+    if storage != regenerated_storage:
+        raise ArtifactPackageError("storage.json differs from mechanically regenerated storage")
     expected_failures = render_failures_markdown(writes, answers, retrieval, timings)
     if (run_dir / "failures.md").read_text(encoding="utf-8") != expected_failures:
         raise ArtifactPackageError("failures.md differs from raw failure/exclusion rows")
+    expected_report = render_report_markdown(manifest, regenerated, costs, storage, writes)
+    if (run_dir / "report.md").read_text(encoding="utf-8") != expected_report:
+        raise ArtifactPackageError("report.md differs from mechanically regenerated results")
     return {
         "run_id": manifest["run_id"],
         "campaign_kind": manifest["campaign_kind"],
         "execution_count": len(expected),
         "answer_status": dict(sorted(Counter(row["status"] for row in answers).items())),
         "usage_complete": costs["usage_complete"],
+        "storage_complete": all(value["complete"] for value in storage["by_baseline"].values()),
         "package_sha256": _read_json(run_dir / "integrity.json")["package_sha256"],
     }
 

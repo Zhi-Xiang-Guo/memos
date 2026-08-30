@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from memos_benchmark.client import MemosClient, MemosClientError
+from memos_benchmark.client import STORAGE_RELATIONS, MemosClient, MemosClientError
 
 SOURCE_ID = "00000000-0000-0000-0000-000000000010"
 JOB_ID = "00000000-0000-0000-0000-000000000020"
@@ -137,6 +137,59 @@ def test_source_materialization_is_authenticated_and_strictly_decoded() -> None:
     assert observed.usage.model_calls == 2
     assert request.full_url.endswith(f"/v1/source-events/{SOURCE_ID}/materialization")
     assert request.headers["Authorization"] == "Bearer token-value"
+
+
+def test_storage_observation_is_authenticated_content_free_and_strictly_decoded() -> None:
+    relation_values = {
+        "memos.outbox_job": (2, 240),
+        "memos.source_event": (1, 160),
+    }
+    payload = {
+        "schemaVersion": "memos-storage-observation.v1",
+        "scope": {
+            "rowCount": 3,
+            "rowBytes": 400,
+            "relations": [
+                {
+                    "relation": relation,
+                    "rowCount": relation_values.get(relation, (0, 0))[0],
+                    "rowBytes": relation_values.get(relation, (0, 0))[1],
+                }
+                for relation in STORAGE_RELATIONS
+            ],
+        },
+        "database": {"tableBytes": 16_384, "indexBytes": 8_192, "totalBytes": 24_576},
+    }
+    with patch("memos_benchmark.client.urlopen", return_value=_response(payload)) as call:
+        observed = MemosClient("http://example.test").storage_observation("operator-token")
+
+    request = call.call_args.args[0]
+    assert request.full_url.endswith("/v1/operations/storage")
+    assert request.headers["Authorization"] == "Bearer operator-token"
+    assert observed.scope_row_count == 3
+    assert observed.scope_row_bytes == 400
+    assert tuple(value.relation for value in observed.relations) == STORAGE_RELATIONS
+    assert observed.database_total_bytes == 24_576
+
+
+def test_storage_observation_rejects_an_incomplete_relation_contract() -> None:
+    payload = {
+        "schemaVersion": "memos-storage-observation.v1",
+        "scope": {
+            "rowCount": 0,
+            "rowBytes": 0,
+            "relations": [
+                {"relation": relation, "rowCount": 0, "rowBytes": 0}
+                for relation in STORAGE_RELATIONS[:-1]
+            ],
+        },
+        "database": {"tableBytes": 100, "indexBytes": 200, "totalBytes": 300},
+    }
+    with (
+        patch("memos_benchmark.client.urlopen", return_value=_response(payload)),
+        pytest.raises(MemosClientError, match="relation contract"),
+    ):
+        MemosClient("http://example.test").storage_observation("operator-token")
 
 
 def test_wait_uses_observable_state_instead_of_a_fixed_delay() -> None:

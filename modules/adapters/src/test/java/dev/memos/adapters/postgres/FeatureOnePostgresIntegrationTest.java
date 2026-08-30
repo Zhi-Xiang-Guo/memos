@@ -536,6 +536,34 @@ class FeatureOnePostgresIntegrationTest {
   }
 
   @Test
+  void storageObservationCountsOnlyRowsOwnedByTheExactScopeAndUsesPostgresBytes() {
+    ingestionService().ingest(command("tenant-a", "source-a", "key-a", "{\"content\":\"alpha\"}"));
+    ingestionService().ingest(command("tenant-b", "source-b", "key-b", "{\"content\":\"beta\"}"));
+    var store = new JdbcStorageObservationStore(jdbc);
+
+    var observed = store.observe(new MemoryScope("tenant-a", "user-a", "agent-a"));
+
+    assertThat(observed.scopeRowCount()).isEqualTo(2);
+    assertThat(observed.scopeRowBytes()).isPositive();
+    assertThat(observed.relations())
+        .filteredOn(relation -> relation.rowCount() > 0)
+        .extracting(relation -> relation.relation())
+        .containsExactly("memos.outbox_job", "memos.source_event");
+    assertThat(observed.relations())
+        .filteredOn(relation -> relation.rowCount() > 0)
+        .allSatisfy(relation -> assertThat(relation.rowBytes()).isPositive());
+    assertThat(observed.databaseTableBytes()).isPositive();
+    assertThat(observed.databaseIndexBytes()).isPositive();
+    assertThat(observed.databaseTotalBytes())
+        .isEqualTo(observed.databaseTableBytes() + observed.databaseIndexBytes());
+
+    var absent = store.observe(new MemoryScope("tenant-a", "other-user", "agent-a"));
+    assertThat(absent.scopeRowCount()).isZero();
+    assertThat(absent.scopeRowBytes()).isZero();
+    assertThat(absent.relations()).allSatisfy(relation -> assertThat(relation.rowCount()).isZero());
+  }
+
+  @Test
   void multipleWorkersClaimDistinctJobsWithoutLoss() throws Exception {
     for (int index = 0; index < 20; index++) {
       ingestionService()

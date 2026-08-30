@@ -48,6 +48,8 @@ public class SecurityConfiguration {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/v1/retrieval/trace")
                     .hasRole(MemosRoles.OPERATOR)
+                    .requestMatchers(HttpMethod.GET, "/v1/operations/storage")
+                    .hasRole(MemosRoles.OPERATOR)
                     .requestMatchers("/v1/admin/**")
                     .hasRole(MemosRoles.PRIVACY_ADMIN)
                     .requestMatchers("/actuator/**")

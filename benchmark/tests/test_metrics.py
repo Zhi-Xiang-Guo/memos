@@ -5,7 +5,27 @@ from copy import deepcopy
 import pytest
 from test_artifacts import _run_data
 
-from memos_benchmark.metrics import BenchmarkMetricError, generate_metrics
+from memos_benchmark.metrics import BenchmarkMetricError, _abstention_metrics, generate_metrics
+
+
+def test_abstention_f1_is_zero_for_missed_or_spurious_positive_predictions() -> None:
+    missed = _abstention_metrics([True], [False])
+    spurious = _abstention_metrics([False], [True])
+
+    assert missed["precision"] is None
+    assert missed["recall"] == 0.0
+    assert missed["f1"] == 0.0
+    assert spurious["precision"] == 0.0
+    assert spurious["recall"] is None
+    assert spurious["f1"] == 0.0
+
+
+def test_abstention_f1_is_inapplicable_without_gold_or_predicted_positives() -> None:
+    result = _abstention_metrics([False], [False])
+
+    assert result["precision"] is None
+    assert result["recall"] is None
+    assert result["f1"] is None
 
 
 def test_perfect_dev_rows_produce_deterministic_metrics() -> None:

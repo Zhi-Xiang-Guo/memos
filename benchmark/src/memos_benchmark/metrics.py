@@ -130,10 +130,9 @@ def _ratio(numerator: int | float, denominator: int) -> float | None:
     return round(numerator / denominator, 6) if denominator else None
 
 
-def _f1(precision: float | None, recall: float | None) -> float | None:
-    if precision is None or recall is None or precision + recall == 0:
-        return None
-    return round(2 * precision * recall / (precision + recall), 6)
+def _f1(true_positive: int, false_positive: int, false_negative: int) -> float | None:
+    denominator = 2 * true_positive + false_positive + false_negative
+    return round(2 * true_positive / denominator, 6) if denominator else None
 
 
 def _nearest_rank(values: list[float], quantile: float) -> float | None:
@@ -179,7 +178,7 @@ def _abstention_metrics(expected: list[bool], predicted: list[bool]) -> dict[str
         "true_negative": true_negative,
         "precision": precision,
         "recall": recall,
-        "f1": _f1(precision, recall),
+        "f1": _f1(true_positive, false_positive, false_negative),
     }
 
 

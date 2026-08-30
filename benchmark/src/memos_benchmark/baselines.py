@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import struct
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -79,6 +80,78 @@ class SummaryState:
     positions: dict[str, int]
     snapshots: list[SummarySnapshot]
     write_rows: list[dict[str, Any]]
+
+
+def measure_full_history_storage(scenario: dict[str, Any]) -> dict[str, Any]:
+    events = _flatten_events(scenario)
+    event_bytes = _utf8_bytes(events)
+    return _complete_storage(
+        "canonical-json-utf8-retained-events-v1",
+        {"canonical_events_utf8": event_bytes},
+        {"events": len(events)},
+    )
+
+
+def measure_rolling_summary_storage(state: SummaryState, recent_turns: int) -> dict[str, Any]:
+    if recent_turns < 0:
+        raise BaselineError("summary recent turns must be non-negative")
+    facts = state.snapshots[-1].facts if state.snapshots else []
+    recent = state.events[-recent_turns:] if recent_turns else []
+    return _complete_storage(
+        "canonical-json-utf8-final-summary-plus-recent-turns-v1",
+        {
+            "final_summary_utf8": _utf8_bytes({"facts": facts}),
+            "recent_events_utf8": _utf8_bytes(recent),
+        },
+        {"facts": len(facts), "recent_events": len(recent)},
+    )
+
+
+def measure_raw_vector_storage(state: VectorState) -> dict[str, Any]:
+    dimensions = 0
+    dense_bytes = 0
+    for vector in state.vectors:
+        dimensions += len(vector)
+        for value in vector:
+            if (
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(value)
+            ):
+                raise BaselineError("raw vector storage requires finite numeric dimensions")
+            try:
+                dense_bytes += len(struct.pack("<f", float(value)))
+            except (OverflowError, struct.error) as exc:
+                raise BaselineError("raw vector value cannot be represented as float32") from exc
+    return _complete_storage(
+        "canonical-json-utf8-events-plus-dense-float32-le-v1",
+        {
+            "canonical_events_utf8": _utf8_bytes(state.events),
+            "dense_float32_le": dense_bytes,
+        },
+        {
+            "events": len(state.events),
+            "vectors": len(state.vectors),
+            "vector_dimensions": dimensions,
+        },
+    )
+
+
+def _complete_storage(
+    method: str, components: dict[str, int], counts: dict[str, int]
+) -> dict[str, Any]:
+    return {
+        "complete": True,
+        "measurement_method": method,
+        "retained_bytes": sum(components.values()),
+        "components": components,
+        "counts": counts,
+        "database_native": None,
+    }
+
+
+def _utf8_bytes(value: Any) -> int:
+    return len(canonical_json(value).encode("utf-8"))
 
 
 def events_through(scenario: dict[str, Any], cutoff_event_id: str) -> list[dict[str, Any]]:
@@ -356,7 +429,11 @@ def _select_under_budget(
 
 
 def _flatten_events(scenario: dict[str, Any]) -> list[dict[str, Any]]:
-    return [event for session in scenario["sessions"] for event in session["events"]]
+    return [
+        {"session_id": session["session_id"], **event}
+        for session in scenario["sessions"]
+        for event in session["events"]
+    ]
 
 
 def _event_evidence(event: dict[str, Any]) -> Evidence:

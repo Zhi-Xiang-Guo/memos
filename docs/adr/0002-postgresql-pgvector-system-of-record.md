@@ -60,3 +60,11 @@ migration, dimension constraints, PostgreSQL retrieval path, and compose smoke. 
 remain rebuildable data; no authoritative assertion is rewritten or deleted. Dimensions other
 than 1024 and model-version changes require explicit index migration/reconciliation, and
 representative Recall@K/latency is still `NOT RUN`, so the ADR remains `PROPOSED`.
+
+The current Feature 6 candidate adds an operator-only, content-free storage observation over the
+exact authenticated tenant/user/agent scope. It reports relation row counts and
+`pg_column_size(record)` bytes, while deployment-wide `pg_table_size`/`pg_indexes_size` allocation
+is recorded separately as a before/after delta. This makes storage-growth claims mechanically
+observable without estimating from text length. Local API and artifact-verifier tests pass; remote
+PostgreSQL execution and any representative storage-growth result remain pending, so this does not
+change the ADR status.

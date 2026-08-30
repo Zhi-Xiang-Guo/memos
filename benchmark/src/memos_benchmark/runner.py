@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from memos_benchmark.artifacts import (
+    STORAGE_METHOD_BY_BASELINE,
     ArtifactPackageError,
     build_run_manifest,
     canonical_json,
@@ -33,6 +34,9 @@ from memos_benchmark.baselines import (
     SummaryState,
     VectorState,
     full_history_context,
+    measure_full_history_storage,
+    measure_raw_vector_storage,
+    measure_rolling_summary_storage,
     prepare_raw_vector,
     prepare_rolling_summary,
     raw_vector_context,
@@ -79,6 +83,8 @@ class BenchmarkMemosClient(Protocol):
     ) -> Any: ...
 
     def retrieval_trace(self, query: str, bearer_token: str, **kwargs: Any) -> Any: ...
+
+    def storage_observation(self, bearer_token: str, **kwargs: Any) -> Any: ...
 
 
 @dataclass(frozen=True)
@@ -229,6 +235,7 @@ class UnifiedBenchmarkRunner:
                     "usage_complete": True,
                     "latency_ms": 0.0,
                     "stage": "no_preprocessing",
+                    "storage": measure_full_history_storage(scenario),
                 },
             )
         started = self.monotonic_ns()
@@ -247,6 +254,9 @@ class UnifiedBenchmarkRunner:
                 usage = _sum_usage(row["usage"] for row in state.write_rows)
                 provider_ms = round(sum(row["latency_ms"] for row in state.write_rows), 3)
                 details = {"summary_updates": len(state.write_rows)}
+                storage = measure_rolling_summary_storage(
+                    state, self.manifest["limits"]["summary_recent_turns"]
+                )
             elif baseline == "raw_turn_vector":
                 state = prepare_raw_vector(
                     scenario, self.runtime, self._model_tag("embedding"), repetition
@@ -254,6 +264,7 @@ class UnifiedBenchmarkRunner:
                 usage = _usage_from_dict(state.write_row["usage"])
                 provider_ms = float(state.write_row["latency_ms"])
                 details = {"embedded_events": len(state.events)}
+                storage = measure_raw_vector_storage(state)
             else:
                 raise RunnerError("BASELINE_CONTRACT", "unsupported local baseline")
         except (BaselineError, OllamaError, ValueError) as exc:
@@ -267,6 +278,7 @@ class UnifiedBenchmarkRunner:
                     "usage": ZERO_USAGE.as_dict(),
                     "usage_complete": False,
                     "latency_ms": _elapsed_ms(started, self.monotonic_ns()),
+                    "storage": _incomplete_storage(baseline),
                 },
                 error_class,
             )
@@ -279,6 +291,7 @@ class UnifiedBenchmarkRunner:
                 "usage_complete": True,
                 "latency_ms": _elapsed_ms(started, self.monotonic_ns()),
                 "provider_latency_ms": provider_ms,
+                "storage": storage,
                 **details,
             },
         )
@@ -355,9 +368,13 @@ class UnifiedBenchmarkRunner:
         ingestion_ms = 0.0
         settlement_ms = 0.0
         freshness_samples: list[float] = []
+        storage = _incomplete_storage(baseline)
         started = self.monotonic_ns()
         error_class: str | None = None
         try:
+            storage_before = self.memos.storage_observation(token)
+            if storage_before.scope_row_count != 0 or storage_before.scope_row_bytes != 0:
+                raise RunnerError("SCOPE_CONTAMINATION", "benchmark storage scope is not empty")
             for session in scenario["sessions"]:
                 for event in session["events"]:
                     source_id = f"{event['event_id']}.{suffix}"
@@ -398,6 +415,8 @@ class UnifiedBenchmarkRunner:
                     if receipt.source_event_id in source_map:
                         raise RunnerError("SOURCE_IDENTITY", "source UUID was reused")
                     source_map[receipt.source_event_id] = event["event_id"]
+            storage_after = self.memos.storage_observation(token)
+            storage = _memos_storage(storage_before, storage_after)
         except (MemosClientError, RunnerError, ValueError) as exc:
             error_class = _error_class("WRITE", exc)
             usage_complete = False
@@ -413,6 +432,7 @@ class UnifiedBenchmarkRunner:
             "ingestion_ms": round(ingestion_ms, 3),
             "settlement_wait_ms": round(settlement_ms, 3),
             "freshness_ms": freshness_samples,
+            "storage": storage,
         }
         if error_class:
             write_row["error_class"] = error_class
@@ -901,6 +921,61 @@ def _materialization_usage(status: SourceMaterializationStatus) -> ProviderUsage
         embedding_tokens=status.usage.embedding_tokens,
         model_calls=status.usage.model_calls,
     )
+
+
+def _incomplete_storage(baseline: str) -> dict[str, Any]:
+    return {
+        "complete": False,
+        "measurement_method": STORAGE_METHOD_BY_BASELINE[baseline],
+        "retained_bytes": None,
+        "components": {},
+        "counts": {},
+        "database_native": None,
+    }
+
+
+def _memos_storage(before: Any, after: Any) -> dict[str, Any]:
+    before_database = _database_storage(before)
+    after_database = _database_storage(after)
+    delta = {
+        field: after_database[field] - before_database[field]
+        for field in ("table_bytes", "index_bytes", "total_bytes")
+    }
+    components = {
+        relation.relation: relation.row_bytes
+        for relation in after.relations
+        if relation.row_count > 0 or relation.row_bytes > 0
+    }
+    counts = {
+        relation.relation: relation.row_count
+        for relation in after.relations
+        if relation.row_count > 0 or relation.row_bytes > 0
+    }
+    if (
+        sum(components.values()) != after.scope_row_bytes
+        or sum(counts.values()) != after.scope_row_count
+    ):
+        raise RunnerError("STORAGE_OBSERVATION", "MemOS scoped storage totals are inconsistent")
+    return {
+        "complete": True,
+        "measurement_method": STORAGE_METHOD_BY_BASELINE["memos"],
+        "retained_bytes": after.scope_row_bytes,
+        "components": components,
+        "counts": counts,
+        "database_native": {
+            "before": before_database,
+            "after": after_database,
+            "delta": delta,
+        },
+    }
+
+
+def _database_storage(observation: Any) -> dict[str, int]:
+    return {
+        "table_bytes": observation.database_table_bytes,
+        "index_bytes": observation.database_index_bytes,
+        "total_bytes": observation.database_total_bytes,
+    }
 
 
 def _freshness_ms(status: SourceMaterializationStatus) -> float:

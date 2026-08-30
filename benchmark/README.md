@@ -34,8 +34,10 @@ an explicitly verified local Ollama model path before any external benchmark cam
 
 The run-package verifier rejects dirty-worktree manifests, dataset/model/prompt/config drift,
 missing baseline-question-repetition rows, missing scenario-level preprocessing rows, absent usage
-objects, artifact hash changes, manually edited metrics or usage totals, and failure summaries
-that differ from raw status rows. The runner rejects a dirty worktree and verifies Ollama model
+or storage objects, artifact hash changes, manually edited metrics/usage/storage/report values,
+and failure summaries that differ from raw status rows. `storage.json` discloses each baseline's
+measurement method; `report.md` renders identity, disclaimers, quality, p95 latency with samples,
+usage, storage, and failure/exclusion counts. The runner rejects a dirty worktree and verifies Ollama model
 digests before any execution. Commit `db213df` and
 [GitHub Actions run #35](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33281737584)
 remotely verify its deterministic Python, Java/PostgreSQL, documentation, and compose gates. A

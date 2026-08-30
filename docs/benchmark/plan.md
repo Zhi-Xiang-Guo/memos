@@ -208,9 +208,9 @@ Hosted model aliases that can drift are called out explicitly; a date is not pro
 
 ## Harness artifacts
 
-The v1 immutable layout, verifier, and a locally verified four-baseline runner candidate are
-implemented. The selected model path has not executed and the storage/result-rendering gates are
-still in progress:
+The v1 immutable layout, verifier, and four-baseline runner are published through commit
+`db213df` and GitHub Actions run `#35`. The selected model path has not executed and the
+storage/result-rendering gates are still in progress:
 
 ```text
 benchmark-artifacts/<run-id>/

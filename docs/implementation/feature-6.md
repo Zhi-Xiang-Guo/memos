@@ -17,8 +17,10 @@ commit `9225ed1` and
 [GitHub Actions run #32](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33279370001).
 The equal-budget Java context milestone is `DONE / PUBLISHED` through commit `c5035c3` and
 [GitHub Actions run #34](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33280316053).
-A unified-runner and exact provider-usage candidate is `DONE / LOCAL VERIFIED`; remote PostgreSQL
-and compose verification plus every selected-model result remain pending.
+The unified-runner and exact provider-usage milestone is `DONE / PUBLISHED` through commit
+`db213df` and
+[GitHub Actions run #35](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33281737584).
+Every selected-model result remains `NOT RUN`.
 
 ## Product workload
 
@@ -139,9 +141,9 @@ evidence budget. These are runner primitives and do not constitute an executed b
 Publication verification passed 40 Python tests plus the Java 25, PostgreSQL/compose, Python, and
 documentation gates in GitHub Actions run `#28`.
 
-## Unified runner and exact usage candidate
+## Unified runner and exact usage
 
-The locally verified runner rejects dirty worktrees, verifies dataset/prompt hashes and full
+The published runner rejects dirty worktrees, verifies dataset/prompt hashes and full
 Ollama digests, expands every expected identity, and uses one answer prompt/model/schema across
 full history, rolling summary, raw-turn vector, and MemOS. Each MemOS scenario/repetition receives
 a unique hard scope and short-lived `USER`+`OPERATOR` JWT. The runner ingests every source, waits
@@ -161,10 +163,10 @@ baseline/scenario/repetition, and `costs.json` propagates completeness instead o
 missing usage into zero. Failed write, retrieval, answer, and timing work remains visible through
 content-safe error classes.
 
-Python format/lint and 58 tests, Java 25 compilation, and focused materialization/API tests pass
-locally. The new PostgreSQL cases could not start because this workstation has no Docker runtime;
-remote CI is required before publication. No real Ollama campaign or result row has run, and the
-remaining storage/result-renderer gate keeps `docs/benchmark/results.md` at `NOT RUN`.
+GitHub Actions run `#35` passed Java 25, V008/PostgreSQL integration, Python format/lint and 58
+tests, documentation, and the complete compose smoke. No real Ollama campaign or result row has
+run, and the remaining storage/result-renderer gate keeps `docs/benchmark/results.md` at
+`NOT RUN`.
 
 ## Equal-budget Java context
 

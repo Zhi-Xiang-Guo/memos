@@ -83,7 +83,9 @@ Feature 6 extends this content-safe view with provider usage totals. `usage.comp
 when every provider-bearing job succeeded on its first attempt without replay and every extraction
 or projection usage record is present. Input/output/embedding tokens and call counts contain no
 source content; a false completeness marker is a benchmark accounting failure, not an implicit
-zero.
+zero. Commit `db213df` and
+[GitHub Actions run #35](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33281737584)
+remotely verify the V008 projection-usage migration and PostgreSQL aggregation path.
 
 This endpoint makes asynchronous completion observable. It does not provide synchronous
 read-your-write behavior, promise an SLO, or establish a representative freshness distribution.
@@ -246,7 +248,7 @@ Feature 1 does not implement or claim:
 | Multiple workers | `SKIP LOCKED` claims distinct eligible jobs | `PASS` — 20 jobs, two concurrent claimers |
 | Crash after claim / worker restart | Expired lease is reclaimed with a new token | `PASS` |
 | Stale-worker fencing | Old-token complete/retry operations affect zero rows | `PASS` |
-| Slow handler lease safety | Monitor the full claimed batch; stop before terminal update; stale token cannot renew; handler beyond original lease is not reclaimed | `PASS` — unit tests locally; PostgreSQL timing/fencing case awaits remote CI |
+| Slow handler lease safety | Monitor the full claimed batch; stop before terminal update; stale token cannot renew; handler beyond original lease is not reclaimed | `PASS` — unit and PostgreSQL timing/fencing tests; remote run `#32` |
 | Transient failure | Deterministic exponential backoff and eventual success/dead outcome | `PASS` — unit + PostgreSQL integration |
 | Poison job | Direct bounded-error `DEAD` result | `PASS` |
 | Handler success before completion crash | Reclaim path creates one payload-free logical effect | `PASS` |

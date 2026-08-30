@@ -216,10 +216,13 @@ local Ollama model IDs. Its bounded Ollama client, strict answer/summary schemas
 non-MemOS baseline context builders are published. A bounded authenticated MemOS client now waits
 on observable source-level materialization state instead of sleeping for a guessed duration; that
 path is remotely verified through commit `2bf7689` and GitHub Actions run `#30`. The unified runner
-now has a locally verified four-path execution candidate with exact execution/write coverage,
-short-lived scoped JWTs, source settlement, provenance remapping, explicit failure rows, and an
-independent Java/Python tokenizer assertion. Its PostgreSQL migration and real-model path still
-await remote verification and execution; every baseline score remains `NOT RUN`. Java
+and exact provider-usage path are published through commit `db213df` and
+[GitHub Actions run #35](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33281737584). It has
+exact execution/write coverage, short-lived scoped JWTs, source settlement, provenance remapping,
+explicit failure rows, an independent Java/Python tokenizer assertion, and content-free extraction
+and projection usage accounting. Run #35 remotely verified V008, PostgreSQL integration, Python,
+documentation, and the complete compose smoke. The selected-model path has not executed and every
+baseline score remains `NOT RUN`. Java
 projection/retrieval use the same
 digest-pinned 1024-dimensional Ollama model contract and renew leases across slow provider calls
 and serial claimed batches; commit `9225ed1` and
@@ -229,8 +232,8 @@ need an explicit model-version projection reconciliation path. A published miles
 counts the complete Java-rendered context with the same configured embedding tokenizer as the
 Python baselines and exposes counting calls/tokens for fair cost attribution. Commit `c5035c3`
 and [GitHub Actions run #34](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33280316053)
-remotely verify the Java implementation and regression gates. The runner-side assertion is locally
-covered with deterministic fakes but has not run against the selected Ollama models. See the
+remotely verify the Java implementation and regression gates. The runner-side assertion is
+regression-tested with deterministic fakes but has not run against the selected Ollama models. See the
 [Feature 6 implementation note](docs/implementation/feature-6.md).
 
 ## Design principles

@@ -17,8 +17,8 @@ uv run memos-benchmark-verify \
   --dataset-manifest datasets/memos-assistant-smoke/v1/manifest.json
 ```
 
-With the API, worker, PostgreSQL, and pinned Ollama models already running, the locally verified
-runner candidate is invoked explicitly with observed environment versions:
+With the API, worker, PostgreSQL, and pinned Ollama models already running, the published runner is
+invoked explicitly with observed environment versions:
 
 ```bash
 uv run memos-benchmark-run \
@@ -36,5 +36,8 @@ The run-package verifier rejects dirty-worktree manifests, dataset/model/prompt/
 missing baseline-question-repetition rows, missing scenario-level preprocessing rows, absent usage
 objects, artifact hash changes, manually edited metrics or usage totals, and failure summaries
 that differ from raw status rows. The runner rejects a dirty worktree and verifies Ollama model
-digests before any execution. A runner or verifier command is not a benchmark result; no selected
-model has completed the four-baseline campaign yet.
+digests before any execution. Commit `db213df` and
+[GitHub Actions run #35](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33281737584)
+remotely verify its deterministic Python, Java/PostgreSQL, documentation, and compose gates. A
+runner or verifier command is not a benchmark result; no selected model has completed the
+four-baseline campaign yet.

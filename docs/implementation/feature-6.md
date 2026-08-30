@@ -20,8 +20,9 @@ The equal-budget Java context milestone is `DONE / PUBLISHED` through commit `c5
 The unified-runner and exact provider-usage milestone is `DONE / PUBLISHED` through commit
 `db213df` and
 [GitHub Actions run #35](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33281737584).
-The storage-observation and mechanical-report candidate is implemented and locally verified; its
-PostgreSQL and publication gate remains pending remote CI.
+The storage-observation and mechanical-report milestone is `DONE / PUBLISHED` through commit
+`46ecdd7` and
+[GitHub Actions run #37](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33284193760).
 Every selected-model result remains `NOT RUN`.
 
 ## Product workload
@@ -120,8 +121,8 @@ The deterministic metrics currently include:
 Local-model monetary and energy cost remain `N/E`; the usage report emits `null`, not a fabricated
 zero-dollar claim. The verifier now requires exact scenario-level preprocessing coverage and an
 explicit usage object/completeness marker on every cost-bearing row. Storage readings and final
-Markdown/table generation are now implemented locally but require remote PostgreSQL publication
-verification before a smoke result is eligible.
+Markdown/table generation are published through commit `46ecdd7` and run `#37`; a smoke result
+still requires a clean selected-model execution and verifier-eligible artifact package.
 
 Publication verification for this core passed Java 25, PostgreSQL/compose regression, a clean
 Python 3.14.7 install with 28 tests, and the Markdown gate in run `#26`. These gates establish
@@ -159,9 +160,10 @@ abstentions. It is `N/A` only when neither the frozen gold labels nor the baseli
 an abstention-positive case.
 
 Local Java compilation, five focused API/security tests, Python format, lint, and all 65 Python
-tests pass. The local Windows environment has no Docker, so Testcontainers stopped before the new
-PostgreSQL query executed. Remote PostgreSQL and compose verification remain required. No row in
-these deterministic tests is a benchmark storage or performance result.
+tests pass. The local Windows environment has no Docker, so its Testcontainers run stopped before
+the new PostgreSQL query executed. GitHub Actions run `#37` remotely passed Java 25 clean verify,
+including PostgreSQL integration, Python format/lint and 65 tests, documentation, and the complete
+compose smoke. No row in these deterministic tests is a benchmark storage or performance result.
 
 ## Provider and non-MemOS baseline primitives
 
@@ -204,8 +206,8 @@ missing usage into zero. Failed write, retrieval, answer, and timing work remain
 content-safe error classes.
 
 GitHub Actions run `#35` passed Java 25, V008/PostgreSQL integration, Python format/lint and 58
-tests, documentation, and the complete compose smoke. No real Ollama campaign or result row has
-run. The local storage/result-renderer candidate still requires remote publication, so
+tests, documentation, and the complete compose smoke. The storage/result-renderer extension is
+published through commit `46ecdd7` and run `#37`. No real Ollama campaign or result row has run, so
 `docs/benchmark/results.md` remains `NOT RUN`.
 
 ## Equal-budget Java context

@@ -236,12 +236,14 @@ remotely verify the Java implementation and regression gates. The runner-side as
 regression-tested with deterministic fakes but has not run against the selected Ollama models. See the
 [Feature 6 implementation note](docs/implementation/feature-6.md).
 
-The current Feature 6 candidate also measures each baseline's declared retained representation,
-uses PostgreSQL `pg_column_size(record)` for exact-scope MemOS rows, records database-native
-table/index allocation deltas separately, and mechanically generates `storage.json` and
-`report.md`. The verifier independently regenerates both files and rejects rehashed edits. These
-mechanics pass local API and Python tests; PostgreSQL publication verification and every
-selected-model result remain pending.
+The Feature 6 storage-evidence milestone measures each baseline's declared retained
+representation, uses PostgreSQL `pg_column_size(record)` for exact-scope MemOS rows, records
+database-native table/index allocation deltas separately, and mechanically generates
+`storage.json` and `report.md`. The verifier independently regenerates both files and rejects
+rehashed edits. Commit `46ecdd7` and
+[GitHub Actions run #37](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33284193760)
+remotely verify the Java/PostgreSQL, Python, documentation, and complete compose gates. Every
+selected-model result remains `NOT RUN`.
 
 ## Design principles
 

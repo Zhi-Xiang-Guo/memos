@@ -98,16 +98,18 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   [run #35](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33281737584) passed Java 25,
   V008/PostgreSQL integration, Python format/lint and 58 tests, documentation, and the complete
   compose smoke. No real-model run, score, latency distribution, storage result, or SLO exists yet.
-- Feature 6's storage-observation and mechanical-report candidate is implemented locally. An
-  operator-only endpoint derives the exact tenant/user/agent scope from JWT claims and returns
+- Feature 6's storage-observation and mechanical-report milestone is `DONE / PUBLISHED` through
+  commit `46ecdd7` and
+  [GitHub Actions run #37](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33284193760).
+  An operator-only endpoint derives the exact tenant/user/agent scope from JWT claims and returns
   relation-level PostgreSQL row counts/`pg_column_size(record)` bytes plus separately labeled
   database-native table/index allocation. The three local baselines disclose canonical UTF-8 or
   dense float32 representations. `storage.json` and `report.md` are integrity-covered and
-  independently regenerated; local API tests and all 65 Python tests pass. Abstention F1 now
+  independently regenerated. Run #37 passed Java 25 clean verify with PostgreSQL integration,
+  Python format/lint and 65 tests, documentation, and the complete compose smoke. Abstention F1
   reports `0.0` for missed or spurious positive cases and reserves `N/A` for the structurally
-  inapplicable no-gold/no-prediction case. The local machine has
-  no Docker, so the new PostgreSQL query and full publication gate remain pending remote CI. This
-  is harness evidence, not a storage, quality, latency, or cost result.
+  inapplicable no-gold/no-prediction case. This is harness evidence, not a storage, quality,
+  latency, or cost result.
 
 ## Advanced Memory
 
@@ -162,8 +164,8 @@ Status: `TODO`
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: publish the storage observation/result
-renderer gate, separate the extraction request tag from immutable provenance, add projection
-reconciliation, then execute the predeclared dev smoke against the selected local model snapshots.
+Continue Feature 6 without entering Advanced Memory: separate the extraction request tag from
+immutable provenance, add projection reconciliation, then execute the predeclared dev smoke
+against the selected local model snapshots.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.

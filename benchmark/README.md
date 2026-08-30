@@ -43,3 +43,8 @@ digests before any execution. Commit `db213df` and
 remotely verify its deterministic Python, Java/PostgreSQL, documentation, and compose gates. A
 runner or verifier command is not a benchmark result; no selected model has completed the
 four-baseline campaign yet.
+
+The storage-observation and mechanical-report extension is published through commit `46ecdd7` and
+[GitHub Actions run #37](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33284193760).
+That run remotely verifies the fixed PostgreSQL relation contract, 65 Python tests, documentation,
+and the complete compose smoke; it contains no selected-model benchmark result.

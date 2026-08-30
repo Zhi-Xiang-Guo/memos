@@ -107,10 +107,10 @@ The complete-context tokenizer-parity milestone is published through commit `c50
 Actions run `#34`.
 The unified runner and exact provider-usage milestone is published through commit `db213df` and
 GitHub Actions run `#35`; deterministic four-baseline, V008/PostgreSQL, and compose gates pass.
-The storage-observation and result-renderer candidate is locally implemented: all baselines expose
-their measurement method, MemOS reports scoped PostgreSQL row bytes separately from database
-allocation deltas, and the verifier regenerates `storage.json` and `report.md`. Remote PostgreSQL
-publication verification, real-model parity, and all result packages remain `NOT RUN`.
+The storage-observation and result-renderer milestone is published through commit `46ecdd7` and
+GitHub Actions run `#37`: all baselines expose their measurement method, MemOS reports scoped
+PostgreSQL row bytes separately from database allocation deltas, and the verifier regenerates
+`storage.json` and `report.md`. Real-model parity and all result packages remain `NOT RUN`.
 
 Deliver:
 

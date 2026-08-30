@@ -189,8 +189,8 @@ Feature 2 does not claim or implement:
 | Idempotent replay | Repeated provider/worker delivery produces one logical run and downstream intent | `PASS` |
 | Lease fencing | Stale worker cannot commit an extraction outcome | `PASS` — database-time owner/token fence |
 | Provider transaction boundary | Provider call observes no active database transaction | `PASS` |
-| Extraction identity | Request tag differs from durable version; Ollama verifies full digest/capability; mismatched old job makes zero provider calls | `PASS` — focused adapter/handler tests; PostgreSQL permanent-attempt execution awaits remote CI |
-| Provider failure semantics | Transient failures retry; deterministic provider/config/response failures are permanent and content-safe | `PASS` — focused adapter/handler tests; PostgreSQL integration execution awaits remote CI |
+| Extraction identity | Request tag differs from durable version; Ollama verifies full digest/capability; mismatched old job makes zero provider calls | `PASS` — focused adapter/handler tests plus PostgreSQL and compose execution in commit `4920e55`, GitHub Actions run `#39` |
+| Provider failure semantics | Transient failures retry; deterministic provider/config/response failures are permanent and content-safe | `PASS` — focused adapter/handler tests plus PostgreSQL and compose execution in commit `4920e55`, GitHub Actions run `#39` |
 | Sensitive persistence/logging | Synthetic secret/raw output absent from candidate, quarantine, logs, metrics, and errors | `PASS` — rejected proposal row is `ERASED`; predictions/logs exclude the marker |
 | Prediction completeness | Missing, duplicate, or unexpected cases fail report generation | `PASS` — Python reporter tests |
 | Reporter metrics | Candidate/decision/group/harmful-write metrics mechanically verified | `PASS` — report kind `DETERMINISTIC_FIXTURE`, prediction SHA `828cbe954393f4ba6448ae9a6ae6d75fe2cb638a675d61364be15705823fe9ca`; 17/17 fixture labels conform and harmful writes are 0/5; these are not real-model metrics |

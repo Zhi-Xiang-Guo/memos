@@ -23,6 +23,8 @@ The unified-runner and exact provider-usage milestone is `DONE / PUBLISHED` thro
 The storage-observation and mechanical-report milestone is `DONE / PUBLISHED` through commit
 `46ecdd7` and
 [GitHub Actions run #37](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33284193760).
+Extraction-identity hardening is `DONE / PUBLISHED` through commit `4920e55` and
+[GitHub Actions run #39](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33287028091).
 Every selected-model result remains `NOT RUN`.
 
 ## Product workload
@@ -57,9 +59,9 @@ worker ingestion bind job identity from `MEMOS_EXTRACTION_MODEL_VERSION`; the re
 `MEMOS_MATERIALIZATION_MODEL_VERSION` cannot silently diverge from provider provenance. An active
 old job with a different extraction version fails permanently before a provider call. Focused
 deterministic tests pass locally. A 2026-08-30 local `/api/tags` plus `/api/show` probe observed the
-selected full `qwen3:4b` digest and `completion` capability; PostgreSQL integration and full
-compose verification remain a remote publication gate. This is model-identity implementation
-evidence, not a selected-model run.
+selected full `qwen3:4b` digest and `completion` capability. Commit `4920e55` and GitHub Actions
+run `#39` remotely verify Java 25, PostgreSQL integration, Python, documentation, and the complete
+compose smoke. This is model-identity implementation evidence, not a selected-model run.
 
 ## Smoke dataset
 

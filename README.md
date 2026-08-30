@@ -10,10 +10,13 @@ This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its 
 
 Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–5 are published. Feature 5 authentication, RBAC, governed erasure, content-safe audit, and poisoning-boundary work is remotely verified through commit `ae37714` and [GitHub Actions run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267). There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
 
+Feature 6 extraction-identity hardening is remotely verified through commit `4920e55` and
+[GitHub Actions run #39](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33287028091).
+
 - Research: `DONE`
 - Architecture: `DONE` (ADRs 0001–0004 remain `PROPOSED`; the narrower Feature 5 implementation gate accepted ADR-0005)
 - MVP implementation: `DOING` — Features 0–5 are `DONE / PUBLISHED`; Feature 6's workload and
-  smoke contract are frozen, while harness execution remains `NOT RUN`
+  harness are published through extraction-identity hardening, while execution remains `NOT RUN`
 - Benchmark research/protocol: `DONE`
 - Benchmark execution: `TODO` / `NOT RUN`
 - Initial repository and Features 0–4 publication: `DONE`

@@ -49,3 +49,9 @@ an eligible formal benchmark or a positive MemOS quality result.
 The [two selected root causes](../adr/0007-dev-failure-freeze.md) are temporal range proposals and
 counter identity parity. Original raw files remain byte-identical; the adjusted configuration is
 separately named. Frozen testing and independent reconstruction remain pending.
+
+Second dev run [dev-20260907-c1b5225-02](runs/dev-20260907-c1b5225-02/report.md) completed all 12 rows
+with usage/storage complete. MemOS correctly answered 1/3 questions; full history, rolling summary
+and raw-turn vector each answered 2/3. MemOS abstained on every question without retrieved evidence.
+This is a three-question diagnostic result, not a general comparison. Configuration is now frozen
+for test in [the freeze record](../evidence/frozen-test-2026-09-07.json).

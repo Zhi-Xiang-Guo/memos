@@ -1,0 +1,36 @@
+{
+  "kind": "pre-test-freeze",
+  "frozen_at": "2026-09-07T04:52:36.621390+00:00",
+  "execution_commit": "c1b5225001e8ed938a4d5dbdff68d9a564fb655b",
+  "dataset_manifest": "benchmark/datasets/memos-assistant-smoke/v1/manifest-temporal-v2.json",
+  "files": {
+    "benchmark/datasets/memos-assistant-smoke/v1/manifest-temporal-v2.json": "a22061e9eaec061caac53dac2799f8fe7674cd8e7665d01f3f9c8f006c884769",
+    "benchmark/datasets/memos-assistant-smoke/v1/cases.json": "fde4a1a8a8d9f5424e2394a12d12f8fada89c9fbf53f5b9fd5f12c661efd8fbb",
+    "modules/adapters/src/main/resources/providers/openai-compatible/candidate-extraction-temporal-v2.txt": "8ecc975de283bbb4fa16cbb9e021805abc5507d7b4e4114a4fabc577c93dc596",
+    "benchmark/uv.lock": "986ff594089079bd0a10caca0f088e65ad0af7e6457a4052871401b5290fcb52"
+  },
+  "campaign_kind": "FROZEN_TEST",
+  "split": "test",
+  "repetitions": 3,
+  "expected_answer_rows": 120,
+  "run_id": "test-20260907-c1b5225-01",
+  "java_mode": "ollama-temporal-v2",
+  "repairs_selected": [
+    "token-counter-kind-parity",
+    "unsupported-and-non-exclusive-temporal-ranges"
+  ],
+  "remaining_dev_failure": "All three MemOS questions abstained with no provided evidence; two were incorrect. No third repair.",
+  "runtime": {
+    "api": "127.0.0.1:8080",
+    "worker": "127.0.0.1:8081",
+    "ollama": "127.0.0.1:11434",
+    "ollama_num_parallel": 1,
+    "ollama_max_loaded_models": 1,
+    "java": "25.0.4.1",
+    "postgres": "18.6",
+    "pgvector": "0.8.6",
+    "ollama_version": "0.33.3",
+    "machine": "Apple M4 16 GiB, macOS 26.6.2, Podman 3072 MiB / 2 CPU"
+  },
+  "policy": "No held-out tuning, retries only under predeclared runner/worker policy; all failures retained. No score or deployment claim follows from package integrity alone."
+}

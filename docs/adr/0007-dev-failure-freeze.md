@@ -49,3 +49,12 @@ campaign. Do not make a third root-cause repair or tune on held-out answers. Unk
 missed facts, abstention mistakes, incomplete usage after failed settlement and other quality
 errors remain reportable limitations. Verifier acceptance alone does not imply a usable consumer,
 positive results, cost completeness or satisfaction of the D21 KEEP gate.
+
+## Freeze declaration
+
+Second dev package `dev-20260907-c1b5225-02` has all 12 executions SUCCESS and complete usage/storage.
+MemOS answered 1/3 correctly (all three responses abstained without evidence); each simple baseline
+answered 2/3 correctly. The remaining missed-evidence problem is recorded, not repaired in this
+two-root-cause budget. Freeze execution code c1b5225 and temporal-v2 for the one planned test run.
+The [pre-test freeze record](../evidence/frozen-test-2026-09-07.json) fixes hashes, runtime and 120 rows.
+This small development result is negative evidence, not an improvement claim.

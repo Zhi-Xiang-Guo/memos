@@ -47,3 +47,28 @@ The subsequent adjusted Codex-mode request passed extraction, candidate material
 projection, and returned one scoped memory. Its separate artifact is `logs/codex-end-to-end.json`;
 it does not overwrite the retained failed package. On switching to Ollama, the documented explicit
 maintenance transaction advanced the database to generation 2 and queued Qwen projection rebuilds.
+
+A clean detached checkout at c1b5225 compiled and passed all Java tests in 26.922 seconds, then
+started both real-provider processes from its own rebuilt JARs. PostgreSQL and model caches were
+reused; this is a clean-code checkout test, not a second newly provisioned machine. During the
+frozen run the host reported 17,323.88 MiB swap in use (global observation, not attributable solely
+to MemOS). Existing desktop workloads were not terminated. Latencies describe this local run
+only and cannot establish representative SLOs or a controlled hardware performance comparison.
+
+## Fresh GitHub clone and final manual runtime
+
+An actual SSH clone of feat_evidence-gate from GitHub at d82376e was created at
+`/Users/guozhixiang/Agent/memos-fresh-clone-20260907`. The clone was clean, passed preflight including
+the frozen model digests, then passed Maven Wrapper clean verify (193 tests, no failures/errors/
+skips, 26.053 seconds); the original workspace retains `logs/fresh-clone-verify.log`. Installed
+prerequisites, Maven cache, PostgreSQL and model files were reused, so this is not independent
+provisioning on a second machine. Testcontainers exercised fresh database migrations.
+
+After the frozen artifact was sealed and reconstructed, both Qwen Java processes were stopped.
+An explicit maintenance transaction selected deterministic-hashing-1024-v1 as generation 3 for
+the separate Codex development mode. API and worker now run from the actual clone's rebuilt JARs
+on loopback 8080/8081, both readiness UP. Existing Codex proxy remains at 31415; its token was not
+printed. Ollama's task-owned manual process was stopped. brew services still reports ollama and
+podman none. The VM and PostgreSQL remain manually running; no boot/login startup was added.
+This mode uses real Codex extraction with deterministic development embeddings and is not the
+configuration that generated the sealed Qwen benchmark. Original authority and artifacts remain.

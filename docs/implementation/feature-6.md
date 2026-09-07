@@ -1,3 +1,8 @@
+> Current checkpoint (2026-09-07): the first frozen synthetic four-baseline test is verified and
+> reconstructed, with a negative result. Historical NOT RUN and missing-reconciliation statements
+> below describe earlier implementation milestones. See [current results](../benchmark/results.md)
+> and [ADR 0006](../adr/0006-projection-identity-reconciliation.md).
+
 # Feature 6 - reproducible evaluation and evidence package
 
 Status: `DOING`. The initial product workload and smoke contract were published through commit
@@ -326,3 +331,9 @@ projection identity reconciliation. [ADR-0006](../adr/0006-projection-identity-r
 describes the maintenance boundary and generation fence. [The runbook](../local-runbook.md)
 provides Java 25, Podman/Docker, manual Ollama, optional existing Codex-proxy development mode,
 and clean-checkout benchmark commands. This milestone does not establish quality superiority.
+
+The September 7 extension now includes two dev packages and one frozen test at c1b5225. All 120
+formal answer executions succeeded, but MemOS answered 0/30 correctly against 21/30 for each
+simple baseline. Native identity provenance, per-row usage/storage, original failures and
+byte-identical report reconstruction are published. This closes a bounded execution gap while
+leaving utility, representative evaluation, consumer integration and production claims open.

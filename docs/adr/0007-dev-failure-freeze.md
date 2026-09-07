@@ -1,7 +1,7 @@
 # ADR 0007: Two-root-cause dev repair and test freeze
 
 - Date: 2026-09-07
-- Status: Accepted for the evidence gate; frozen test pending
+- Status: Accepted; frozen test completed with a negative result
 - Boundary: Feature 6 evaluation only; no Advanced Memory or new infrastructure
 
 ## Observed failures
@@ -58,3 +58,11 @@ answered 2/3 correctly. The remaining missed-evidence problem is recorded, not r
 two-root-cause budget. Freeze execution code c1b5225 and temporal-v2 for the one planned test run.
 The [pre-test freeze record](../evidence/frozen-test-2026-09-07.json) fixes hashes, runtime and 120 rows.
 This small development result is negative evidence, not an improvement claim.
+
+## Frozen outcome
+
+[test-20260907-c1b5225-01](../benchmark/runs/test-20260907-c1b5225-01/report.md) completed all 120
+executions with complete usage/storage and a byte-identical offline report rebuild. MemOS answered
+0/30 correctly versus 21/30 for each simple baseline. No third repair was made. The retained scorer's
+`recall_at_k` field is an any-hit rate; [the interpretation](../evidence/reproduction.md) discloses this
+without changing frozen code or raw reports. Keep negative evidence and the remaining consumer gate.

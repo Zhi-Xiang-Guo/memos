@@ -126,12 +126,12 @@ Status: `TODO`
 
 ## Benchmark
 
-Status: `DOING` for Feature 6 harness; research/protocol and smoke contract `DONE`; execution `NOT RUN`
+Status: `DOING` — two real-model dev runs and one frozen test verified; report reconstructed. The milestone history above records status at each earlier commit.
 
 - LoCoMo, LongMemEval, and BEAM research plus the experiment protocol are complete.
 - `memos-assistant-smoke-v1` freezes the first license-compatible local evaluation contract; its
   verifier rejects case, prompt, license, notice, split, count, family, or evidence-cutoff drift.
-- No experiment has run; [results](benchmark/results.md) intentionally contain no scores.
+- Two dev runs are preserved; [results](benchmark/results.md) reports the negative second-dev result. The predeclared frozen test ran from clean code c1b5225, with MemOS 0/30 and each simple baseline 21/30.
 
 ## Optimization
 
@@ -145,7 +145,7 @@ Status: `TODO`
 
 ## Interview
 
-Status: `TODO`
+Status: `DOING` — module guide and research-based question bank published in Feishu; live answers and ownership verification pending
 
 ## Phase-1 exit criteria
 
@@ -162,17 +162,17 @@ Status: `TODO`
 | Topic | Current decision | Fact grade | Evidence / follow-up |
 |---|---|---:|---|
 | Phase boundary | MVP Features 0–6 are authorized under one continuous goal | `CONFIRMED` | Active project goal |
-| System of record | PostgreSQL; vector/FTS indexes are projections | `HYPOTHESIS` | Validate in MVP benchmark |
-| Topology | Modular monolith plus asynchronous worker/outbox | `HYPOTHESIS` | Failure-recovery spike in MVP |
-| Retrieval | Hybrid candidate generation and measured fusion | `HYPOTHESIS` | Tune only on benchmark dev split |
+| System of record | PostgreSQL authority; vector/FTS are rebuildable projections | `CONFIRMED` mechanism | Feature 3–4 implementation and ADR 0006 database tests |
+| Topology | Modular monolith plus asynchronous worker/outbox | `CONFIRMED` mechanism | PostgreSQL fault/concurrency and process smoke checks |
+| Retrieval | Hybrid candidates and RRF implemented; benefit unproven | `CONFIRMED` mechanism | Frozen negative result; no isolated hybrid/rerank ablation |
 | Graph database | Not in MVP | `HYPOTHESIS` | Add only if entity/multi-hop ablation proves value |
-| Benchmark scores | None available | `CONFIRMED` | No run has been executed |
+| Benchmark scores | Real synthetic dev results available; no improvement established | `CONFIRMED` | Immutable packages in [results](benchmark/results.md) |
 | Initial workload | Bilingual personal/project assistant | `CONFIRMED` | Frozen Feature 6 v1 smoke manifest and cases |
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: execute the predeclared dev smoke against
-the selected local model snapshots, then analyze dev failures before freezing test.
+Continue Feature 6 without entering Advanced Memory: resolve the consumer/demo and personal-understanding
+gates using the preserved negative test result; do not add more features or tune on held-out labels.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.
 
@@ -180,7 +180,7 @@ reintroduced.
 
 The user authorized [D1–D21 evidence closure](evidence/21-day-gate.md), ending September 27,
 2026, and explicitly prohibited Advanced Memory, new graph infrastructure and unmeasured
-optimization. Local environment remediation and projection reconciliation are in progress.
+optimization. Local environment remediation and projection reconciliation have passed local verification.
 The [runbook](local-runbook.md), [environment observation](evidence/local-environment-2026-09-07.md),
 and [module/interview guide](interview/memos-grill.md) separate implementation from model results.
 The interview reference was written and read back through Feishu MCP as a real child Wiki node
@@ -201,11 +201,33 @@ preflight. An actual Codex-mode startup exposed a missing provider identity mapp
 by a regression test. After a retained UNKNOWN_FIELD failure and explicit instance/schema prompt
 clarification, a separate synthetic preference passed all three jobs and scoped retrieval through
 the real Codex proxy. The database was explicitly reconciled from fake embeddings to the frozen
-Qwen embedding digest (generation 2) without deleting authority. Formal four-baseline scores
-remain NOT RUN until a verified artifact exists. Initial environment failures remain in local logs.
+Qwen embedding digest (generation 2) without deleting authority. At this earlier checkpoint formal scores were still NOT RUN; the completed frozen result below
+supersedes that status. Initial environment failures remain in local logs.
 
 First real dev smoke is now complete and preserved under docs/benchmark/runs: 12 expected rows,
 9 SUCCESS and 3 FAILED, verifier accepted, usage/storage incomplete. Two observed root causes only
-are addressed under ADR 0007; formal testing remains NOT RUN. The environment/reconciliation
+are addressed under ADR 0007; formal testing was still NOT RUN at that first-dev checkpoint. The environment/reconciliation
 implementation was pushed as d0869fb on feat_evidence-gate. HTTPS credentials were unavailable;
 the existing authenticated SSH identity was used through a repository-local push URL.
+
+Second dev and its pre-test freeze were pushed in c1b5225/d82376e. The frozen execution uses a clean
+checkout at c1b5225; no third repair is allowed. GitHub Actions
+[run 34084744451](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/34084744451) passed all four
+jobs (Java, Python, docs and complete compose smoke) for the freeze-record commit. Current Python
+coverage is 67 passing tests. Separate-process dev report reconstruction matched the original hash;
+see [reproduction](evidence/reproduction.md) and [three real failure cases](evidence/failure-cases.md).
+
+## Frozen-test checkpoint — September 7
+
+The first formal synthetic test is RUN / VERIFIED / RECONSTRUCTED, not NOT RUN. All 120 answers
+(10 unique questions × 3 repetitions × 4 baselines) and 96 preprocessing rows are present; usage
+and storage are complete. MemOS scored 0/30; each simple baseline scored 21/30. The package and
+byte-identical offline reconstruction share hash
+`7a9d67314fa53365e0ff5a5652219c3385509464da8482316f5e149314c2104f`.
+See [results](benchmark/results.md) for exact scoring, no-evidence behavior and all limits.
+The old NOT RUN statements in the chronological milestone history describe their original commits.
+
+No positive quality, speed, cost, production security or scale claim is supported. OQ-012's model
+identity, maintenance reconciliation and bounded execution/reconstruction tasks have local evidence;
+representative workload affordability and production lifecycle remain open. The overall D21 gate
+is still CONDITIONAL because no real consumer/CodeFlow integration or personal mastery was proven.

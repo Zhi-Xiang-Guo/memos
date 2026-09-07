@@ -110,6 +110,19 @@ is read at runtime from `~/.codex/codex-api-proxy-token`; never echo or commit i
 ./scripts/run-local.sh codex
 ```
 
+If this database has already run native Qwen embeddings, the Codex mode's deterministic development
+embeddings have a different identity. After preserving the completed benchmark package and stopping
+both Java processes, use the same explicit maintenance transaction with:
+
+```sql
+SELECT memos.reconcile_projection('deterministic-hashing-1024-v1', 1024, 'projection-v1', true);
+```
+
+Wrap it in `BEGIN`/`COMMIT` and set the lock timeout as in the model-change example. This creates
+another generation; it does not alter original run artifacts or delete authority. Do not perform
+this switch during a frozen campaign. The Codex development mode does not require Ollama, so its
+manual terminal can be stopped after a completed campaign when no other local client needs it.
+
 The `codex-proxy` adapter mode includes the schema in its system message because the existing
 proxy does not forward `response_format`. It requires the distinct prompt identity
 `candidate-extraction-v1-inline-schema`, keeps Java strict decoding, and leaves the frozen native

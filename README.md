@@ -4,7 +4,7 @@
 
 MemOS studies a deceptively hard production question: **how should a long-running AI agent decide what to remember, preserve the history of changing facts, retrieve only useful evidence, forget safely, and prove that the result is better than simpler baselines?**
 
-This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its target is a versioned, temporal, observable, privacy-aware memory subsystem whose write path, read path, consistency model, failure recovery, and benchmark results can be defended in a backend-system-design interview.
+The project models long-term memory as a versioned, temporal, observable, privacy-aware memory subsystem whose write path, read path, consistency model, failure recovery, and benchmark results can be defended in a backend-system-design interview.
 
 ## Current status
 
@@ -13,7 +13,7 @@ Use the [fresh-clone runbook](docs/local-runbook.md) and [module/interview guide
 No Advanced Memory work or performance claim is authorized before that gate closes.
 
 
-Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–5 are published. Feature 5 authentication, RBAC, governed erasure, content-safe audit, and poisoning-boundary work is remotely verified through commit `ae37714` and [GitHub Actions run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267). There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
+Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–5 are published. Feature 5 authentication, RBAC, governed erasure, content-safe audit, and poisoning-boundary work is remotely verified through commit `ae37714` and [GitHub Actions run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267). The first **real-model frozen synthetic test is verified and reconstructed**: MemOS answered 0/30 correctly; full history, rolling summary and raw-turn vector each answered 21/30. These are 10 unique questions repeated three times, with fixed models and budgets. This negative result establishes no quality or performance advantage. See [the complete result and limits](docs/benchmark/results.md).
 
 Feature 6 extraction-identity hardening is remotely verified through commit `4920e55` and
 [GitHub Actions run #39](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33287028091).
@@ -21,9 +21,9 @@ Feature 6 extraction-identity hardening is remotely verified through commit `492
 - Research: `DONE`
 - Architecture: `DONE` (ADRs 0001–0004 remain `PROPOSED`; the narrower Feature 5 implementation gate accepted ADR-0005)
 - MVP implementation: `DOING` — Features 0–5 are `DONE / PUBLISHED`; Feature 6's workload and
-  harness are published through extraction-identity hardening, while execution remains `NOT RUN`
+  harness, projection reconciliation and first frozen synthetic test are published on `feat_evidence-gate`
 - Benchmark research/protocol: `DONE`
-- Benchmark execution: `TODO` / `NOT RUN`
+- Benchmark execution: `FROZEN TEST VERIFIED` / negative result; consumer and personal-understanding gates remain open
 - Initial repository and Features 0–4 publication: `DONE`
 
 See [progress](docs/progress.md), [open questions](docs/open-questions.md), and [benchmark results](docs/benchmark/results.md).
@@ -32,7 +32,7 @@ See [progress](docs/progress.md), [open questions](docs/open-questions.md), and 
 
 Long-running agents turn small memory mistakes into recurring product failures: noise becomes durable state, stale facts outrank corrections, sensitive content survives in side stores, and one poisoned instruction can influence later sessions. A credible memory layer therefore needs lifecycle semantics, failure recovery, governance, and measurement—not only a convenient retrieval API.
 
-MemOS is also intentionally an evidence-driven backend project. Every architectural claim must be traceable to primary research, a pinned source path, or a future repository-local experiment; performance and quality numbers remain absent until a reproducible benchmark generates them.
+MemOS is also intentionally an evidence-driven backend project. Every architectural claim must be traceable to primary research, a pinned source path, or a future repository-local experiment; quality claims are bounded by the published reproducible benchmark and its negative result.
 
 ## Problem
 
@@ -229,19 +229,17 @@ and exact provider-usage path are published through commit `db213df` and
 exact execution/write coverage, short-lived scoped JWTs, source settlement, provenance remapping,
 explicit failure rows, an independent Java/Python tokenizer assertion, and content-free extraction
 and projection usage accounting. Run #35 remotely verified V008, PostgreSQL integration, Python,
-documentation, and the complete compose smoke. The selected-model path has not executed and every
-baseline score remains `NOT RUN`. Java
+documentation, and the complete compose smoke. The selected-model path now has two dev packages and one frozen test; see [results](docs/benchmark/results.md). Java
 projection/retrieval use the same
 digest-pinned 1024-dimensional Ollama model contract and renew leases across slow provider calls
 and serial claimed batches; commit `9225ed1` and
 [GitHub Actions run #32](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33279370001)
-remotely verify the PostgreSQL migration, renewal, and compose paths. Populated deployments still
-need an explicit model-version projection reconciliation path. A published milestone now
+remotely verify the PostgreSQL migration, renewal, and compose paths. Populated deployments use the explicit maintenance reconciliation in [ADR 0006](docs/adr/0006-projection-identity-reconciliation.md). A published milestone now
 counts the complete Java-rendered context with the same configured embedding tokenizer as the
 Python baselines and exposes counting calls/tokens for fair cost attribution. Commit `c5035c3`
 and [GitHub Actions run #34](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33280316053)
 remotely verify the Java implementation and regression gates. The runner-side assertion is
-regression-tested with deterministic fakes but has not run against the selected Ollama models. See the
+regression-tested and was exercised against the selected Ollama models; its first dev mismatch and repair are retained. See the
 [Feature 6 implementation note](docs/implementation/feature-6.md).
 
 The Feature 6 storage-evidence milestone measures each baseline's declared retained
@@ -250,8 +248,7 @@ database-native table/index allocation deltas separately, and mechanically gener
 `storage.json` and `report.md`. The verifier independently regenerates both files and rejects
 rehashed edits. Commit `46ecdd7` and
 [GitHub Actions run #37](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33284193760)
-remotely verify the Java/PostgreSQL, Python, documentation, and complete compose gates. Every
-selected-model result remains `NOT RUN`.
+remotely verify the Java/PostgreSQL, Python, documentation, and complete compose gates. The original milestone was harness-only; the September 7 [frozen result](docs/benchmark/results.md) now contains actual observations.
 
 ## Design principles
 

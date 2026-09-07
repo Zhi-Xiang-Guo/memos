@@ -46,7 +46,7 @@ not manual report editing, decides artifact integrity.
 
 ## Remaining NOT RUN / NOT ESTABLISHED
 
-Four-baseline model quality; hybrid/rerank ablations; write precision/recall and conflict accuracy;
+Representative model quality beyond the completed synthetic test; hybrid/rerank ablations; write precision/recall and conflict accuracy;
 representative latency/freshness distributions; cost/storage superiority; fixed-model injection
 resistance; production IdP/key/backup/WAL/provider erasure contracts; production consumer scale.
 A small synthetic real-model run cannot close representative workload or production SLO claims.
@@ -62,3 +62,13 @@ compatibility service, not a digest-pinned replacement for the declared Ollama b
 
 Progress and final validation are recorded in [progress](../progress.md),
 [local runbook](../local-runbook.md), and [benchmark results](../benchmark/results.md).
+
+## D1 accelerated evidence checkpoint
+
+Environment and reconciliation validation, two dev runs, exactly two bounded repairs, the frozen
+test and offline report reconstruction are complete in the declared order. The [test result](../benchmark/results.md)
+is negative: MemOS 0/30, each simple baseline 21/30, with all 120 executions and complete accounting.
+The run gap has closed; improvement has not been established. Three [failure cases](failure-cases.md)
+and the [interview guide](../interview/memos-grill.md) are published. No real consumer/integration,
+recorded five-minute video or personal core-chain explanation has been verified. The deadline and
+CONDITIONAL status remain unchanged. These remaining gates cannot be waived by the verifier.

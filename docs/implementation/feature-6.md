@@ -337,3 +337,23 @@ formal answer executions succeeded, but MemOS answered 0/30 correctly against 21
 simple baseline. Native identity provenance, per-row usage/storage, original failures and
 byte-identical report reconstruction are published. This closes a bounded execution gap while
 leaving utility, representative evaluation, consumer integration and production claims open.
+
+## Post-gate remediation and Waku consumer
+
+After preserving the frozen negative result, a separately versioned policy-v3 development path
+fixed two implementation defects found in source-level evidence: JWT roles were not persisted as
+source write capabilities, and the extraction prompt did not define ordinary durable facts versus
+procedural, sensitive or conversational noise precisely enough for the selected 4b model. A new
+migration persists the bounded capability enum; explicit roles map to project/procedural grants,
+while `OPERATOR` remains read/trace authority and grants no write scope by itself.
+
+The post-gate dev smoke at `0ce3ac0` completed all 12 executions, with complete usage/storage and
+verifier hash `00e47ad341e5a3b25aff6b41c8630a5ad94f568ff3b7f6420df99db0df7da714`.
+MemOS answered all three dev questions, but this repaired three-question split is not held-out.
+One stale theme event still entered selected context. The frozen temporal-v2 result remains the
+only eligible held-out claim and remains negative.
+
+[Waku Agent consumer evidence](../evidence/waku-integration-2026-09-07.md) records the real client
+boundary. Its published adapter passed all 12 live `FactStore` conformance cases and Waku's full
+619-test deterministic gate. This closes the missing-consumer mechanism gate without establishing
+production use, scale or quality superiority.

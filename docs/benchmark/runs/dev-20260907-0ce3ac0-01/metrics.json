@@ -1,0 +1,338 @@
+{
+  "baselines": {
+    "full_history": {
+      "abstention": {
+        "f1": 0.0,
+        "false_negative": 1,
+        "false_positive": 0,
+        "precision": null,
+        "recall": 0.0,
+        "true_negative": 2,
+        "true_positive": 0
+      },
+      "answer": {
+        "accuracy": 0.666667,
+        "citation_complete_rate": 0.333333,
+        "citation_valid_rate": 0.333333,
+        "correct": 2,
+        "forbidden_leakage_count": 0,
+        "forbidden_leakage_rate": 0.0
+      },
+      "answer_by_track": {
+        "abstention": {
+          "accuracy": 0.0,
+          "correct": 0,
+          "expected": 1
+        },
+        "multi_session": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "noise": {
+          "accuracy": 0.0,
+          "correct": 0,
+          "expected": 1
+        },
+        "preference": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "project_fact": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "temporal": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "update": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        }
+      },
+      "context": {
+        "context_precision": 0.666667,
+        "eligible": 2,
+        "forbidden_context_exposure_rate": 1.0,
+        "forbidden_context_labeled": 1,
+        "selected_complete_rate": 1.0
+      },
+      "expected": 3,
+      "retrieval": {
+        "complete_recall_at_k": null,
+        "eligible": 0,
+        "mrr": null,
+        "recall_at_k": null,
+        "selected_complete_rate": null
+      },
+      "status": {
+        "EXCLUDED": 0,
+        "FAILED": 0,
+        "SUCCESS": 3
+      },
+      "total_latency_ms": {
+        "p50": 2326.497,
+        "p95": 3191.379,
+        "p99": 3191.379,
+        "samples": 3
+      }
+    },
+    "memos": {
+      "abstention": {
+        "f1": 1.0,
+        "false_negative": 0,
+        "false_positive": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "true_negative": 2,
+        "true_positive": 1
+      },
+      "answer": {
+        "accuracy": 1.0,
+        "citation_complete_rate": 1.0,
+        "citation_valid_rate": 1.0,
+        "correct": 3,
+        "forbidden_leakage_count": 0,
+        "forbidden_leakage_rate": 0.0
+      },
+      "answer_by_track": {
+        "abstention": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "multi_session": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "noise": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "preference": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "project_fact": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "temporal": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "update": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        }
+      },
+      "context": {
+        "context_precision": 0.666667,
+        "eligible": 2,
+        "forbidden_context_exposure_rate": 1.0,
+        "forbidden_context_labeled": 1,
+        "selected_complete_rate": 1.0
+      },
+      "expected": 3,
+      "retrieval": {
+        "complete_recall_at_k": 1.0,
+        "eligible": 2,
+        "mrr": 0.75,
+        "recall_at_k": 1.0,
+        "selected_complete_rate": 1.0
+      },
+      "status": {
+        "EXCLUDED": 0,
+        "FAILED": 0,
+        "SUCCESS": 3
+      },
+      "total_latency_ms": {
+        "p50": 4423.028,
+        "p95": 4650.747,
+        "p99": 4650.747,
+        "samples": 3
+      }
+    },
+    "raw_turn_vector": {
+      "abstention": {
+        "f1": 0.0,
+        "false_negative": 1,
+        "false_positive": 0,
+        "precision": null,
+        "recall": 0.0,
+        "true_negative": 2,
+        "true_positive": 0
+      },
+      "answer": {
+        "accuracy": 0.666667,
+        "citation_complete_rate": 0.333333,
+        "citation_valid_rate": 0.333333,
+        "correct": 2,
+        "forbidden_leakage_count": 0,
+        "forbidden_leakage_rate": 0.0
+      },
+      "answer_by_track": {
+        "abstention": {
+          "accuracy": 0.0,
+          "correct": 0,
+          "expected": 1
+        },
+        "multi_session": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "noise": {
+          "accuracy": 0.0,
+          "correct": 0,
+          "expected": 1
+        },
+        "preference": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "project_fact": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "temporal": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "update": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        }
+      },
+      "context": {
+        "context_precision": 0.666667,
+        "eligible": 2,
+        "forbidden_context_exposure_rate": 1.0,
+        "forbidden_context_labeled": 1,
+        "selected_complete_rate": 1.0
+      },
+      "expected": 3,
+      "retrieval": {
+        "complete_recall_at_k": 1.0,
+        "eligible": 2,
+        "mrr": 0.75,
+        "recall_at_k": 1.0,
+        "selected_complete_rate": 1.0
+      },
+      "status": {
+        "EXCLUDED": 0,
+        "FAILED": 0,
+        "SUCCESS": 3
+      },
+      "total_latency_ms": {
+        "p50": 1726.622,
+        "p95": 2945.382,
+        "p99": 2945.382,
+        "samples": 3
+      }
+    },
+    "rolling_summary": {
+      "abstention": {
+        "f1": 0.0,
+        "false_negative": 1,
+        "false_positive": 0,
+        "precision": null,
+        "recall": 0.0,
+        "true_negative": 2,
+        "true_positive": 0
+      },
+      "answer": {
+        "accuracy": 0.666667,
+        "citation_complete_rate": 0.333333,
+        "citation_valid_rate": 0.333333,
+        "correct": 2,
+        "forbidden_leakage_count": 0,
+        "forbidden_leakage_rate": 0.0
+      },
+      "answer_by_track": {
+        "abstention": {
+          "accuracy": 0.0,
+          "correct": 0,
+          "expected": 1
+        },
+        "multi_session": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "noise": {
+          "accuracy": 0.0,
+          "correct": 0,
+          "expected": 1
+        },
+        "preference": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "project_fact": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "temporal": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        },
+        "update": {
+          "accuracy": 1.0,
+          "correct": 1,
+          "expected": 1
+        }
+      },
+      "context": {
+        "context_precision": 0.666667,
+        "eligible": 2,
+        "forbidden_context_exposure_rate": 1.0,
+        "forbidden_context_labeled": 1,
+        "selected_complete_rate": 1.0
+      },
+      "expected": 3,
+      "retrieval": {
+        "complete_recall_at_k": null,
+        "eligible": 0,
+        "mrr": null,
+        "recall_at_k": null,
+        "selected_complete_rate": null
+      },
+      "status": {
+        "EXCLUDED": 0,
+        "FAILED": 0,
+        "SUCCESS": 3
+      },
+      "total_latency_ms": {
+        "p50": 3559.56,
+        "p95": 3922.792,
+        "p99": 3922.792,
+        "samples": 3
+      }
+    }
+  },
+  "dataset_version": "memos-assistant-smoke-v1",
+  "disclaimer": "SMOKE validates harness mechanics only; it is not a formal quality or production performance claim.",
+  "repetitions": 1,
+  "report_kind": "SMOKE",
+  "schema_version": "memos-benchmark-metrics.v1",
+  "split": "dev"
+}

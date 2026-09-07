@@ -7,9 +7,10 @@ test, interview material, and publication into the existing Agent Wiki.
 
 ## Decision contract
 
-Current decision: **CONDITIONAL / gate open**. No KEEP claim until the evidence below exists.
-Formal four-baseline results are still **NOT RUN** at activation. Fixture tests are mechanism
-evidence. Negative results are acceptable; missing results are not a quality improvement.
+Current technical decision: **KEEP WITH WEAKER CLAIMS**. The formal four-baseline result is
+verified and negative, fresh-clone operation is documented, three failures are traceable, and a
+real Waku Agent consumer is pushed. Personal interview mastery and a recorded demo remain human
+tasks; generated prose cannot prove them. Fixture tests remain mechanism evidence.
 
 - KEEP: verifier-accepted reproducible formal four-baseline run; a real consumer or CodeFlow
   integration demo; three trace/source-linked failure cases; fresh-clone reproducibility.
@@ -68,7 +69,11 @@ Progress and final validation are recorded in [progress](../progress.md),
 Environment and reconciliation validation, two dev runs, exactly two bounded repairs, the frozen
 test and offline report reconstruction are complete in the declared order. The [test result](../benchmark/results.md)
 is negative: MemOS 0/30, each simple baseline 21/30, with all 120 executions and complete accounting.
-The run gap has closed; improvement has not been established. Three [failure cases](failure-cases.md)
-and the [interview guide](../interview/memos-grill.md) are published. No real consumer/integration,
-recorded five-minute video or personal core-chain explanation has been verified. The deadline and
-CONDITIONAL status remain unchanged. These remaining gates cannot be waived by the verifier.
+The run gap has closed; frozen improvement has not been established. Three
+[failure cases](failure-cases.md) and the [interview guide](../interview/memos-grill.md) are
+published. Waku Agent commit
+[`b75adf2`](https://github.com/Zhi-Xiang-Guo/waku-agent/commit/b75adf2) is the real consumer: its
+live MemOS backend passed all 12 `FactStore` conformance cases and the full Waku deterministic gate
+passed 619 tests. The policy-v3 post-gate dev smoke is separately published and verifier accepted;
+because it is a repaired development set, it cannot replace the negative held-out result. A
+recorded five-minute video and personal core-chain explanation remain unverified human evidence.

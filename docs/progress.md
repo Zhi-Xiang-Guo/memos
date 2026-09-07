@@ -22,7 +22,7 @@ Status: `DONE` for Phase 1 design; ADRs 0001–0004 remain `PROPOSED`, ADR-0005 
 
 ## MVP
 
-Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in progress
+Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 has a verified negative frozen result and a runnable consumer
 
 - Phase 1 was reviewed and the active project goal authorizes Features 0–6.
 - Feature 0 engineering foundation is `DONE`: local Maven/Testcontainers, pgvector migration, architecture, Python, documentation, and API/worker smoke gates passed. The workflow is published and exercised by green GitHub Actions run `#17`.
@@ -117,6 +117,16 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   extraction version, and mismatched old jobs fail permanently without a provider call. Run #39
   passed Java 25, PostgreSQL integration, Python, documentation, and the complete compose smoke.
   This is not a real-model benchmark result.
+- Feature 6 post-gate remediation and consumer integration are `DONE / PUBLISHED` through MemOS
+  commit `0ce3ac0` and Waku Agent commit
+  [`b75adf2`](https://github.com/Zhi-Xiang-Guo/waku-agent/commit/b75adf2). Verified JWT roles now
+  become persisted source write capabilities; the policy-v3 prompt passed the bounded dev cases;
+  selected evidence aliases and constrained citation decoding close the observed harness mismatch.
+  The immutable policy-v3 dev smoke completed 12/12 answer rows with complete accounting and
+  verifier hash `00e47ad341e5a3b25aff6b41c8630a5ad94f568ff3b7f6420df99db0df7da714`.
+  Waku's real MemOS backend passed 12/12 live `FactStore` conformance cases and its repository gate
+  passed 619 deterministic tests. These are development and consumer-mechanism results; the frozen
+  temporal-v2 result remains 0/30 and no new held-out quality claim is permitted.
 
 ## Advanced Memory
 
@@ -126,12 +136,14 @@ Status: `TODO`
 
 ## Benchmark
 
-Status: `DOING` — two real-model dev runs and one frozen test verified; report reconstructed. The milestone history above records status at each earlier commit.
+Status: `DOING` — three published real-model dev runs and one frozen test verified; reports reconstruct mechanically. The milestone history above records status at each earlier commit.
 
 - LoCoMo, LongMemEval, and BEAM research plus the experiment protocol are complete.
 - `memos-assistant-smoke-v1` freezes the first license-compatible local evaluation contract; its
   verifier rejects case, prompt, license, notice, split, count, family, or evidence-cutoff drift.
-- Two dev runs are preserved; [results](benchmark/results.md) reports the negative second-dev result. The predeclared frozen test ran from clean code c1b5225, with MemOS 0/30 and each simple baseline 21/30.
+- Three published dev runs are preserved; the post-gate policy-v3 smoke is 12/12 execution-success
+  and 3/3 MemOS answers on non-held-out dev questions. The predeclared frozen test ran from clean
+  code c1b5225, with MemOS 0/30 and each simple baseline 21/30.
 
 ## Optimization
 
@@ -171,8 +183,9 @@ Status: `DOING` — module guide and research-based question bank published in F
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: resolve the consumer/demo and personal-understanding
-gates using the preserved negative test result; do not add more features or tune on held-out labels.
+Continue Feature 6 without entering Advanced Memory: the Waku consumer gate is closed; finish
+personal interview rehearsal and, only with a newly frozen unseen evaluation contract, test whether
+policy-v3 generalizes. Do not rerun or tune against the already inspected frozen test labels.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.
 
@@ -185,13 +198,15 @@ The [runbook](local-runbook.md), [environment observation](evidence/local-enviro
 and [module/interview guide](interview/memos-grill.md) separate implementation from model results.
 The interview reference was written and read back through Feishu MCP as a real child Wiki node
 under the existing MemOS gate: [MemOS module and Q&A page](https://my.feishu.cn/wiki/VpP1wOrvLioPVWkltUjcGpklngi).
-It has 12 module explanations, 18 core questions and staged follow-ups; personal ownership remains
-unverified. No interview answers or mastery judgments have been published.
+It now has 13 module explanations, 22 core questions, staged follow-ups, Waku integration and the
+post-gate evidence boundary. The MCP read-back confirmed Q10, Q12, Q19, Waku and the current Claim
+snapshot in Wiki space `7603709140535430108`. Personal ownership remains unverified; no personal
+rehearsal answer or mastery judgment has been published.
 
-The local Java gate passed 193 tests, zero failures/errors/skips, with nine PostgreSQL migrations.
+The current local Java gate passed 198 tests, zero failures/errors/skips, with ten PostgreSQL migrations.
 A targeted red/green regression demonstrated that restoring the old candidate store returns
 wrong-model lexical/structured candidates; the repaired store passed. Python format/lint and
-65 tests, the frozen 13-scenario/15-question dataset verifier, shell syntax and Markdown links
+70 tests, the frozen 13-scenario/15-question dataset verifier, shell syntax and Markdown links
 also passed. All six process smoke scripts (health and Features 1–5) passed on local PostgreSQL
 18.6/pgvector 0.8.6. Their synthetic timing sample is not a real-model SLO or benchmark result.
 
@@ -214,7 +229,7 @@ Second dev and its pre-test freeze were pushed in c1b5225/d82376e. The frozen ex
 checkout at c1b5225; no third repair is allowed. GitHub Actions
 [run 34084744451](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/34084744451) passed all four
 jobs (Java, Python, docs and complete compose smoke) for the freeze-record commit. Current Python
-coverage is 67 passing tests. Separate-process dev report reconstruction matched the original hash;
+coverage at that checkpoint was 67 passing tests; the current suite is 70. Separate-process dev report reconstruction matched the original hash;
 see [reproduction](evidence/reproduction.md) and [three real failure cases](evidence/failure-cases.md).
 
 ## Frozen-test checkpoint — September 7
@@ -229,5 +244,7 @@ The old NOT RUN statements in the chronological milestone history describe their
 
 No positive quality, speed, cost, production security or scale claim is supported. OQ-012's model
 identity, maintenance reconciliation and bounded execution/reconstruction tasks have local evidence;
-representative workload affordability and production lifecycle remain open. The overall D21 gate
-is still CONDITIONAL because no real consumer/CodeFlow integration or personal mastery was proven.
+representative workload affordability and production lifecycle remain open. The Waku Agent
+integration closes the real-consumer mechanism gate. The technical decision is KEEP WITH WEAKER
+CLAIMS because the only frozen result remains negative; personal mastery still requires live
+rehearsal and cannot be inferred from generated documentation.

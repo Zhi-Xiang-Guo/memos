@@ -58,7 +58,7 @@ an SLO recommendation. Downloads are resumable; keep their failure output.
 
 ```bash
 ./scripts/preflight.sh --models
-./scripts/run-local.sh ollama
+./scripts/run-local.sh ollama-policy-v3
 ```
 
 If a populated fake-model database refuses startup with `PROJECTION_RECONCILIATION_REQUIRED`, stop
@@ -145,6 +145,29 @@ freezing a new committed configuration. Formal testing uses the declared test re
 `FROZEN_TEST` campaign mode as supported by the runner. Independently run `memos-benchmark-verify` with
 the package path and dataset manifest. Result summaries remain NOT RUN until these steps succeed.
 
+## Waku Agent consumer
+
+With MemOS running in `ollama-policy-v3` mode, create a short-lived local token and start Waku from
+its checkout. The token is the only source of tenant/user/agent scope; Waku never sends those
+values in a body.
+
+```bash
+export WAKU_SEMANTIC_STORE=memos
+export WAKU_MEMOS_BASE_URL=http://127.0.0.1:8080
+export WAKU_MEMOS_TOKEN="$(python3 /path/to/memos/scripts/generate-dev-jwt.py \
+  --tenant waku-local --user local-user --agent waku --subject waku \
+  --role USER --role PROJECT_MEMORY_WRITER --lifetime-seconds 3600)"
+cd /path/to/waku-agent
+make run
+```
+
+Waku waits for extraction, authority and projection settlement before `add()` returns. Its update
+path first proves the replacement source produced an accepted version, invalidates previously
+active versions with the latest ETag, then waits until stale projection versions are no longer
+selected. Delete uses MemOS self-service erasure, which hides the lineage in the request
+transaction. Refresh the token after expiry. Neither Waku nor this runbook registers Ollama,
+Podman, MemOS or Waku for login startup.
+
 ## Dev-repaired temporal configuration
 
 The first dev run exposed two root causes; see [ADR 0007](adr/0007-dev-failure-freeze.md).
@@ -161,6 +184,22 @@ From a clean committed checkout's `benchmark` directory, supply
 verifier. Use a new run ID for dev and then the frozen test; never overwrite the original package.
 All preprocessing, context-counting and answer calls use native Ollama. The existing Codex proxy
 is excluded from these runs. Do not mix a v1 worker with a temporal-v2 manifest.
+
+## Post-gate policy-v3 development configuration
+
+Policy-v3 was created after the temporal-v2 frozen result and must not be used to rewrite or rerun
+that inspected test campaign. It is the current local Waku integration mode:
+
+```bash
+./scripts/run-local.sh ollama-policy-v3
+```
+
+For development smoke and verifier commands, select
+`benchmark/datasets/memos-assistant-smoke/v1/manifest-policy-v3.json` from a clean checkout and use
+a new immutable run ID. Policy-v3 explicitly defines durable facts, noise, memory types,
+sensitivity and canonical predicates for the selected small model. It also declares
+`PROJECT_MEMORY_WRITER`; the server persists only capabilities derived from verified JWT roles.
+Any future quality claim needs a newly frozen unseen evaluation contract.
 
 ## Stop
 

@@ -1,6 +1,6 @@
 # Benchmark results
 
-Status: **FROZEN TEST RUN / VERIFIED / RECONSTRUCTED — NEGATIVE RESULT**
+Status: **FROZEN TEST VERIFIED — NEGATIVE RESULT; POST-GATE DEV SMOKE VERIFIED**
 
 A real-model frozen synthetic test now exists; its limited result appears below. Features 0–5 include deterministic
 conformance fixtures, integration tests, or runtime smoke checks. Feature 4's six-case synthetic
@@ -93,3 +93,34 @@ with usage/storage complete. MemOS correctly answered 1/3 questions; full histor
 and raw-turn vector each answered 2/3. MemOS abstained on every question without retrieved evidence.
 This is a three-question diagnostic result, not a general comparison. Configuration is now frozen
 for test in [the freeze record](../evidence/frozen-test-2026-09-07.json).
+
+### Post-gate policy-v3 dev smoke
+
+`CONFIRMED`: [dev-20260907-0ce3ac0-01](runs/dev-20260907-0ce3ac0-01/report.md) ran from clean
+commit `0ce3ac0f238d903e874b5e2a52d0d91fcf557a26` after the frozen negative result was preserved.
+It uses the separately versioned policy-v3 extraction prompt and explicit JWT write capabilities.
+All 12 answer executions succeeded with complete usage/storage, and the independent verifier
+reconstructed package hash
+`00e47ad341e5a3b25aff6b41c8630a5ad94f568ff3b7f6420df99db0df7da714`.
+
+| Baseline | Correct / dev questions | Accuracy | Recall@8 | MRR | Abstention F1 |
+|---|---:|---:|---:|---:|---:|
+| Full history | 2 / 3 | 66.67% | N/A | N/A | 0.00% |
+| Rolling summary | 2 / 3 | 66.67% | N/A | N/A | 0.00% |
+| Raw-turn vector | 2 / 3 | 66.67% | 100.00% | 0.75 | 0.00% |
+| MemOS | 3 / 3 | 100.00% | 100.00% | 0.75 | 100.00% |
+
+This is a three-question development smoke used during repair. It is neither held-out nor
+representative, so it does not establish quality superiority. The report also shows one labeled
+stale theme event entered MemOS context; the answer selected the current value, but the exposure
+remains a retrieval-policy limitation. Two earlier immutable post-gate runs retained citation
+validation failures while the harness was repaired. The final harness constrains structured
+decoding to identifiers visible in the selected context and maps memory, version, or source
+identifiers back to dataset provenance; it still rejects unknown citations.
+
+`CONFIRMED` consumer evidence: Waku Agent commit
+[`b75adf2`](https://github.com/Zhi-Xiang-Guo/waku-agent/commit/b75adf2) implements MemOS as its
+six-method semantic `FactStore`. A live local scope passed 12/12 Waku conformance cases, including
+write-after-settlement, miss, update, delete, list and non-ASCII behavior. Waku's full deterministic
+gate passed 619 tests with 73 optional external cases skipped. This establishes one runnable
+consumer integration, not production traffic, multi-agent scale, or an SLO.

@@ -1,0 +1,111 @@
+{
+  "by_baseline": {
+    "full_history": {
+      "complete": true,
+      "component_total_bytes": {
+        "canonical_events_utf8": 1171
+      },
+      "count_totals": {
+        "events": 5
+      },
+      "database_native_delta_total": null,
+      "mean_retained_bytes": 390.333,
+      "measurement_methods": [
+        "canonical-json-utf8-retained-events-v1"
+      ],
+      "observations": 3,
+      "total_retained_bytes": 1171
+    },
+    "memos": {
+      "complete": true,
+      "component_total_bytes": {
+        "memos.audit_event": 768,
+        "memos.candidate_policy_decision": 624,
+        "memos.extraction_attempt": 1825,
+        "memos.extraction_run": 1760,
+        "memos.materialization_result": 2488,
+        "memos.memory_candidate": 1128,
+        "memos.memory_current_state": 424,
+        "memos.memory_lineage": 416,
+        "memos.memory_projection_checkpoint": 544,
+        "memos.memory_search_projection": 13952,
+        "memos.memory_source": 552,
+        "memos.memory_state_transition": 744,
+        "memos.memory_status_change": 456,
+        "memos.memory_version": 1184,
+        "memos.outbox_job": 4544,
+        "memos.projection_provider_usage": 576,
+        "memos.source_event": 2561
+      },
+      "count_totals": {
+        "memos.audit_event": 3,
+        "memos.candidate_policy_decision": 3,
+        "memos.extraction_attempt": 5,
+        "memos.extraction_run": 5,
+        "memos.materialization_result": 11,
+        "memos.memory_candidate": 3,
+        "memos.memory_current_state": 3,
+        "memos.memory_lineage": 2,
+        "memos.memory_projection_checkpoint": 2,
+        "memos.memory_search_projection": 3,
+        "memos.memory_source": 3,
+        "memos.memory_state_transition": 3,
+        "memos.memory_status_change": 4,
+        "memos.memory_version": 3,
+        "memos.outbox_job": 11,
+        "memos.projection_provider_usage": 3,
+        "memos.source_event": 5
+      },
+      "database_native_delta_total": {
+        "index_bytes": 98304,
+        "table_bytes": 81920,
+        "total_bytes": 180224
+      },
+      "mean_retained_bytes": 11515.333,
+      "measurement_methods": [
+        "postgresql-pg-column-size-scope-rows-plus-native-relation-delta-v1"
+      ],
+      "observations": 3,
+      "total_retained_bytes": 34546
+    },
+    "raw_turn_vector": {
+      "complete": true,
+      "component_total_bytes": {
+        "canonical_events_utf8": 1171,
+        "dense_float32_le": 20480
+      },
+      "count_totals": {
+        "events": 5,
+        "vector_dimensions": 5120,
+        "vectors": 5
+      },
+      "database_native_delta_total": null,
+      "mean_retained_bytes": 7217.0,
+      "measurement_methods": [
+        "canonical-json-utf8-events-plus-dense-float32-le-v1"
+      ],
+      "observations": 3,
+      "total_retained_bytes": 21651
+    },
+    "rolling_summary": {
+      "complete": true,
+      "component_total_bytes": {
+        "final_summary_utf8": 765,
+        "recent_events_utf8": 1171
+      },
+      "count_totals": {
+        "facts": 5,
+        "recent_events": 5
+      },
+      "database_native_delta_total": null,
+      "mean_retained_bytes": 645.333,
+      "measurement_methods": [
+        "canonical-json-utf8-final-summary-plus-recent-turns-v1"
+      ],
+      "observations": 3,
+      "total_retained_bytes": 1936
+    }
+  },
+  "disclaimer": "Retained bytes use baseline-specific declared representations. PostgreSQL scope row bytes use pg_column_size(record); database-native allocation deltas are supplemental and can change in page-sized steps. Methods are disclosed rather than treated as an identical physical-storage layer.",
+  "schema_version": "memos-benchmark-storage.v1"
+}

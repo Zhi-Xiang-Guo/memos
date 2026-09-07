@@ -134,6 +134,11 @@ class FakeMemosClient:
             ),
             ranked_source_event_ids=(SOURCE_ID,),
             selected_source_event_ids=(SOURCE_ID,),
+            citation_source_event_ids={
+                "00000000-0000-0000-0000-000000000030": (SOURCE_ID,),
+                VERSION_ID: (SOURCE_ID,),
+                SOURCE_ID: (SOURCE_ID,),
+            },
         )
 
 
@@ -266,15 +271,38 @@ def test_answer_validation_maps_memos_citations_and_rejects_unknown_values() -> 
         "citations": [SOURCE_ID],
     }
 
-    mapped = validate_answer_output(output, [SOURCE_ID], {SOURCE_ID: "event-1"})
+    mapped = validate_answer_output(output, [SOURCE_ID], {SOURCE_ID: ("event-1",)})
 
     assert mapped["citations"] == ["event-1"]
     with pytest.raises(RunnerError, match="outside the context"):
         validate_answer_output(
             {**output, "citations": [str(UUID(int=99))]},
             [SOURCE_ID],
-            {SOURCE_ID: "event-1"},
+            {SOURCE_ID: ("event-1",)},
         )
+
+
+def test_answer_validation_maps_selected_memory_and_version_citations_to_provenance() -> None:
+    memory_id = "00000000-0000-0000-0000-000000000030"
+    output = {
+        "abstain": False,
+        "answer": "light",
+        "items": [],
+        "reason_code": "",
+        "citations": [memory_id, VERSION_ID],
+    }
+
+    mapped = validate_answer_output(
+        output,
+        [memory_id, VERSION_ID, SOURCE_ID],
+        {
+            memory_id: ("event-1", "event-2"),
+            VERSION_ID: ("event-2",),
+            SOURCE_ID: ("event-2",),
+        },
+    )
+
+    assert mapped["citations"] == ["event-1", "event-2"]
 
 
 def test_generated_hs256_token_contains_exact_scope_and_roles() -> None:

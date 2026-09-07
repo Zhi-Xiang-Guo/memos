@@ -129,7 +129,7 @@ class ExecutedContext:
     ranked_event_ids: list[str]
     selected_event_ids: list[str]
     raw_selected_ids: list[str]
-    citation_map: dict[str, str]
+    citation_map: dict[str, tuple[str, ...]]
     context_tokens: int
     usage: ProviderUsage
     usage_complete: bool
@@ -517,8 +517,11 @@ class UnifiedBenchmarkRunner:
             rendered=response.context.rendered,
             ranked_event_ids=ranked,
             selected_event_ids=selected,
-            raw_selected_ids=list(response.selected_source_event_ids),
-            citation_map={source_id: event_id for source_id, event_id in source_map.items()},
+            raw_selected_ids=list(response.citation_source_event_ids),
+            citation_map={
+                citation_id: tuple(_map_source_ids(source_ids, source_map))
+                for citation_id, source_ids in response.citation_source_event_ids.items()
+            },
             context_tokens=response.context.tokens,
             usage=usage,
             usage_complete=True,
@@ -639,7 +642,9 @@ class UnifiedBenchmarkRunner:
 
 
 def validate_answer_output(
-    value: dict[str, Any], allowed_citations: list[str], citation_map: dict[str, str]
+    value: dict[str, Any],
+    allowed_citations: list[str],
+    citation_map: dict[str, tuple[str, ...]],
 ) -> dict[str, Any]:
     fields = {"abstain", "answer", "items", "reason_code", "citations"}
     if not isinstance(value, dict) or set(value) != fields:
@@ -669,11 +674,12 @@ def validate_answer_output(
         raise RunnerError("UNKNOWN_CITATION", "answer cites evidence outside the context")
     mapped = []
     for citation in citations:
-        event_id = citation_map.get(citation)
-        if event_id is None:
+        event_ids = citation_map.get(citation)
+        if event_ids is None:
             raise RunnerError("UNKNOWN_CITATION", "answer citation cannot be mapped")
-        if event_id not in mapped:
-            mapped.append(event_id)
+        for event_id in event_ids:
+            if event_id not in mapped:
+                mapped.append(event_id)
     return {**value, "items": list(items), "citations": mapped}
 
 

@@ -2,6 +2,17 @@
 
 Status: `CONFIRMED` local integration evidence. This is not production traffic or a scale result.
 
+## Source-review limits added for interview preparation
+
+The six-method interface checks do not establish full Agent task success. At `b75adf2`, update
+uses multiple HTTP calls and can partially complete; it is not an atomic replacement transaction.
+Its final old-query observation is not a proof of convergence for every possible concurrent query.
+Search/list map some transport or response errors to an empty list, so consumers can confuse an
+outage with a genuine miss. The relevance threshold/lexical overlap rule remains a development
+heuristic. Failure injection, caller-visible error semantics and retry identity should be validated
+before production adoption. These are source-observed boundaries and proposed validation, not
+newly reproduced production incidents or completed fixes.
+
 ## Published identities
 
 - MemOS branch: `feat_evidence-gate`, post-gate runtime through `0ce3ac0`.

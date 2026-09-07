@@ -10,6 +10,8 @@ The project models long-term memory as a versioned, temporal, observable, privac
 
 The active [21-day evidence gate](docs/evidence/21-day-gate.md) runs September 7–27, 2026.
 Use the [fresh-clone runbook](docs/local-runbook.md) and [module/interview guide](docs/interview/memos-grill.md).
+The expanded Chinese [module learning guide](导学-MemOS.md) and [STAR interview answers](面经-MemOS.md)
+include source reading exercises, consumer failure boundaries and role-specific next steps.
 No Advanced Memory work or performance claim is authorized before that gate closes.
 
 
@@ -23,7 +25,7 @@ Feature 6 extraction-identity hardening is remotely verified through commit `492
 - MVP implementation: `DOING` — Features 0–5 are `DONE / PUBLISHED`; Feature 6's workload and
   harness, projection reconciliation and first frozen synthetic test are published on `feat_evidence-gate`
 - Benchmark research/protocol: `DONE`
-- Benchmark execution: `FROZEN TEST VERIFIED` / negative result; consumer and personal-understanding gates remain open
+- Benchmark execution: `FROZEN TEST VERIFIED` / negative result; Waku's local consumer interface is verified, while task-level usefulness and personal understanding remain open
 - Initial repository and Features 0–4 publication: `DONE`
 
 See [progress](docs/progress.md), [open questions](docs/open-questions.md), and [benchmark results](docs/benchmark/results.md).

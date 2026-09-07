@@ -55,3 +55,12 @@ source payload before asynchronous extraction/write policy. Rejected derived can
 prove that original secrets were never stored or sent to the extraction provider. Ingress DLP,
 source minimization/retention and provider-transfer policy remain OPEN; interview claims must
 state this boundary rather than saying all sensitive content is blocked before any persistence.
+
+Consumer-contract follow-up for OQ-009/OQ-012/OQ-015: Waku conformance verifies the local
+storage interface, not full Agent task utility. Review of adapter commit `b75adf2` shows that
+update spans multiple HTTP requests and can be partially completed; some search/list errors
+collapse to an empty collection; one old-query absence observation does not prove global
+convergence. Failure visibility, cross-retry identity and recovery semantics need a bounded
+failure matrix and regression evidence before stronger guarantees. A cross-session task with
+correction and deletion is the next utility experiment. See the [module guide](../导学-MemOS.md)
+for priorities and exit criteria; these are pending work, not new features already delivered.

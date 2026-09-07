@@ -248,3 +248,25 @@ representative workload affordability and production lifecycle remain open. The 
 integration closes the real-consumer mechanism gate. The technical decision is KEEP WITH WEAKER
 CLAIMS because the only frozen result remains negative; personal mastery still requires live
 rehearsal and cannot be inferred from generated documentation.
+
+## Documentation and interview deepening — September 7
+
+The existing root [module guide](../导学-MemOS.md) and [interview guide](../面经-MemOS.md)
+now cover 13 modules and 22 main questions with 25 follow-ups (47 complete STAR answers).
+They add source entry points, invariants, counterexamples, staged scoring, ownership limits,
+and a source-qualified assessment of Java backend / AI application / Agent roles. The small
+JD and interview sample supports preparation priorities, not market-wide frequency claims.
+
+Both complete documents were published through Feishu MCP as actual child Wiki nodes in the
+Agent space, beneath the existing [learning entry](https://my.feishu.cn/wiki/VpP1wOrvLioPVWkltUjcGpklngi):
+[module guide and role assessment](https://my.feishu.cn/wiki/LENSwWtpfivGbIkcq9rcBTH7nQe),
+[STAR interview guide](https://my.feishu.cn/wiki/QsiOwKuboi5Vt0kQW17c9WVjnQd).
+Read-back verified the 13 module headings, all 47 STAR answers and every content cell across
+nine native tables; Wiki metadata verified the intended parent and space.
+
+This is documentation within the active evidence gate, not entry into Advanced Memory or a
+new implementation phase. Source review narrows the next work to Waku error-versus-empty
+semantics, partial multi-request updates and retry identity; a real cross-session Agent task;
+and a newly frozen unseen evaluation. These remain proposals, not completed fixes or measured
+improvements. Preserve the original negative test and the distinction between consumer
+interface conformance and task usefulness. Personal rehearsal remains pending.

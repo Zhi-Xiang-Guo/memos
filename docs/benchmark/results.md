@@ -71,8 +71,9 @@ swapping and other desktop work confound the timing comparison. Logical retained
 identical physical-storage costs across the four baselines.
 
 The formal execution/reconstruction evidence gap is now closed for this bounded synthetic contract.
-The overall [D21 gate](../evidence/21-day-gate.md) remains CONDITIONAL: a real consumer/CodeFlow
-integration demo and personal explanation/modification evidence are still missing.
+The [D21 technical gate](../evidence/21-day-gate.md) is KEEP WITH WEAKER CLAIMS after the Waku
+local interface integration described below. Task-level usefulness, production use and personal
+explanation/modification evidence remain unestablished; interface conformance does not close them.
 
 ## Real-model development smoke — 2026-09-07
 

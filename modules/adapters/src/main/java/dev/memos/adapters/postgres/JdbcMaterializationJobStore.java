@@ -405,6 +405,11 @@ public final class JdbcMaterializationJobStore implements MaterializationJobStor
                    OR (job.state = 'CLAIMED' AND job.lease_expires_at <= clock_timestamp())
                )
                AND job.error_class IS DISTINCT FROM 'GOVERNED_ERASURE'
+               AND job.error_class IS DISTINCT FROM 'PROJECTION_GENERATION_REPLACED'
+               AND (job.job_type <> 'PROJECTION_BUILD'
+                    OR NOT EXISTS (SELECT 1 FROM memos.projection_generation)
+                    OR job.projection_generation = (
+                        SELECT max(generation) FROM memos.projection_generation))
                AND EXISTS (
                    SELECT 1 FROM memos.source_event source
                     WHERE source.tenant_id = job.tenant_id

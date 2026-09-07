@@ -32,6 +32,43 @@ class OpenAiCompatibleStructuredCandidateExtractionAdapterTest {
   private static final JsonMapper JSON = JsonMapper.builder().build();
 
   @Test
+  void proxyCompatibilityInlinesSchemaWithoutChangingFrozenResources() throws Exception {
+    StructuredExtractionResources resources =
+        StructuredExtractionResources.loadV1WithInlineSchema();
+    assertThat(resources.prompt()).contains(StructuredExtractionResources.loadV1().jsonSchema());
+    assertThat(StructuredExtractionResources.loadV1().prompt())
+        .doesNotContain("Required JSON Schema:");
+    String response =
+        JSON.writeValueAsString(
+            Map.of(
+                "id",
+                "proxy-call",
+                "choices",
+                List.of(Map.of("message", Map.of("content", EMPTY_STRUCTURED_OUTPUT))),
+                "usage",
+                Map.of("prompt_tokens", 15, "completion_tokens", 5)));
+    try (LocalProvider provider = new LocalProvider(200, response, Duration.ZERO)) {
+      OpenAiCompatibleStructuredCandidateExtractionAdapter adapter =
+          new OpenAiCompatibleStructuredCandidateExtractionAdapter(
+              java.net.http.HttpClient.newHttpClient(),
+              provider.baseUrl(),
+              SYNTHETIC_API_KEY,
+              "deployment-model",
+              "model-snapshot-1",
+              "candidate-extraction-v1",
+              "memory-candidate.v1",
+              42,
+              Duration.ofSeconds(2),
+              resources);
+      adapter.extract(request());
+      Map<?, ?> body = JSON.readValue(provider.requestBody(), Map.class);
+      List<?> messages = (List<?>) body.get("messages");
+      assertThat((String) ((Map<?, ?>) messages.getFirst()).get("content"))
+          .contains("candidate_relations", "valid_interval", "additionalProperties");
+    }
+  }
+
+  @Test
   void returnsBoundedStructuredOutputAndObservedUsage() throws Exception {
     String response =
         JSON.writeValueAsString(

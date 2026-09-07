@@ -41,3 +41,17 @@ Every substantive `HYPOTHESIS` in the Phase 1 documents maps to an open question
 | Frozen bilingual personal/project workload and unachieved SLO gates ([problem definition](architecture/01-problem-definition.md#initial-workload), [performance targets](architecture/01-problem-definition.md#performance-targets)) | OQ-001, OQ-014 | OQ-001 is resolved by the Feature 6 v1 smoke contract; explicit load profiles and measured SLOs remain under OQ-014 |
 | Modular/outbox topology and eventual availability ([progress](progress.md#decision-log-snapshot)) | OQ-009, OQ-014 | Fault-injection spike, queue-lag/freshness and DB-load measurements |
 | MemOS target claims in the [competitive matrix](research/08-competitive-matrix.md#memos-competitive-position-and-falsifiable-claims) | OQ-002–OQ-011, OQ-014–OQ-015 | Feature exit gates, equal-budget benchmarks, fault/security tests, and scale profiles |
+
+## September 7 gate follow-up
+
+OQ-012 now has a bounded implementation candidate in
+[ADR-0006](adr/0006-projection-identity-reconciliation.md): explicit maintenance reconciliation
+for model/dimension/policy identity with append-only generations. This does not close OQ-012
+until database validation and a verifier-eligible real-model package exist. Same-generation
+corruption repair and production/backup/provider lifecycle remain unestablished.
+
+Source-boundary audit for OQ-005/OQ-010: `SourceIngestionService` persists the normalized raw
+source payload before asynchronous extraction/write policy. Rejected derived candidates do not
+prove that original secrets were never stored or sent to the extraction provider. Ingress DLP,
+source minimization/retention and provider-transfer policy remain OPEN; interview claims must
+state this boundary rather than saying all sensitive content is blocked before any persistence.

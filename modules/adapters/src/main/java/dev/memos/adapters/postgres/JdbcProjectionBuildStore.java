@@ -76,6 +76,9 @@ public final class JdbcProjectionBuildStore implements ProjectionBuildStore {
              WHERE job.tenant_id = ? AND job.job_id = ?
                AND job.source_event_id = ?
                AND job.job_type = 'PROJECTION_BUILD'
+               AND (NOT EXISTS (SELECT 1 FROM memos.projection_generation)
+                    OR job.projection_generation = (
+                        SELECT max(generation) FROM memos.projection_generation))
                AND job.aggregate_type = 'MEMORY_TRANSITION'
                AND job.state = 'CLAIMED'
                AND job.lease_owner = ? AND job.lease_token = ?
@@ -176,6 +179,9 @@ public final class JdbcProjectionBuildStore implements ProjectionBuildStore {
             SELECT job_id FROM memos.outbox_job
              WHERE tenant_id = ? AND job_id = ? AND source_event_id = ?
                AND job_type = 'PROJECTION_BUILD'
+               AND (NOT EXISTS (SELECT 1 FROM memos.projection_generation)
+                    OR projection_generation = (
+                        SELECT max(generation) FROM memos.projection_generation))
                AND aggregate_type = 'MEMORY_TRANSITION'
                AND state = 'CLAIMED' AND lease_owner = ? AND lease_token = ?
                AND lease_expires_at > clock_timestamp()

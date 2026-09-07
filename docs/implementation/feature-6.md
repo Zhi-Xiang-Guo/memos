@@ -318,3 +318,11 @@ server `0.33.2`, both full model digests, the required completion/embedding capa
 1024-dimensional `qwen3-embedding:0.6b` response. The one-input probe reported seven embedding
 tokens plus provider total/load durations. This is a contract observation from one call, not a
 warm/cold latency sample or benchmark result; no quality or SLO claim follows from it.
+
+## September 7 evidence gate extension
+
+The user authorized [the 21-day gate](../evidence/21-day-gate.md), local environment recovery and
+projection identity reconciliation. [ADR-0006](../adr/0006-projection-identity-reconciliation.md)
+describes the maintenance boundary and generation fence. [The runbook](../local-runbook.md)
+provides Java 25, Podman/Docker, manual Ollama, optional existing Codex-proxy development mode,
+and clean-checkout benchmark commands. This milestone does not establish quality superiority.

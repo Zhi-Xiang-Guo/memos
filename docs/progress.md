@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-08-30 (Asia/Shanghai)
+Last updated: 2026-09-07 (Asia/Shanghai)
 
 ## Research
 
@@ -171,7 +171,35 @@ Status: `TODO`
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: add projection reconciliation, then execute
-the predeclared dev smoke against the selected local model snapshots.
+Continue Feature 6 without entering Advanced Memory: execute the predeclared dev smoke against
+the selected local model snapshots, then analyze dev failures before freezing test.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.
+
+## Active evidence gate — September 7
+
+The user authorized [D1–D21 evidence closure](evidence/21-day-gate.md), ending September 27,
+2026, and explicitly prohibited Advanced Memory, new graph infrastructure and unmeasured
+optimization. Local environment remediation and projection reconciliation are in progress.
+The [runbook](local-runbook.md), [environment observation](evidence/local-environment-2026-09-07.md),
+and [module/interview guide](interview/memos-grill.md) separate implementation from model results.
+The interview reference was written and read back through Feishu MCP as a real child Wiki node
+under the existing MemOS gate: [MemOS module and Q&A page](https://my.feishu.cn/wiki/VpP1wOrvLioPVWkltUjcGpklngi).
+It has 12 module explanations, 18 core questions and staged follow-ups; personal ownership remains
+unverified. No interview answers or mastery judgments have been published.
+
+The local Java gate passed 193 tests, zero failures/errors/skips, with nine PostgreSQL migrations.
+A targeted red/green regression demonstrated that restoring the old candidate store returns
+wrong-model lexical/structured candidates; the repaired store passed. Python format/lint and
+65 tests, the frozen 13-scenario/15-question dataset verifier, shell syntax and Markdown links
+also passed. All six process smoke scripts (health and Features 1–5) passed on local PostgreSQL
+18.6/pgvector 0.8.6. Their synthetic timing sample is not a real-model SLO or benchmark result.
+
+Projection reconciliation, generation fences and model filters are implemented and database-tested;
+see ADR 0006 for maintenance/rollback limits. Both frozen Ollama digests and capabilities passed
+preflight. An actual Codex-mode startup exposed a missing provider identity mapping, now covered
+by a regression test. After a retained UNKNOWN_FIELD failure and explicit instance/schema prompt
+clarification, a separate synthetic preference passed all three jobs and scoped retrieval through
+the real Codex proxy. The database was explicitly reconciled from fake embeddings to the frozen
+Qwen embedding digest (generation 2) without deleting authority. Formal four-baseline scores
+remain NOT RUN until a verified artifact exists. Initial environment failures remain in local logs.

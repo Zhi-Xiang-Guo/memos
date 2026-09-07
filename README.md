@@ -1,12 +1,17 @@
 # MemOS
 
-> Production-grade long-term memory infrastructure for AI agents.
+> Production-problem-oriented, governed long-term memory reference implementation for AI agents.
 
 MemOS studies a deceptively hard production question: **how should a long-running AI agent decide what to remember, preserve the history of changing facts, retrieve only useful evidence, forget safely, and prove that the result is better than simpler baselines?**
 
 This repository is deliberately not an `Embedding + Vector DB + TopK` demo. Its target is a versioned, temporal, observable, privacy-aware memory subsystem whose write path, read path, consistency model, failure recovery, and benchmark results can be defended in a backend-system-design interview.
 
 ## Current status
+
+The active [21-day evidence gate](docs/evidence/21-day-gate.md) runs September 7–27, 2026.
+Use the [fresh-clone runbook](docs/local-runbook.md) and [module/interview guide](docs/interview/memos-grill.md).
+No Advanced Memory work or performance claim is authorized before that gate closes.
+
 
 Phase 1 — research, problem definition, architecture selection, and benchmark planning — is complete and published to [GitHub](https://github.com/Zhi-Xiang-Guo/memos). Features 0–5 are published. Feature 5 authentication, RBAC, governed erasure, content-safe audit, and poisoning-boundary work is remotely verified through commit `ae37714` and [GitHub Actions run #22](https://github.com/Zhi-Xiang-Guo/memos/actions/runs/33272314267). There is **no formal benchmark result yet**. Deterministic fixture values validate policy mechanics only, and any formal result table must be generated from a reproducible run manifest.
 
@@ -254,7 +259,7 @@ selected-model result remains `NOT RUN`.
 - Retrieval indexes are rebuildable projections, not the source of truth.
 - Memory writes are idempotent, attributable, and observable.
 - “Current” and “historical” are explicit temporal semantics, not vector-score side effects.
-- Sensitive data is rejected or governed before persistence, not merely hidden at read time.
+- Candidate policy rejects or governs sensitive derived memory before candidate persistence. Raw source-event payloads are retained before asynchronous extraction; source-level DLP and provider-transfer governance remain separate deployment gaps.
 - Quality claims require baselines, ablations, costs, and reproducible artifacts.
 - Infrastructure is introduced after measurement, not for résumé decoration.
 

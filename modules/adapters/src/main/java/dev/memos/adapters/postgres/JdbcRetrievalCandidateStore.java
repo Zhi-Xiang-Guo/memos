@@ -41,6 +41,15 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
                       AND visible_lineage.memory_id = projection.memory_id
                       AND visible_lineage.lifecycle_state = 'ACTIVE'
                )
+               AND projection.embedding_model_version = ?
+               AND projection.embedding_dimensions = ?
+               AND (NOT EXISTS (SELECT 1 FROM memos.projection_generation)
+                    OR EXISTS (
+                        SELECT 1 FROM memos.projection_generation active
+                         WHERE active.generation = (SELECT max(generation) FROM memos.projection_generation)
+                           AND active.model_version = projection.embedding_model_version
+                           AND active.dimensions = projection.embedding_dimensions
+                           AND active.policy_version = projection.projection_policy_version))
                AND (?::text <> 'PRESENT'
                     OR projection.truth_status IN ('CURRENT', 'CONFLICTED'))
                AND (?::timestamptz IS NULL
@@ -122,6 +131,8 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
         query.scope().agentId(),
         query.embedding().modelVersion(),
         embeddingDimensions,
+        query.embedding().modelVersion(),
+        embeddingDimensions,
         query.intent().temporal().name(),
         timestamp(query.targetTime()),
         timestamp(query.targetTime()),
@@ -156,6 +167,8 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
         query.scope().userId(),
         query.scope().agentId(),
         query.query(),
+        query.embedding().modelVersion(),
+        embeddingDimensions,
         query.intent().temporal().name(),
         timestamp(query.targetTime()),
         timestamp(query.targetTime()),
@@ -202,6 +215,8 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
         query.predicate(),
         query.subjectLabel(),
         query.subjectLabel(),
+        query.embedding().modelVersion(),
+        embeddingDimensions,
         query.intent().temporal().name(),
         timestamp(query.targetTime()),
         timestamp(query.targetTime()),
@@ -247,6 +262,8 @@ public final class JdbcRetrievalCandidateStore implements RetrievalCandidateStor
         target,
         target,
         target,
+        query.embedding().modelVersion(),
+        embeddingDimensions,
         query.intent().temporal().name(),
         target,
         target,

@@ -132,7 +132,7 @@ public class MaterializationConfiguration {
                   {"schema_version":"memory-candidate.v1","candidates":[{"proposed_decision":"REMEMBER","memory_type":"SEMANTIC","subject":{"kind":"USER","label":null},"predicate":"preference.editor.theme","value":"dark","normalized_content":"The user prefers a dark editor theme.","event_time":null,"valid_interval":null,"importance":0.7,"confidence":0.96,"sensitivity":["NONE"],"candidate_relations":[]}]}
                   """
                           .strip()));
-          case "openai-compatible" ->
+          case "openai-compatible", "codex-proxy" ->
               new OpenAiCompatibleStructuredCandidateExtractionAdapter(
                   HttpClient.newBuilder().connectTimeout(properties.timeout()).build(),
                   URI.create(required(properties.baseUrl(), "memos.extraction.base-url")),
@@ -143,7 +143,7 @@ public class MaterializationConfiguration {
                   required(properties.schemaVersion(), "memos.extraction.schema-version"),
                   properties.seed(),
                   properties.timeout(),
-                  StructuredExtractionResources.loadV1());
+                  openAiResources(provider, properties.promptVersion()));
           case "ollama" ->
               new OllamaStructuredCandidateExtractionAdapter(
                   HttpClient.newBuilder().connectTimeout(properties.timeout()).build(),
@@ -168,6 +168,7 @@ public class MaterializationConfiguration {
     String observedProvider =
         switch (provider) {
           case "fake", "openai-compatible", "ollama" -> provider;
+          case "codex-proxy" -> OpenAiCompatibleStructuredCandidateExtractionAdapter.PROVIDER;
           default -> throw new IllegalArgumentException("unsupported memos.extraction.provider");
         };
     return new ExtractionProviderIdentity(
@@ -329,6 +330,18 @@ public class MaterializationConfiguration {
       host = "unknown-host";
     }
     return host + "-" + UUID.randomUUID();
+  }
+
+  private static StructuredExtractionResources openAiResources(
+      String provider, String promptVersion) {
+    if (provider.equals("codex-proxy")) {
+      if (!"candidate-extraction-v1-inline-schema".equals(promptVersion)) {
+        throw new IllegalArgumentException(
+            "codex-proxy requires distinct inline-schema prompt identity");
+      }
+      return StructuredExtractionResources.loadV1WithInlineSchema();
+    }
+    return StructuredExtractionResources.loadV1();
   }
 
   private static String required(String value, String property) {

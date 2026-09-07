@@ -23,6 +23,11 @@ Last updated: 2026-09-07 (Asia/Shanghai)
   partial-update recovery, stable cross-retry identity, settlement deadline composition,
   cross-session task utility and independent unseen evaluation remain OPEN. This is bounded
   Feature 6 hardening and interview documentation, not entry into Advanced Memory.
+- Feishu publication is verified across 14 Wiki pages, 34 native tables and 1,047 populated cells;
+  parent-directory membership, content, links, placeholder cleanup and actual column widths were
+  read back. Existing guide/STAR/hub URLs remain unchanged. See the
+  [publication audit](interview/feishu-publication-2026-09-07.md); this does not close the strict
+  social-hire sample gap or the remaining consumer/task-evidence work.
 
 ## Research
 

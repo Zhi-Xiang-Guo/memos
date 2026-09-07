@@ -1,6 +1,6 @@
 # MemOS 模块导学：从请求、状态到岗位证据
 
-更新：2026-09-07。源码基准：MemOS `85012f7`，Waku `b75adf2`。本文是学习材料，不能代替个人掌握证明。
+更新：2026-09-07。源码基准：MemOS `85012f7`；Waku 原 live 基线 `b75adf2`，本轮消费者合同修复 `dbcda826`。本文是学习材料，不能代替个人掌握证明。
 配套：[STAR 面经](面经-MemOS.md)、[原题库](docs/interview/memos-grill.md)、[结果账本](docs/benchmark/results.md)。
 飞书阅读：[完整模块导学](https://my.feishu.cn/wiki/LENSwWtpfivGbIkcq9rcBTH7nQe)。
 `CONFIRMED` 表示源码或本地验证可支持；`INFERRED` 表示教学与岗位判断；`HYPOTHESIS` 表示拟测。

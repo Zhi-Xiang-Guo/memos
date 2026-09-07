@@ -10,6 +10,7 @@ Start with these maintained documents:
 - [September 7 market review](../research/market-2026-09-07/README.md): 116 publicly readable bodies/previews, including 22 social-hire self-reports; 5 official full JDs and 27 BOSS snippets. Not 100 strict social-hire interviews.
 - [Original question bank](memos-grill.md): compact reference and chronological benchmark checkpoints.
 - [Feishu Agent Wiki](https://my.feishu.cn/wiki/VpP1wOrvLioPVWkltUjcGpklngi): navigation and published learning material.
+- [September 7 publication verification](feishu-publication-2026-09-07.md): 14 Wiki pages, 34 native tables, 1,047 populated cells and readable-width checks; research gaps remain explicit.
 
 Interview narratives follow:
 

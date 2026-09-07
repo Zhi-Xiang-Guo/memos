@@ -31,9 +31,24 @@ def main() -> None:
     assert len(rows) == len({row["url"] for row in rows}) == 123
     counts = Counter(row["access"] for row in rows)
     assert counts == {"PUBLIC_BODY": 114, "PUBLIC_PREVIEW": 2, "UNAVAILABLE": 7}
+    readable = [row for row in rows if row["access"] != "UNAVAILABLE"]
+    assert Counter(row["grade"] for row in readable) == {"A": 80, "B": 13, "C": 23}
+    assert len({row["id"] for row in rows}) == len(rows)
+    assert all(
+        row["body_chars"] > 0 and re.fullmatch(r"[0-9a-f]{64}", row["body_sha256"])
+        for row in readable
+    )
     social = [row for row in rows if row["social_hire"] and row["grade"] == "A"]
     assert len(social) == 22
     assert len({row["author_group"] for row in social}) == 7
+    assert all(row["access"] != "UNAVAILABLE" for row in social)
+    assert Counter(row["author_group"] for row in social).most_common(1)[0][1] == 16
+    assert {row["id"] for row in social if row["explicit_1_to_3_years"]} == {
+        "N02",
+        "N95",
+        "N101",
+        "N112",
+    }
     assert len(jobs) == 32
     assert Counter(row["evidence_level"] for row in jobs) == {
         "官方全文": 5,

@@ -24,6 +24,31 @@ public record StructuredExtractionResources(String prompt, String jsonSchema) {
     return new StructuredExtractionResources(read(PROMPT_RESOURCE), read(SCHEMA_RESOURCE));
   }
 
+  public static StructuredExtractionResources loadTemporalV2() {
+    return new StructuredExtractionResources(
+        read("/providers/openai-compatible/candidate-extraction-temporal-v2.txt"),
+        read(SCHEMA_RESOURCE));
+  }
+
+  public static StructuredExtractionResources loadPolicyV3() {
+    return new StructuredExtractionResources(
+        read("/providers/openai-compatible/candidate-extraction-policy-v3.txt"),
+        read(SCHEMA_RESOURCE));
+  }
+
+  /** Development compatibility for proxies that do not forward response_format. */
+  public static StructuredExtractionResources loadV1WithInlineSchema() {
+    StructuredExtractionResources original = loadV1();
+    return new StructuredExtractionResources(
+        original.prompt()
+            + "\n\nReturn a JSON INSTANCE that validates against the schema below."
+            + " Do not return the schema itself or schema keywords such as $schema."
+            + " The root object has exactly schema_version and candidates."
+            + "\nRequired JSON Schema:\n"
+            + original.jsonSchema(),
+        original.jsonSchema());
+  }
+
   private static String read(String resource) {
     try (InputStream stream = StructuredExtractionResources.class.getResourceAsStream(resource)) {
       if (stream == null) {

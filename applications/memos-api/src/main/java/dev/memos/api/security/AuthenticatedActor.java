@@ -1,6 +1,8 @@
 package dev.memos.api.security;
 
 import dev.memos.governance.MemoryScope;
+import dev.memos.governance.WriteCapability;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -16,5 +18,16 @@ public record AuthenticatedActor(MemoryScope scope, String subjectId, Set<String
 
   public boolean hasRole(String role) {
     return roles.contains(role);
+  }
+
+  public Set<WriteCapability> writeCapabilities() {
+    EnumSet<WriteCapability> capabilities = EnumSet.noneOf(WriteCapability.class);
+    if (hasRole(MemosRoles.PROJECT_MEMORY_WRITER)) {
+      capabilities.add(WriteCapability.WRITE_PROJECT_MEMORY);
+    }
+    if (hasRole(MemosRoles.PROCEDURAL_MEMORY_WRITER)) {
+      capabilities.add(WriteCapability.WRITE_PROCEDURAL_MEMORY);
+    }
+    return Set.copyOf(capabilities);
   }
 }

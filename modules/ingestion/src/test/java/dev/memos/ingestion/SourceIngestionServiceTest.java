@@ -8,11 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.memos.governance.MemoryScope;
+import dev.memos.governance.WriteCapability;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -50,6 +52,27 @@ class SourceIngestionServiceTest {
     assertEquals(
         store.events.get(0).requestFingerprint(), store.events.get(1).requestFingerprint());
     assertNotEquals(store.events.get(0).sourceEventId(), store.events.get(1).sourceEventId());
+  }
+
+  @Test
+  void persistsAuthorizedWriteCapabilitiesAndBindsThemToTheRequestFingerprint() {
+    CapturingStore store = new CapturingStore();
+    SourceIngestionService service = service(store);
+
+    SourceIngestionCommand projectWriter =
+        command(
+            "idempotency-1", "source-1", "{\"a\":1}", Set.of(WriteCapability.WRITE_PROJECT_MEMORY));
+    SourceIngestionCommand ordinaryUser =
+        command("idempotency-2", "source-2", "{\"a\":1}", Set.of());
+
+    service.ingest(projectWriter);
+    service.ingest(ordinaryUser);
+
+    assertEquals(
+        Set.of(WriteCapability.WRITE_PROJECT_MEMORY), store.events.get(0).writeCapabilities());
+    assertEquals(Set.of(), store.events.get(1).writeCapabilities());
+    assertNotEquals(
+        store.events.get(0).requestFingerprint(), store.events.get(1).requestFingerprint());
   }
 
   @Test
@@ -95,6 +118,7 @@ class SourceIngestionServiceTest {
                 ActorType.USER,
                 SourceType.CONVERSATION_MESSAGE,
                 TrustLevel.DIRECT_USER,
+                Set.of(),
                 NOW,
                 "{}",
                 "trace"));
@@ -133,6 +157,14 @@ class SourceIngestionServiceTest {
 
   private static SourceIngestionCommand command(
       String idempotencyKey, String sourceId, String payload) {
+    return command(idempotencyKey, sourceId, payload, Set.of());
+  }
+
+  private static SourceIngestionCommand command(
+      String idempotencyKey,
+      String sourceId,
+      String payload,
+      Set<WriteCapability> writeCapabilities) {
     return new SourceIngestionCommand(
         new MemoryScope("tenant-1", "user-1", "agent-1"),
         sourceId,
@@ -141,6 +173,7 @@ class SourceIngestionServiceTest {
         ActorType.USER,
         SourceType.CONVERSATION_MESSAGE,
         TrustLevel.DIRECT_USER,
+        writeCapabilities,
         Instant.parse("2026-08-26T23:59:00Z"),
         payload,
         "trace-1");

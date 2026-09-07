@@ -257,6 +257,11 @@ def test_retrieval_trace_decodes_provenance_and_token_usage() -> None:
     assert body["mode"] == "HYBRID"
     assert result.ranked_source_event_ids == (SOURCE_ID,)
     assert result.selected_source_event_ids == (SOURCE_ID,)
+    assert result.citation_source_event_ids == {
+        "00000000-0000-0000-0000-000000000040": (SOURCE_ID,),
+        VERSION_ID: (SOURCE_ID,),
+        SOURCE_ID: (SOURCE_ID,),
+    }
     assert result.context.tokens == 4
     assert result.trace.embedding_input_tokens == 6
 

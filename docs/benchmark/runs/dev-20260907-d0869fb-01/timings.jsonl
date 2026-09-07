@@ -1,0 +1,12 @@
+{"baseline":"full_history","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","stages_ms":{"answer":4014.397,"retrieval":1351.326},"status":"SUCCESS","total_ms":5365.723}
+{"baseline":"full_history","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","stages_ms":{"answer":4416.427,"retrieval":1442.551},"status":"SUCCESS","total_ms":5858.978}
+{"baseline":"full_history","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","stages_ms":{"answer":5208.471,"retrieval":282.898},"status":"SUCCESS","total_ms":5491.369}
+{"baseline":"memos","error_class":"WRITE_MATERIALIZATION_FAILED","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","stages_ms":{"answer":0.0,"retrieval":0.0},"status":"FAILED","total_ms":0.0}
+{"baseline":"memos","error_class":"RETRIEVAL_TOKENIZER_IDENTITY","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","stages_ms":{"answer":0.0,"retrieval":1452.325},"status":"FAILED","total_ms":1452.325}
+{"baseline":"memos","error_class":"WRITE_MATERIALIZATION_FAILED","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","stages_ms":{"answer":0.0,"retrieval":0.0},"status":"FAILED","total_ms":0.0}
+{"baseline":"raw_turn_vector","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","stages_ms":{"answer":3543.665,"retrieval":199.88},"status":"SUCCESS","total_ms":3743.545}
+{"baseline":"raw_turn_vector","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","stages_ms":{"answer":4171.119,"retrieval":130.451},"status":"SUCCESS","total_ms":4301.57}
+{"baseline":"raw_turn_vector","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","stages_ms":{"answer":3616.636,"retrieval":204.992},"status":"SUCCESS","total_ms":3821.628}
+{"baseline":"rolling_summary","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","stages_ms":{"answer":4484.176,"retrieval":1404.778},"status":"SUCCESS","total_ms":5888.954}
+{"baseline":"rolling_summary","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","stages_ms":{"answer":4688.453,"retrieval":1250.033},"status":"SUCCESS","total_ms":5938.486}
+{"baseline":"rolling_summary","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","stages_ms":{"answer":4998.282,"retrieval":1406.918},"status":"SUCCESS","total_ms":6405.2}

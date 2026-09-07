@@ -139,6 +139,33 @@ class FeatureOnePostgresIntegrationTest {
   }
 
   @Test
+  void verifiedWriteCapabilitiesSurviveTheDurableSourceBoundary() {
+    var scope = new MemoryScope("tenant-a", "user-a", "agent-a");
+    var command =
+        command(
+            "tenant-a",
+            "source-capability",
+            "key-capability",
+            "{\"content\":\"Project Cedar ships in September\"}",
+            java.util.Set.of(dev.memos.governance.WriteCapability.WRITE_PROJECT_MEMORY));
+
+    var receipt = ingestionService().ingest(command);
+    var source =
+        new JdbcSourceExtractionStore(jdbc)
+            .find(scope, receipt.sourceEventId().value())
+            .orElseThrow();
+
+    assertThat(source.capabilities())
+        .containsExactly(dev.memos.governance.WriteCapability.WRITE_PROJECT_MEMORY);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT write_capabilities::text FROM memos.source_event WHERE source_event_id = ?",
+                String.class,
+                receipt.sourceEventId().value()))
+        .isEqualTo("{WRITE_PROJECT_MEMORY}");
+  }
+
+  @Test
   void concurrentDuplicateRequestsCommitOneSourceAndIntent() throws Exception {
     var service = ingestionService();
     var command = command("tenant-a", "source-a", "key-a", "{\"content\":\"alpha\"}");
@@ -625,6 +652,15 @@ class FeatureOnePostgresIntegrationTest {
 
   private static SourceIngestionCommand command(
       String tenantId, String sourceId, String key, String payload) {
+    return command(tenantId, sourceId, key, payload, java.util.Set.of());
+  }
+
+  private static SourceIngestionCommand command(
+      String tenantId,
+      String sourceId,
+      String key,
+      String payload,
+      java.util.Set<dev.memos.governance.WriteCapability> writeCapabilities) {
     return new SourceIngestionCommand(
         new MemoryScope(tenantId, "user-a", "agent-a"),
         sourceId,
@@ -633,6 +669,7 @@ class FeatureOnePostgresIntegrationTest {
         ActorType.USER,
         SourceType.CONVERSATION_MESSAGE,
         TrustLevel.DIRECT_USER,
+        writeCapabilities,
         Instant.parse("2026-08-26T12:00:00Z"),
         payload,
         "trace-test");

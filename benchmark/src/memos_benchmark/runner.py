@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import hashlib
 import hmac
 import json
@@ -48,6 +49,14 @@ from memos_benchmark.metrics import BenchmarkMetricError, execution_key, generat
 from memos_benchmark.ollama import OllamaClient, OllamaError, ProviderUsage
 
 BASELINES = {"full_history", "rolling_summary", "raw_turn_vector", "memos"}
+LEGACY_MEMOS_ROLES = ["USER", "OPERATOR"]
+ALLOWED_MEMOS_ROLES = {
+    "USER",
+    "OPERATOR",
+    "PRIVACY_ADMIN",
+    "PROJECT_MEMORY_WRITER",
+    "PROCEDURAL_MEMORY_WRITER",
+}
 ZERO_USAGE = ProviderUsage()
 
 
@@ -121,7 +130,7 @@ class ExecutedContext:
     ranked_event_ids: list[str]
     selected_event_ids: list[str]
     raw_selected_ids: list[str]
-    citation_map: dict[str, str]
+    citation_map: dict[str, tuple[str, ...]]
     context_tokens: int
     usage: ProviderUsage
     usage_complete: bool
@@ -154,6 +163,7 @@ class UnifiedBenchmarkRunner:
         self.summary_prompt = summary_prompt
         self.summary_schema = summary_schema
         self.settings = settings
+        self.memos_roles = memos_roles_for_manifest(dataset_manifest)
         self.monotonic_ns = monotonic_ns
         self.now_seconds = now_seconds
         if set(dataset_manifest["baselines"]) != BASELINES:
@@ -348,7 +358,7 @@ class UnifiedBenchmarkRunner:
             user=scope["user_id"],
             agent=scope["agent_id"],
             subject=f"benchmark-{suffix}",
-            roles=["USER", "OPERATOR"],
+            roles=self.memos_roles,
             issuer=self.settings.jwt_issuer,
             audience=self.settings.jwt_audience,
             secret=self.settings.jwt_secret,
@@ -477,7 +487,7 @@ class UnifiedBenchmarkRunner:
         expected_version = (
             "sha256:" + self.manifest["selected_models"]["embedding"]["ollama_model_id"]
         )
-        if response.context.token_counter_version != expected_version:
+        if response.context.token_counter_version != "embedding-model:" + expected_version:
             raise RunnerError("TOKENIZER_IDENTITY", "MemOS context tokenizer identity differs")
         query_calls = 0
         if response.trace.embedding_provider != "not-called":
@@ -508,8 +518,11 @@ class UnifiedBenchmarkRunner:
             rendered=response.context.rendered,
             ranked_event_ids=ranked,
             selected_event_ids=selected,
-            raw_selected_ids=list(response.selected_source_event_ids),
-            citation_map={source_id: event_id for source_id, event_id in source_map.items()},
+            raw_selected_ids=list(response.citation_source_event_ids),
+            citation_map={
+                citation_id: tuple(_map_source_ids(source_ids, source_map))
+                for citation_id, source_ids in response.citation_source_event_ids.items()
+            },
             context_tokens=response.context.tokens,
             usage=usage,
             usage_complete=True,
@@ -550,7 +563,7 @@ class UnifiedBenchmarkRunner:
                         ),
                     },
                 ],
-                schema=self.answer_schema,
+                schema=answer_schema_with_citations(self.answer_schema, context.raw_selected_ids),
                 temperature=self.manifest["sampling"]["temperature"],
                 seed=self.manifest["sampling"]["seed"],
             )
@@ -630,7 +643,9 @@ class UnifiedBenchmarkRunner:
 
 
 def validate_answer_output(
-    value: dict[str, Any], allowed_citations: list[str], citation_map: dict[str, str]
+    value: dict[str, Any],
+    allowed_citations: list[str],
+    citation_map: dict[str, tuple[str, ...]],
 ) -> dict[str, Any]:
     fields = {"abstain", "answer", "items", "reason_code", "citations"}
     if not isinstance(value, dict) or set(value) != fields:
@@ -660,12 +675,33 @@ def validate_answer_output(
         raise RunnerError("UNKNOWN_CITATION", "answer cites evidence outside the context")
     mapped = []
     for citation in citations:
-        event_id = citation_map.get(citation)
-        if event_id is None:
+        event_ids = citation_map.get(citation)
+        if event_ids is None:
             raise RunnerError("UNKNOWN_CITATION", "answer citation cannot be mapped")
-        if event_id not in mapped:
-            mapped.append(event_id)
+        for event_id in event_ids:
+            if event_id not in mapped:
+                mapped.append(event_id)
     return {**value, "items": list(items), "citations": mapped}
+
+
+def answer_schema_with_citations(
+    schema: dict[str, Any], allowed_citations: list[str]
+) -> dict[str, Any]:
+    """Constrain structured decoding to citation identifiers visible in this context."""
+    if len(allowed_citations) != len(set(allowed_citations)):
+        raise RunnerError("ANSWER_SCHEMA", "allowed citations are duplicated")
+    constrained = copy.deepcopy(schema)
+    try:
+        citations = constrained["properties"]["citations"]
+        citation_items = citations["items"]
+    except (KeyError, TypeError) as exc:
+        raise RunnerError("ANSWER_SCHEMA", "answer citation schema is invalid") from exc
+    if not isinstance(citations, dict) or not isinstance(citation_items, dict):
+        raise RunnerError("ANSWER_SCHEMA", "answer citation schema is invalid")
+    citations["maxItems"] = min(citations.get("maxItems", 64), len(allowed_citations))
+    if allowed_citations:
+        citation_items["enum"] = list(allowed_citations)
+    return constrained
 
 
 def create_hs256_token(
@@ -702,6 +738,26 @@ def create_hs256_token(
         hmac.new(secret, signing_input, hashlib.sha256).digest()
     ).rstrip(b"=")
     return f"{header}.{payload}.{signature.decode('ascii')}"
+
+
+def memos_roles_for_manifest(manifest: dict[str, Any]) -> list[str]:
+    authorization = manifest.get("memos_authorization")
+    if authorization is None:
+        return list(LEGACY_MEMOS_ROLES)
+    roles = authorization.get("roles") if isinstance(authorization, dict) else None
+    if (
+        not isinstance(roles, list)
+        or not roles
+        or any(not isinstance(role, str) or role not in ALLOWED_MEMOS_ROLES for role in roles)
+        or len(roles) != len(set(roles))
+        or "USER" not in roles
+        or "OPERATOR" not in roles
+    ):
+        raise RunnerError(
+            "JWT_CONFIGURATION",
+            "memos_authorization.roles must be unique allowed roles containing USER and OPERATOR",
+        )
+    return list(roles)
 
 
 def run_command(argv: list[str] | None = None) -> int:

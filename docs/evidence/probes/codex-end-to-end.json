@@ -1,0 +1,279 @@
+{
+  "scope": "codex-smoke-6a37c403dcc5",
+  "receipt": {
+    "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+    "sourceId": "codex-smoke-6a37c403dcc5",
+    "materializationJobId": "d23b4947-6050-4ec1-9824-c52f61081a7e",
+    "disposition": "ACCEPTED",
+    "acceptedAt": "2026-09-07T04:40:44.022837Z",
+    "materializationState": "PENDING"
+  },
+  "observations": [
+    {
+      "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+      "status": "PROCESSING",
+      "createdAt": "2026-09-07T04:40:44.022837Z",
+      "updatedAt": "2026-09-07T04:40:44.022837Z",
+      "settledAt": null,
+      "usage": {
+        "complete": false,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "embeddingTokens": 0,
+        "modelCalls": 0
+      },
+      "jobs": [
+        {
+          "jobId": "d23b4947-6050-4ec1-9824-c52f61081a7e",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "MATERIALIZE_SOURCE",
+          "state": "PENDING",
+          "attempt": 0,
+          "maxAttempts": 5,
+          "nextAttemptAt": "2026-09-07T04:40:44.022837Z",
+          "leaseExpiresAt": null,
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": null,
+          "createdAt": "2026-09-07T04:40:44.022837Z",
+          "updatedAt": "2026-09-07T04:40:44.022837Z"
+        }
+      ]
+    },
+    {
+      "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+      "status": "PROCESSING",
+      "createdAt": "2026-09-07T04:40:44.022837Z",
+      "updatedAt": "2026-09-07T04:40:45.139701Z",
+      "settledAt": null,
+      "usage": {
+        "complete": false,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "embeddingTokens": 0,
+        "modelCalls": 0
+      },
+      "jobs": [
+        {
+          "jobId": "d23b4947-6050-4ec1-9824-c52f61081a7e",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "MATERIALIZE_SOURCE",
+          "state": "CLAIMED",
+          "attempt": 1,
+          "maxAttempts": 5,
+          "nextAttemptAt": null,
+          "leaseExpiresAt": "2026-09-07T04:41:15.139699Z",
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": null,
+          "createdAt": "2026-09-07T04:40:44.022837Z",
+          "updatedAt": "2026-09-07T04:40:45.139701Z"
+        }
+      ]
+    },
+    {
+      "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+      "status": "PROCESSING",
+      "createdAt": "2026-09-07T04:40:44.022837Z",
+      "updatedAt": "2026-09-07T04:40:55.163025Z",
+      "settledAt": null,
+      "usage": {
+        "complete": false,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "embeddingTokens": 0,
+        "modelCalls": 0
+      },
+      "jobs": [
+        {
+          "jobId": "d23b4947-6050-4ec1-9824-c52f61081a7e",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "MATERIALIZE_SOURCE",
+          "state": "CLAIMED",
+          "attempt": 1,
+          "maxAttempts": 5,
+          "nextAttemptAt": null,
+          "leaseExpiresAt": "2026-09-07T04:41:25.163024Z",
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": null,
+          "createdAt": "2026-09-07T04:40:44.022837Z",
+          "updatedAt": "2026-09-07T04:40:55.163025Z"
+        }
+      ]
+    },
+    {
+      "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+      "status": "PROCESSING",
+      "createdAt": "2026-09-07T04:40:44.022837Z",
+      "updatedAt": "2026-09-07T04:41:01.881213Z",
+      "settledAt": null,
+      "usage": {
+        "complete": false,
+        "inputTokens": 18764,
+        "outputTokens": 197,
+        "embeddingTokens": 0,
+        "modelCalls": 1
+      },
+      "jobs": [
+        {
+          "jobId": "d23b4947-6050-4ec1-9824-c52f61081a7e",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "MATERIALIZE_SOURCE",
+          "state": "SUCCEEDED",
+          "attempt": 1,
+          "maxAttempts": 5,
+          "nextAttemptAt": null,
+          "leaseExpiresAt": null,
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": "2026-09-07T04:41:00.805063Z",
+          "createdAt": "2026-09-07T04:40:44.022837Z",
+          "updatedAt": "2026-09-07T04:41:00.805063Z"
+        },
+        {
+          "jobId": "25fa34ff-e57b-36ad-9d60-5e00922643fe",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "CANDIDATE_MATERIALIZATION",
+          "state": "SUCCEEDED",
+          "attempt": 1,
+          "maxAttempts": 5,
+          "nextAttemptAt": null,
+          "leaseExpiresAt": null,
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": "2026-09-07T04:41:01.881213Z",
+          "createdAt": "2026-09-07T04:41:00.803470Z",
+          "updatedAt": "2026-09-07T04:41:01.881213Z"
+        },
+        {
+          "jobId": "bf5704db-e33f-3a91-8c56-e1fcc6d994fb",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "PROJECTION_BUILD",
+          "state": "PENDING",
+          "attempt": 0,
+          "maxAttempts": 3,
+          "nextAttemptAt": "2026-09-07T04:41:01.879040Z",
+          "leaseExpiresAt": null,
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": null,
+          "createdAt": "2026-09-07T04:41:01.879040Z",
+          "updatedAt": "2026-09-07T04:41:01.879040Z"
+        }
+      ]
+    },
+    {
+      "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+      "status": "SUCCEEDED",
+      "createdAt": "2026-09-07T04:40:44.022837Z",
+      "updatedAt": "2026-09-07T04:41:02.929100Z",
+      "settledAt": "2026-09-07T04:41:02.929100Z",
+      "usage": {
+        "complete": true,
+        "inputTokens": 18764,
+        "outputTokens": 197,
+        "embeddingTokens": 33,
+        "modelCalls": 2
+      },
+      "jobs": [
+        {
+          "jobId": "d23b4947-6050-4ec1-9824-c52f61081a7e",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "MATERIALIZE_SOURCE",
+          "state": "SUCCEEDED",
+          "attempt": 1,
+          "maxAttempts": 5,
+          "nextAttemptAt": null,
+          "leaseExpiresAt": null,
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": "2026-09-07T04:41:00.805063Z",
+          "createdAt": "2026-09-07T04:40:44.022837Z",
+          "updatedAt": "2026-09-07T04:41:00.805063Z"
+        },
+        {
+          "jobId": "25fa34ff-e57b-36ad-9d60-5e00922643fe",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "CANDIDATE_MATERIALIZATION",
+          "state": "SUCCEEDED",
+          "attempt": 1,
+          "maxAttempts": 5,
+          "nextAttemptAt": null,
+          "leaseExpiresAt": null,
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": "2026-09-07T04:41:01.881213Z",
+          "createdAt": "2026-09-07T04:41:00.803470Z",
+          "updatedAt": "2026-09-07T04:41:01.881213Z"
+        },
+        {
+          "jobId": "bf5704db-e33f-3a91-8c56-e1fcc6d994fb",
+          "sourceEventId": "893d2beb-8cc5-4224-bfda-cd34db81d96c",
+          "jobType": "PROJECTION_BUILD",
+          "state": "SUCCEEDED",
+          "attempt": 1,
+          "maxAttempts": 3,
+          "nextAttemptAt": null,
+          "leaseExpiresAt": null,
+          "errorClass": null,
+          "replayCount": 0,
+          "completedAt": "2026-09-07T04:41:02.929100Z",
+          "createdAt": "2026-09-07T04:41:01.879040Z",
+          "updatedAt": "2026-09-07T04:41:02.929100Z"
+        }
+      ]
+    }
+  ],
+  "retrieval": {
+    "gate": {
+      "retrieve": true,
+      "reason": "MEMORY_RETRIEVAL_REQUIRED"
+    },
+    "intent": {
+      "temporal": "PRESENT",
+      "targetTime": null
+    },
+    "context": {
+      "rendered": "<memory-evidence trust=\"untrusted-data\">\n  <memory id=\"93a1a77d-e52c-450b-a0ba-fa1166d66559\" version-id=\"5a273baa-9d93-4a4c-b0b4-e60a6003449f\" status=\"CURRENT\" predicate=\"editor.theme_preference\" source-event-ids=\"893d2beb-8cc5-4224-bfda-cd34db81d96c\">User prefers a dark editor theme.</memory>\n</memory-evidence>",
+      "tokens": 313,
+      "tokenCounterVersion": "embedding-model:deterministic-hashing-1024-v1",
+      "tokenCountProviderInputTokens": 372,
+      "tokenCountProviderCalls": 2,
+      "considered": 1,
+      "selected": 1,
+      "truncated": false,
+      "selectedVersionIds": [
+        "5a273baa-9d93-4a4c-b0b4-e60a6003449f"
+      ]
+    },
+    "memories": [
+      {
+        "memoryId": "93a1a77d-e52c-450b-a0ba-fa1166d66559",
+        "versionId": "5a273baa-9d93-4a4c-b0b4-e60a6003449f",
+        "memoryType": "SEMANTIC",
+        "subjectKind": "USER",
+        "subjectLabel": null,
+        "predicate": "editor.theme_preference",
+        "status": "CURRENT",
+        "normalizedContent": "User prefers a dark editor theme.",
+        "validFrom": null,
+        "validTo": null,
+        "recordedAt": "2026-09-07T04:41:01.497728Z",
+        "sourceEventIds": [
+          "893d2beb-8cc5-4224-bfda-cd34db81d96c"
+        ],
+        "fusedScore": 0.01639344262295082,
+        "rerankRank": null,
+        "watermark": {
+          "transitionSequence": 1,
+          "projectionPolicyVersion": "projection-v1",
+          "embeddingModelVersion": "deterministic-hashing-1024-v1",
+          "projectedAt": "2026-09-07T04:41:02.555210Z"
+        },
+        "components": []
+      }
+    ],
+    "trace": null
+  }
+}

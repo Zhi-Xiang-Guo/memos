@@ -1,3 +1,8 @@
+> Current checkpoint (2026-09-07): the first frozen synthetic four-baseline test is verified and
+> reconstructed, with a negative result. Historical NOT RUN and missing-reconciliation statements
+> below describe earlier implementation milestones. See [current results](../benchmark/results.md)
+> and [ADR 0006](../adr/0006-projection-identity-reconciliation.md).
+
 # Feature 6 - reproducible evaluation and evidence package
 
 Status: `DOING`. The initial product workload and smoke contract were published through commit
@@ -318,3 +323,37 @@ server `0.33.2`, both full model digests, the required completion/embedding capa
 1024-dimensional `qwen3-embedding:0.6b` response. The one-input probe reported seven embedding
 tokens plus provider total/load durations. This is a contract observation from one call, not a
 warm/cold latency sample or benchmark result; no quality or SLO claim follows from it.
+
+## September 7 evidence gate extension
+
+The user authorized [the 21-day gate](../evidence/21-day-gate.md), local environment recovery and
+projection identity reconciliation. [ADR-0006](../adr/0006-projection-identity-reconciliation.md)
+describes the maintenance boundary and generation fence. [The runbook](../local-runbook.md)
+provides Java 25, Podman/Docker, manual Ollama, optional existing Codex-proxy development mode,
+and clean-checkout benchmark commands. This milestone does not establish quality superiority.
+
+The September 7 extension now includes two dev packages and one frozen test at c1b5225. All 120
+formal answer executions succeeded, but MemOS answered 0/30 correctly against 21/30 for each
+simple baseline. Native identity provenance, per-row usage/storage, original failures and
+byte-identical report reconstruction are published. This closes a bounded execution gap while
+leaving utility, representative evaluation, consumer integration and production claims open.
+
+## Post-gate remediation and Waku consumer
+
+After preserving the frozen negative result, a separately versioned policy-v3 development path
+fixed two implementation defects found in source-level evidence: JWT roles were not persisted as
+source write capabilities, and the extraction prompt did not define ordinary durable facts versus
+procedural, sensitive or conversational noise precisely enough for the selected 4b model. A new
+migration persists the bounded capability enum; explicit roles map to project/procedural grants,
+while `OPERATOR` remains read/trace authority and grants no write scope by itself.
+
+The post-gate dev smoke at `0ce3ac0` completed all 12 executions, with complete usage/storage and
+verifier hash `00e47ad341e5a3b25aff6b41c8630a5ad94f568ff3b7f6420df99db0df7da714`.
+MemOS answered all three dev questions, but this repaired three-question split is not held-out.
+One stale theme event still entered selected context. The frozen temporal-v2 result remains the
+only eligible held-out claim and remains negative.
+
+[Waku Agent consumer evidence](../evidence/waku-integration-2026-09-07.md) records the real client
+boundary. Its published adapter passed all 12 live `FactStore` conformance cases and Waku's full
+619-test deterministic gate. This closes the missing-consumer mechanism gate without establishing
+production use, scale or quality superiority.

@@ -14,7 +14,9 @@ from memos_benchmark.runner import (
     RunnerError,
     RunnerSettings,
     UnifiedBenchmarkRunner,
+    answer_schema_with_citations,
     create_hs256_token,
+    memos_roles_for_manifest,
     validate_answer_output,
 )
 
@@ -122,7 +124,7 @@ class FakeMemosClient:
             context=SimpleNamespace(
                 rendered=rendered,
                 tokens=1,
-                token_counter_version="sha256:" + EMBEDDING_DIGEST,
+                token_counter_version="embedding-model:sha256:" + EMBEDDING_DIGEST,
                 token_count_provider_input_tokens=2,
                 token_count_provider_calls=1,
             ),
@@ -133,6 +135,11 @@ class FakeMemosClient:
             ),
             ranked_source_event_ids=(SOURCE_ID,),
             selected_source_event_ids=(SOURCE_ID,),
+            citation_source_event_ids={
+                "00000000-0000-0000-0000-000000000030": (SOURCE_ID,),
+                VERSION_ID: (SOURCE_ID,),
+                SOURCE_ID: (SOURCE_ID,),
+            },
         )
 
 
@@ -210,7 +217,12 @@ def test_unified_runner_emits_every_four_baseline_execution_row() -> None:
         dataset_manifest=_manifest(),
         scenarios=[_scenario()],
         answer_prompt="answer",
-        answer_schema={"type": "object", "properties": {"citations": {}}},
+        answer_schema={
+            "type": "object",
+            "properties": {
+                "citations": {"type": "array", "maxItems": 64, "items": {"type": "string"}}
+            },
+        },
         summary_prompt="summary",
         summary_schema={"type": "object", "properties": {"facts": {}}},
         settings=_settings(),
@@ -265,15 +277,65 @@ def test_answer_validation_maps_memos_citations_and_rejects_unknown_values() -> 
         "citations": [SOURCE_ID],
     }
 
-    mapped = validate_answer_output(output, [SOURCE_ID], {SOURCE_ID: "event-1"})
+    mapped = validate_answer_output(output, [SOURCE_ID], {SOURCE_ID: ("event-1",)})
 
     assert mapped["citations"] == ["event-1"]
     with pytest.raises(RunnerError, match="outside the context"):
         validate_answer_output(
             {**output, "citations": [str(UUID(int=99))]},
             [SOURCE_ID],
-            {SOURCE_ID: "event-1"},
+            {SOURCE_ID: ("event-1",)},
         )
+
+
+def test_answer_validation_maps_selected_memory_and_version_citations_to_provenance() -> None:
+    memory_id = "00000000-0000-0000-0000-000000000030"
+    output = {
+        "abstain": False,
+        "answer": "light",
+        "items": [],
+        "reason_code": "",
+        "citations": [memory_id, VERSION_ID],
+    }
+
+    mapped = validate_answer_output(
+        output,
+        [memory_id, VERSION_ID, SOURCE_ID],
+        {
+            memory_id: ("event-1", "event-2"),
+            VERSION_ID: ("event-2",),
+            SOURCE_ID: ("event-2",),
+        },
+    )
+
+    assert mapped["citations"] == ["event-1", "event-2"]
+
+
+def test_answer_schema_constrains_decoding_to_visible_citations_without_mutating_base() -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "citations": {
+                "type": "array",
+                "maxItems": 64,
+                "items": {"type": "string", "maxLength": 200},
+            }
+        },
+    }
+
+    constrained = answer_schema_with_citations(schema, [SOURCE_ID, VERSION_ID])
+
+    assert constrained["properties"]["citations"]["maxItems"] == 2
+    assert constrained["properties"]["citations"]["items"]["enum"] == [
+        SOURCE_ID,
+        VERSION_ID,
+    ]
+    assert "enum" not in schema["properties"]["citations"]["items"]
+    assert answer_schema_with_citations(schema, [])["properties"]["citations"] == {
+        "type": "array",
+        "maxItems": 0,
+        "items": {"type": "string", "maxLength": 200},
+    }
 
 
 def test_generated_hs256_token_contains_exact_scope_and_roles() -> None:
@@ -295,3 +357,50 @@ def test_generated_hs256_token_contains_exact_scope_and_roles() -> None:
     assert decoded["tenant_id"] == "tenant"
     assert decoded["roles"] == ["USER", "OPERATOR"]
     assert decoded["exp"] == 1000
+
+
+def test_manifest_declares_exact_memos_authorization_without_changing_legacy_runs() -> None:
+    assert memos_roles_for_manifest(_manifest()) == ["USER", "OPERATOR"]
+    manifest = _manifest()
+    manifest["memos_authorization"] = {"roles": ["USER", "OPERATOR", "PROJECT_MEMORY_WRITER"]}
+
+    assert memos_roles_for_manifest(manifest) == [
+        "USER",
+        "OPERATOR",
+        "PROJECT_MEMORY_WRITER",
+    ]
+
+    manifest["memos_authorization"] = {"roles": ["USER", "USER"]}
+    with pytest.raises(RunnerError, match="roles"):
+        memos_roles_for_manifest(manifest)
+
+
+@pytest.mark.parametrize(
+    "counter_version", ["sha256:" + EMBEDDING_DIGEST, "embedding-model:sha256:" + "c" * 64]
+)
+def test_memos_context_rejects_counter_kind_or_digest_drift(counter_version: str) -> None:
+    class DriftedCounterClient(FakeMemosClient):
+        def retrieval_trace(self, query: str, bearer_token: str, **kwargs: Any) -> Any:
+            response = super().retrieval_trace(query, bearer_token, **kwargs)
+            response.context.token_counter_version = counter_version
+            return response
+
+    runner = UnifiedBenchmarkRunner(
+        runtime=FakeRuntime(),
+        memos=DriftedCounterClient(),
+        dataset_manifest=_manifest(),
+        scenarios=[_scenario()],
+        answer_prompt="answer",
+        answer_schema={
+            "type": "object",
+            "properties": {
+                "citations": {"type": "array", "maxItems": 64, "items": {"type": "string"}}
+            },
+        },
+        summary_prompt="summary",
+        summary_schema={"type": "object", "properties": {"facts": {}}},
+        settings=_settings(),
+    )
+    with pytest.raises(RunnerError) as failure:
+        runner._memos_context({"query": "Which color?"}, "token", {SOURCE_ID: "event-1"})
+    assert failure.value.kind == "TOKENIZER_IDENTITY"

@@ -1,0 +1,391 @@
+{
+  "reviewed_at": "2026-09-07",
+  "space_id": "7603709140535430108",
+  "source_revision": "88ec3a08dfa58d27a7e436b7b8e6b641a9859883",
+  "waku_revision": "dbcda82615506db89f07d3187d64ba4c7032800a",
+  "main_questions": 25,
+  "followups": 50,
+  "native_tables": 34,
+  "populated_cells": 1047,
+  "nodes": [
+    {
+      "key": "market",
+      "title": "03｜岗位研究与项目取舍（2026-09-07）",
+      "node_token": "S1J4wuyaKiyAoVkn3YEcXvbhnje",
+      "document_id": "H4Ahd09NqoDAN7xHGMqckBRQnwf",
+      "parent_node_token": "VpP1wOrvLioPVWkltUjcGpklngi",
+      "space_id": "7603709140535430108",
+      "blocks": 44,
+      "tables": 3,
+      "cells": 81,
+      "column_widths": [
+        [
+          274,
+          274,
+          274
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ]
+      ]
+    },
+    {
+      "key": "guide",
+      "title": "01｜MemOS 完整模块导学与五层训练",
+      "node_token": "LENSwWtpfivGbIkcq9rcBTH7nQe",
+      "document_id": "XTWjd1jN4orDCNxprlwcE5CsnNe",
+      "parent_node_token": "VpP1wOrvLioPVWkltUjcGpklngi",
+      "space_id": "7603709140535430108",
+      "blocks": 215,
+      "tables": 6,
+      "cells": 173,
+      "column_widths": [
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          164,
+          164,
+          164,
+          164,
+          164
+        ],
+        [
+          164,
+          164,
+          164,
+          164,
+          164
+        ],
+        [
+          164,
+          164,
+          164,
+          164,
+          164
+        ],
+        [
+          164,
+          164,
+          164,
+          164,
+          164
+        ]
+      ]
+    },
+    {
+      "key": "star",
+      "title": "02｜MemOS STAR 题库：25 主问与 50 追问",
+      "node_token": "QsiOwKuboi5Vt0kQW17c9WVjnQd",
+      "document_id": "SX5jd6LzboC1C6x5Qrzc8Rc7nkc",
+      "parent_node_token": "VpP1wOrvLioPVWkltUjcGpklngi",
+      "space_id": "7603709140535430108",
+      "blocks": 361,
+      "tables": 3,
+      "cells": 60,
+      "column_widths": [
+        [
+          274,
+          274,
+          274
+        ],
+        [
+          274,
+          274,
+          274
+        ],
+        [
+          274,
+          274,
+          274
+        ]
+      ]
+    },
+    {
+      "key": "hub",
+      "title": "MemOS｜模块导学与分层面试 Q&A",
+      "node_token": "VpP1wOrvLioPVWkltUjcGpklngi",
+      "document_id": "H1iwdARbzoIQzmxgizHcYpGYnTe",
+      "parent_node_token": "JKepwkZ01iLL0Okvr9qcUWvXnIc",
+      "space_id": "7603709140535430108",
+      "blocks": 17,
+      "tables": 1,
+      "cells": 15,
+      "column_widths": [
+        [
+          274,
+          274,
+          274
+        ]
+      ]
+    },
+    {
+      "key": "mod1",
+      "title": "01.1｜领域、受理、物化与治理（M01–M04）",
+      "node_token": "J0EkwbEBViMqJdkSEhwcKVG2n2e",
+      "document_id": "OXwXdH0zqogxbtxMokScCflknre",
+      "parent_node_token": "LENSwWtpfivGbIkcq9rcBTH7nQe",
+      "space_id": "7603709140535430108",
+      "blocks": 24,
+      "tables": 0,
+      "cells": 0,
+      "column_widths": []
+    },
+    {
+      "key": "mod2",
+      "title": "01.2｜检索、上下文、适配器与观测（M05–M08）",
+      "node_token": "GVwHwL9g0i5nfmkPCuycuH3Tnec",
+      "document_id": "PdPbd0jBsoRdLMxONwOcEoSdntg",
+      "parent_node_token": "LENSwWtpfivGbIkcq9rcBTH7nQe",
+      "space_id": "7603709140535430108",
+      "blocks": 24,
+      "tables": 0,
+      "cells": 0,
+      "column_widths": []
+    },
+    {
+      "key": "mod3",
+      "title": "01.3｜API、Worker、评测与 Waku（M09–M13）",
+      "node_token": "OsGBwFRrlilpGjkaH2WcTvgcnuh",
+      "document_id": "OmNCdwF0poQ61PxzZ3xcVdbLnUc",
+      "parent_node_token": "LENSwWtpfivGbIkcq9rcBTH7nQe",
+      "space_id": "7603709140535430108",
+      "blocks": 31,
+      "tables": 1,
+      "cells": 18,
+      "column_widths": [
+        [
+          274,
+          274,
+          274
+        ]
+      ]
+    },
+    {
+      "key": "qa1",
+      "title": "02.1｜故障与工具合同（Q23／F26–F33）",
+      "node_token": "N3Y1wxHjDi13Fpki2FNcbvSxnqa",
+      "document_id": "VIIgdMN0ioZie3x0emDcb8WUnId",
+      "parent_node_token": "QsiOwKuboi5Vt0kQW17c9WVjnQd",
+      "space_id": "7603709140535430108",
+      "blocks": 49,
+      "tables": 0,
+      "cells": 0,
+      "column_widths": []
+    },
+    {
+      "key": "qa2",
+      "title": "02.2｜记忆与未见评测（Q24／F34–F41）",
+      "node_token": "BwpUwVlHeiXKOLkx1MDcDezYnBb",
+      "document_id": "WdD9dErVOoAzdFxBEeocVcSxncj",
+      "parent_node_token": "QsiOwKuboi5Vt0kQW17c9WVjnQd",
+      "space_id": "7603709140535430108",
+      "blocks": 49,
+      "tables": 0,
+      "cells": 0,
+      "column_widths": []
+    },
+    {
+      "key": "qa3",
+      "title": "02.3｜岗位与项目取舍（Q25／F42–F50）",
+      "node_token": "F2e0wAHAWioR7OkZBe6czIRRn5e",
+      "document_id": "HRs8dDJJ1ov9iJxcKQqc2yIanug",
+      "parent_node_token": "QsiOwKuboi5Vt0kQW17c9WVjnQd",
+      "space_id": "7603709140535430108",
+      "blocks": 57,
+      "tables": 0,
+      "cells": 0,
+      "column_widths": []
+    },
+    {
+      "key": "src1",
+      "title": "03.1｜牛客来源 001–040",
+      "node_token": "PLuvwNI08i6T5FkMtDjcwLX0nEk",
+      "document_id": "MRhVdKR6Xo4iRxxZij9cwe8Rnec",
+      "parent_node_token": "S1J4wuyaKiyAoVkn3YEcXvbhnje",
+      "space_id": "7603709140535430108",
+      "blocks": 13,
+      "tables": 5,
+      "cells": 180,
+      "column_widths": [
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ]
+      ]
+    },
+    {
+      "key": "src2",
+      "title": "03.2｜牛客来源 041–080",
+      "node_token": "ELnxwyR1liUQygkYmdPcnQfAn1c",
+      "document_id": "CZeSd7tlOoCpV8xdVp2c8anDnBl",
+      "parent_node_token": "S1J4wuyaKiyAoVkn3YEcXvbhnje",
+      "space_id": "7603709140535430108",
+      "blocks": 13,
+      "tables": 5,
+      "cells": 180,
+      "column_widths": [
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ]
+      ]
+    },
+    {
+      "key": "src3",
+      "title": "03.3｜牛客来源 081–123",
+      "node_token": "T9tYwiMCaixaOdkDDUFc7ctEnnm",
+      "document_id": "FJktdrgXaoQeU2xCL9NcQxcgnbf",
+      "parent_node_token": "S1J4wuyaKiyAoVkn3YEcXvbhnje",
+      "space_id": "7603709140535430108",
+      "blocks": 15,
+      "tables": 6,
+      "cells": 196,
+      "column_widths": [
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ]
+      ]
+    },
+    {
+      "key": "src4",
+      "title": "03.4｜JD 证据：5 官方全文＋27 BOSS 摘要",
+      "node_token": "GO3Ewdrd7idL8SkCfsZcXzmqn6c",
+      "document_id": "WkAhd4vCbo7fw6xIa1FcjOAGnJ3",
+      "parent_node_token": "S1J4wuyaKiyAoVkn3YEcXvbhnje",
+      "space_id": "7603709140535430108",
+      "blocks": 13,
+      "tables": 4,
+      "cells": 144,
+      "column_widths": [
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ],
+        [
+          205,
+          205,
+          205,
+          205
+        ]
+      ]
+    }
+  ]
+}

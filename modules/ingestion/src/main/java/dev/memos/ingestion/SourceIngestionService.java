@@ -66,6 +66,7 @@ public final class SourceIngestionService {
             command.actorType(),
             command.sourceType(),
             command.trustLevel(),
+            command.writeCapabilities(),
             command.occurredAt(),
             now,
             canonicalPayload,
@@ -117,6 +118,10 @@ public final class SourceIngestionService {
     add(digest, command.actorType().name());
     add(digest, command.sourceType().name());
     add(digest, command.trustLevel().name());
+    command.writeCapabilities().stream()
+        .map(Enum::name)
+        .sorted()
+        .forEach(capability -> add(digest, capability));
     add(digest, command.occurredAt().toString());
     add(digest, canonicalPayload);
     return new Sha256Fingerprint(HexFormat.of().formatHex(digest.digest()));

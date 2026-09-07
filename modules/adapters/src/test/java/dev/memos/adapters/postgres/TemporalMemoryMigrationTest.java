@@ -1179,6 +1179,178 @@ class TemporalMemoryMigrationTest {
     assertThat(candidates.findCandidates(scopedQuery)).isEmpty();
   }
 
+  @Test
+  void reconciliationIsAtomicIdempotentAndFencesOldJobsAcrossRollbackToPreviousModel()
+      throws Exception {
+    Fixture fixture = fixture("tenant-reconciliation");
+    UUID memory = UUID.randomUUID();
+    UUID version = UUID.randomUUID();
+    UUID transition = UUID.randomUUID();
+    insertFirstAuthority(fixture, memory, version, transition);
+    ClaimedJob oldJob = insertClaimedProjectionJob(fixture, transition);
+    DataSource dataSource =
+        new DriverManagerDataSource(
+            DATABASE.getJdbcUrl(), DATABASE.getUsername(), DATABASE.getPassword());
+    JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+    TransactionTemplate tx = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
+    JdbcProjectionBuildStore store = new JdbcProjectionBuildStore(jdbc, tx);
+    ProjectionBuildPlan oldPlan = store.load(oldJob).orElseThrow();
+    String model = "deterministic-hashing-1024-v1";
+    String sql = "SELECT memos.reconcile_projection(?, ?, 'projection-v1', ?)";
+    assertThatThrownBy(() -> jdbc.queryForObject(sql, Long.class, "model-b", 1024, false))
+        .hasMessageContaining("PROJECTION_RECONCILIATION_REQUIRED");
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM memos.projection_generation", Long.class))
+        .isZero();
+    tx.executeWithoutResult(
+        status -> {
+          long first = jdbc.queryForObject(sql, Long.class, model, 1024, true);
+          assertThat(jdbc.queryForObject(sql, Long.class, model, 1024, true)).isEqualTo(first);
+          assertThat(store.load(oldJob)).isEmpty();
+          assertThat(
+                  store.commit(
+                      new CommitProjectionBuild(
+                          oldPlan, projected(oldPlan), java.time.Instant.now())))
+              .isEqualTo(ProjectionCommitResult.LEASE_LOST);
+          assertThat(
+                  new JdbcMaterializationJobStore(jdbc, tx)
+                      .replay(oldJob.scope(), oldJob.jobId(), java.time.Instant.now()))
+              .isEqualTo(dev.memos.materialization.ReplayResult.NOT_REPLAYABLE);
+          long second = jdbc.queryForObject(sql, Long.class, "model-b", 768, true);
+          long third = jdbc.queryForObject(sql, Long.class, model, 1024, true);
+          assertThat(second).isGreaterThan(first);
+          assertThat(third).isGreaterThan(second);
+          assertThat(
+                  jdbc.queryForObject(
+                      "SELECT count(*) FROM memos.outbox_job WHERE tenant_id = ? "
+                          + "AND job_type = 'PROJECTION_BUILD' AND state = 'PENDING'",
+                      Long.class,
+                      fixture.tenantId()))
+              .isEqualTo(1L);
+          assertThat(
+                  jdbc.queryForObject(
+                      "SELECT count(*) FROM memos.memory_version "
+                          + "WHERE tenant_id = ? AND version_id = ?",
+                      Long.class,
+                      fixture.tenantId(),
+                      version))
+              .isEqualTo(1L);
+          assertThat(store.load(oldJob)).isEmpty();
+          // A concurrent maintenance transaction cannot observe or interleave a partial switch.
+          try (var executor = Executors.newSingleThreadExecutor()) {
+            var blocked =
+                executor.submit(
+                    () -> {
+                      try (Connection connection = connection();
+                          var statement = connection.createStatement()) {
+                        statement.execute("SET lock_timeout = '200ms'");
+                        try {
+                          statement.execute(
+                              "SELECT memos.reconcile_projection('concurrent', 1024, 'projection-v1', true)");
+                          return "unexpected success";
+                        } catch (SQLException exception) {
+                          return exception.getSQLState();
+                        }
+                      }
+                    });
+            assertThat(blocked.get(5, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo("55P03");
+          } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+          }
+          UUID rebuiltId =
+              jdbc.queryForObject(
+                  "SELECT job_id FROM memos.outbox_job WHERE tenant_id = ? "
+                      + "AND job_type = 'PROJECTION_BUILD' AND state = 'PENDING'",
+                  UUID.class,
+                  fixture.tenantId());
+          String rebuiltKey =
+              jdbc.queryForObject(
+                  "SELECT semantic_job_key FROM memos.outbox_job WHERE job_id = ?",
+                  String.class,
+                  rebuiltId);
+          UUID token = UUID.randomUUID();
+          jdbc.update(
+              "UPDATE memos.outbox_job SET state = 'CLAIMED', attempt = 1, next_attempt_at = NULL, "
+                  + "lease_owner = 'rebuild-worker', lease_token = ?, lease_expires_at = clock_timestamp() + interval '5 minutes', "
+                  + "updated_at = clock_timestamp() WHERE job_id = ?",
+              token,
+              rebuiltId);
+          ClaimedJob rebuilt =
+              new ClaimedJob(
+                  new JobId(rebuiltId),
+                  JobType.PROJECTION_BUILD,
+                  oldJob.scope(),
+                  oldJob.sourceEventId(),
+                  new SemanticJobKey(rebuiltKey),
+                  "projection-v1",
+                  model,
+                  1,
+                  3,
+                  new WorkerId("rebuild-worker"),
+                  new LeaseToken(token),
+                  java.time.Instant.now().plusSeconds(300),
+                  "rebuild-test");
+          ProjectionBuildPlan rebuiltPlan = store.load(rebuilt).orElseThrow();
+          assertThat(
+                  store.commit(
+                      new CommitProjectionBuild(
+                          rebuiltPlan, projected(rebuiltPlan), java.time.Instant.now())))
+              .isEqualTo(ProjectionCommitResult.COMMITTED);
+          assertThat(
+                  new JdbcRetrievalCandidateStore(jdbc)
+                      .findCandidates(candidateQuery(fixture.tenantId(), "user-1", "agent-1")))
+              .isNotEmpty();
+          // A deleted lineage must not be scheduled by a later model migration.
+          jdbc.update(
+              "UPDATE memos.memory_lineage SET lifecycle_state = 'DELETE_REQUESTED', "
+                  + "lock_version = lock_version + 1, updated_at = clock_timestamp() WHERE tenant_id = ? AND memory_id = ?",
+              fixture.tenantId(),
+              memory);
+          jdbc.queryForObject(sql, Long.class, "model-after-delete", 1024, true);
+          assertThat(
+                  jdbc.queryForObject(
+                      "SELECT count(*) FROM memos.outbox_job WHERE tenant_id = ? "
+                          + "AND job_type = 'PROJECTION_BUILD' AND state = 'PENDING'",
+                      Long.class,
+                      fixture.tenantId()))
+              .isZero();
+          assertThat(
+                  new JdbcRetrievalCandidateStore(jdbc)
+                      .findCandidates(candidateQuery(fixture.tenantId(), "user-1", "agent-1")))
+              .isEmpty();
+          status.setRollbackOnly();
+        });
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM memos.projection_generation", Long.class))
+        .isZero();
+    assertThat(store.load(oldJob)).isPresent();
+    assertThat(
+            store.commit(
+                new CommitProjectionBuild(oldPlan, projected(oldPlan), java.time.Instant.now())))
+        .isEqualTo(ProjectionCommitResult.COMMITTED);
+    // Every channel must reject the old model, including lexical and metadata-only candidates.
+    CandidateStoreQuery original = candidateQuery(fixture.tenantId(), "user-1", "agent-1");
+    CandidateStoreQuery changed =
+        new CandidateStoreQuery(
+            original.scope(),
+            original.query(),
+            original.intent(),
+            original.predicate(),
+            original.subjectLabel(),
+            original.componentLimit(),
+            Set.of(CandidateSource.LEXICAL, CandidateSource.STRUCTURED, CandidateSource.TEMPORAL),
+            new EmbeddingResult(unitVector(), "deterministic", "model-b", 4));
+    assertThat(new JdbcRetrievalCandidateStore(jdbc).findCandidates(changed)).isEmpty();
+    // A mid-maintenance exception must restore the previously visible projection as well.
+    assertThatThrownBy(
+            () ->
+                tx.executeWithoutResult(
+                    status -> {
+                      jdbc.queryForObject(sql, Long.class, "model-b", 1024, true);
+                      throw new IllegalStateException("injected maintenance failure");
+                    }))
+        .hasMessageContaining("injected maintenance failure");
+    assertThat(new JdbcRetrievalCandidateStore(jdbc).findCandidates(original)).isNotEmpty();
+  }
+
   private static void insertFirstAuthority(
       Fixture fixture, UUID lineageId, UUID versionId, UUID transitionId) throws SQLException {
     try (Connection connection = connection()) {

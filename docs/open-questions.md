@@ -15,7 +15,7 @@ Anything without adequate source or experimental evidence stays here. `HYPOTHESI
 | OQ-009 | What is the user-visible consistency contract after a message? | Async extraction improves latency but creates a window where a new fact is not retrievable. | Feature 4 exposes a projection transition watermark and zero-row invalidation checkpoint. Feature 6 adds a scope-safe source-level aggregate and bounded client wait, remotely verified in run `#30`; run `#32` verifies PostgreSQL-time lease renewal across slow calls and serial claimed batches so nominal expiry does not create avoidable duplicate calls. These validate settlement and lease mechanisms, not a representative freshness distribution. The final freshness SLO and synchronous read-your-write option remain undecided. | Measure representative freshness distributions and compare asynchronous versus explicit read-your-write behavior. | OPEN |
 | OQ-010 | What does “forget” mean for historical versions and audit logs? | Privacy deletion and evidentiary audit can conflict; even a raw hash of low-entropy PII may disclose content by guessing. | Feature 5 implements PostgreSQL request-time hiding plus fenced purge of payloads, derived content/fingerprints, current/search projections, and affected jobs; it retains append-only content-safe audit facts and opaque UUID tombstones. Dead operations stay isolated and require privacy-admin requeue. Remote run #22 confirms PostgreSQL propagation, replay, and concurrency mechanics. Scope/source/session/idempotency identifiers are retained under an opaque-ID contract; backup/WAL/replica/provider scope and legal retention remain unestablished. | Legal/product policy for identifier content plus key, backup, replica, and provider lifecycle input for the deployment scope. | OPEN |
 | OQ-011 | Is an entity/relationship graph needed in the first release? | Graphs help multi-hop and temporal relations but add dual-write and query complexity. | Postgres relations/JSON metadata first; graph projection deferred. | Entity/multi-hop benchmark shows material gain beyond relational and hybrid retrieval. | OPEN |
-| OQ-012 | Which LLM and embedding snapshots make the benchmark reproducible and affordable? | Unpinned hosted models drift and invalidate comparisons. | Python and Java Ollama adapters pin tags, full digests, capabilities, and dimensions for the selected local path; runs `#32` and `#34` remotely verify the Java embedding and context-counting contracts. The unified runner published through `db213df` and run `#35` preflights Ollama digests, asserts Java/Python tokenizer parity, and rejects incomplete provider usage. Commit `46ecdd7` and run `#37` add remotely verified storage completeness and independent reviewer-report regeneration. Commit `4920e55` and run `#39` separate extraction request tags from immutable provenance, verify the native Ollama digest/capability, and reject job/provider version drift before a call. Projection reconciliation and the selected real-model run remain pending. | Add projection reconciliation, then publish a verifier-eligible four-baseline run and provider/version/cost/storage matrix. | OPEN |
+| OQ-012 | Which LLM and embedding snapshots make the benchmark reproducible and affordable? | Unpinned hosted models drift and invalidate comparisons. | Python and Java Ollama adapters pin tags, full digests, capabilities, and dimensions for the selected local path; runs `#32` and `#34` remotely verify the Java embedding and context-counting contracts. The unified runner published through `db213df` and run `#35` preflights Ollama digests, asserts Java/Python tokenizer parity, and rejects incomplete provider usage. Commit `46ecdd7` and run `#37` add remotely verified storage completeness and independent reviewer-report regeneration. Commit `4920e55` and run `#39` separate extraction request tags from immutable provenance, verify the native Ollama digest/capability, and reject job/provider version drift before a call. The September 7 maintenance reconciliation, pinned-model frozen test and byte-identical report rebuild are now verified; the test is negative and establishes no affordability or quality advantage. | Preserve the bounded run and representation-specific usage/storage matrix; establish workload suitability, lifecycle boundaries and consumer usefulness. | OPEN |
 | OQ-013 | Which external benchmark licenses permit redistribution or derived fixtures? | Reproducibility cannot violate dataset terms. | Fetch official datasets in setup scripts rather than vendoring by default. | Record license and redistribution status for LoCoMo, LongMemEval, and BEAM. | OPEN |
 | OQ-014 | What are the initial SLOs and scale envelope? | “Millions of users” is not a useful design input without workload and retention assumptions. | Derive targets from three explicit load profiles before optimization. | Capacity model with QPS, memories/user, write amplification, retention, and cost. | OPEN |
 | OQ-015 | How should multiple agents share memory safely? | Shared stores risk information leakage and concurrent conflicting writes. | Tenant/user/agent scopes plus ACLs and optimistic version checks; no implicit global sharing. | Authorization matrix, concurrency tests, and multi-agent benchmark cases. | OPEN |
@@ -41,3 +41,34 @@ Every substantive `HYPOTHESIS` in the Phase 1 documents maps to an open question
 | Frozen bilingual personal/project workload and unachieved SLO gates ([problem definition](architecture/01-problem-definition.md#initial-workload), [performance targets](architecture/01-problem-definition.md#performance-targets)) | OQ-001, OQ-014 | OQ-001 is resolved by the Feature 6 v1 smoke contract; explicit load profiles and measured SLOs remain under OQ-014 |
 | Modular/outbox topology and eventual availability ([progress](progress.md#decision-log-snapshot)) | OQ-009, OQ-014 | Fault-injection spike, queue-lag/freshness and DB-load measurements |
 | MemOS target claims in the [competitive matrix](research/08-competitive-matrix.md#memos-competitive-position-and-falsifiable-claims) | OQ-002–OQ-011, OQ-014–OQ-015 | Feature exit gates, equal-budget benchmarks, fault/security tests, and scale profiles |
+
+## September 7 gate follow-up
+
+OQ-012 now has a bounded implementation candidate in
+[ADR-0006](adr/0006-projection-identity-reconciliation.md): explicit maintenance reconciliation
+for model/dimension/policy identity with append-only generations. Database validation and a verifier-accepted real-model package now exist, with a negative quality result;
+OQ-012 remains open for representative workload suitability and affordability. Same-generation
+corruption repair and production/backup/provider lifecycle remain unestablished.
+
+Source-boundary audit for OQ-005/OQ-010: `SourceIngestionService` persists the normalized raw
+source payload before asynchronous extraction/write policy. Rejected derived candidates do not
+prove that original secrets were never stored or sent to the extraction provider. Ingress DLP,
+source minimization/retention and provider-transfer policy remain OPEN; interview claims must
+state this boundary rather than saying all sensitive content is blocked before any persistence.
+
+Consumer-contract follow-up for OQ-009/OQ-012/OQ-015: Waku conformance verifies the local
+storage interface, not full Agent task utility. Review of adapter commit `b75adf2` shows that
+update spans multiple HTTP requests and can be partially completed; some search/list errors
+collapse to an empty collection; one old-query absence observation does not prove global
+convergence. Failure visibility, cross-retry identity and recovery semantics need a bounded
+failure matrix and regression evidence before stronger guarantees. A cross-session task with
+correction and deletion is the next utility experiment. See the [module guide](../导学-MemOS.md)
+for priorities and exit criteria; these are pending work, not new features already delivered.
+
+September 7 refinement: Waku commit `dbcda82615506db89f07d3187d64ba4c7032800a` supersedes only
+the read-failure-as-empty behavior above and preserves opaque/UUID IDs through administrative
+tools. Its deterministic gate is 630 passed / 73 skipped; new-version live conformance was not
+run. Write failures, partial updates, stable cross-retry identity, deadline composition and
+task-level utility remain OPEN. The [market audit](research/market-2026-09-07/README.md) also
+leaves approximately 100 strict social-hire interviews and authenticated BOSS full-JD coverage
+unmet; aggregate candidates and previews must not be presented as completed full-body samples.

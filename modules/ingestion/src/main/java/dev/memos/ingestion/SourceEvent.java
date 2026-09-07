@@ -1,8 +1,10 @@
 package dev.memos.ingestion;
 
 import dev.memos.governance.MemoryScope;
+import dev.memos.governance.WriteCapability;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Set;
 
 public record SourceEvent(
     SourceEventId sourceEventId,
@@ -13,6 +15,7 @@ public record SourceEvent(
     ActorType actorType,
     SourceType sourceType,
     TrustLevel trustLevel,
+    Set<WriteCapability> writeCapabilities,
     Instant occurredAt,
     Instant receivedAt,
     String canonicalPayload,
@@ -30,6 +33,8 @@ public record SourceEvent(
     Objects.requireNonNull(actorType, "actorType must not be null");
     Objects.requireNonNull(sourceType, "sourceType must not be null");
     Objects.requireNonNull(trustLevel, "trustLevel must not be null");
+    writeCapabilities =
+        Set.copyOf(Objects.requireNonNull(writeCapabilities, "writeCapabilities must not be null"));
     Objects.requireNonNull(occurredAt, "occurredAt must not be null");
     Objects.requireNonNull(receivedAt, "receivedAt must not be null");
     TextValidation.requirePayload(canonicalPayload, 65_536);

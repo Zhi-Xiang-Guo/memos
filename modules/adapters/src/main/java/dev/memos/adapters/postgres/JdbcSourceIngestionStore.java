@@ -61,10 +61,10 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
             """
             INSERT INTO memos.source_event (
                 source_event_id, tenant_id, source_id, user_id, agent_id, session_id,
-                idempotency_key, actor_type, source_type, trust_level, occurred_at,
-                received_at, payload, content_fingerprint, request_fingerprint,
+                idempotency_key, actor_type, source_type, trust_level, write_capabilities,
+                occurred_at, received_at, payload, content_fingerprint, request_fingerprint,
                 deletion_state, trace_id, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::text[], ?, ?, ?::jsonb, ?, ?, ?, ?, ?)
             ON CONFLICT DO NOTHING
             """,
             sourceEvent.sourceEventId().value(),
@@ -77,6 +77,7 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
             sourceEvent.actorType().name(),
             sourceEvent.sourceType().name(),
             sourceEvent.trustLevel().name(),
+            postgresArray(sourceEvent.writeCapabilities()),
             Timestamp.from(sourceEvent.occurredAt()),
             Timestamp.from(sourceEvent.receivedAt()),
             sourceEvent.canonicalPayload(),
@@ -200,6 +201,13 @@ public final class JdbcSourceIngestionStore implements SourceIngestionStore {
 
   private static byte[] bytes(String hex) {
     return HexFormat.of().parseHex(hex);
+  }
+
+  private static String postgresArray(java.util.Set<? extends Enum<?>> values) {
+    return values.stream()
+        .map(Enum::name)
+        .sorted()
+        .collect(java.util.stream.Collectors.joining(",", "{", "}"));
   }
 
   private record ExistingAcceptance(

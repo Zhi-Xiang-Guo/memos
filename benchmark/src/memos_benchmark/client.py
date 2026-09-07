@@ -131,6 +131,7 @@ class RetrievalResponse:
     gate_retrieve: bool
     ranked_source_event_ids: tuple[str, ...]
     selected_source_event_ids: tuple[str, ...]
+    citation_source_event_ids: dict[str, tuple[str, ...]]
     context: RetrievalContext
     trace: RetrievalTrace
 
@@ -449,10 +450,12 @@ def _retrieval_response(payload: dict[str, Any]) -> RetrievalResponse:
     if not isinstance(memories, list):
         raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval memories are invalid")
     by_version: dict[str, tuple[str, ...]] = {}
+    memory_by_version: dict[str, str] = {}
     ranked: list[str] = []
     for memory in memories:
         if not isinstance(memory, dict):
             raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval memory is invalid")
+        memory_id = _uuid(memory.get("memoryId"), "memory.memoryId")
         version_id = _uuid(memory.get("versionId"), "memory.versionId")
         if version_id in by_version:
             raise MemosClientError("MALFORMED_RESPONSE", "MemOS retrieval versions are duplicated")
@@ -463,16 +466,27 @@ def _retrieval_response(payload: dict[str, Any]) -> RetrievalResponse:
         if not source_ids or len(source_ids) != len(set(source_ids)):
             raise MemosClientError("MALFORMED_RESPONSE", "MemOS memory provenance is invalid")
         by_version[version_id] = source_ids
+        memory_by_version[version_id] = memory_id
         _extend_unique(ranked, source_ids)
     if not set(context.selected_version_ids).issubset(by_version):
         raise MemosClientError("MALFORMED_RESPONSE", "MemOS selected context is not ranked")
     selected: list[str] = []
+    citation_sources: dict[str, list[str]] = {}
     for version_id in context.selected_version_ids:
-        _extend_unique(selected, by_version[version_id])
+        source_ids = by_version[version_id]
+        _extend_unique(selected, source_ids)
+        citation_sources[version_id] = list(source_ids)
+        memory_sources = citation_sources.setdefault(memory_by_version[version_id], [])
+        _extend_unique(memory_sources, source_ids)
+        for source_id in source_ids:
+            citation_sources[source_id] = [source_id]
     return RetrievalResponse(
         gate_retrieve=gate["retrieve"],
         ranked_source_event_ids=tuple(ranked),
         selected_source_event_ids=tuple(selected),
+        citation_source_event_ids={
+            citation_id: tuple(source_ids) for citation_id, source_ids in citation_sources.items()
+        },
         context=context,
         trace=trace,
     )

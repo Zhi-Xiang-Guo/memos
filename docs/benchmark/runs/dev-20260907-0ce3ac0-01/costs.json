@@ -1,0 +1,37 @@
+{
+  "by_baseline": {
+    "full_history": {
+      "complete": true,
+      "embedding_tokens": 590,
+      "input_tokens": 987,
+      "model_calls": 11,
+      "output_tokens": 130
+    },
+    "memos": {
+      "complete": true,
+      "embedding_tokens": 726,
+      "input_tokens": 7025,
+      "model_calls": 21,
+      "output_tokens": 721
+    },
+    "raw_turn_vector": {
+      "complete": true,
+      "embedding_tokens": 673,
+      "input_tokens": 987,
+      "model_calls": 17,
+      "output_tokens": 130
+    },
+    "rolling_summary": {
+      "complete": true,
+      "embedding_tokens": 1778,
+      "input_tokens": 2210,
+      "model_calls": 20,
+      "output_tokens": 612
+    }
+  },
+  "disclaimer": "Local model calls and tokens are counted, but monetary and energy costs are not established.",
+  "estimated_cost_usd": null,
+  "pricing_snapshot": null,
+  "schema_version": "memos-benchmark-costs.v1",
+  "usage_complete": true
+}

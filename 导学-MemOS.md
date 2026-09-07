@@ -1,150 +1,324 @@
-# MemOS 项目导学（AI 应用方向）
+# MemOS 模块导学：从请求、状态到岗位证据
 
-> 证据截止：仓库 `main` 分支提交 `6706a10`（2026-08-30）。Features 0–5 已实现并发布；Feature 6 的数据集、四基线运行器、用量与存储证据包已发布，但选定真实模型的正式实验仍为 `NOT RUN`。本文是学习与面试导航，不改变当前 MVP / Evaluation 阶段边界。
+更新：2026-09-07。源码基准：MemOS `85012f7`；Waku 原 live 基线 `b75adf2`，本轮消费者合同修复 `dbcda826`。本文是学习材料，不能代替个人掌握证明。
+配套：[STAR 面经](面经-MemOS.md)、[原题库](docs/interview/memos-grill.md)、[结果账本](docs/benchmark/results.md)。
+飞书阅读：[完整模块导学](https://my.feishu.cn/wiki/LENSwWtpfivGbIkcq9rcBTH7nQe)。
+`CONFIRMED` 表示源码或本地验证可支持；`INFERRED` 表示教学与岗位判断；`HYPOTHESIS` 表示拟测。
 
-## 1. 前置知识（面试高频标注）
+## 1. 前置知识
 
-| 知识点 | 为何需要 | 在本项目中的位置 | 高频度 |
+2026-09-07 第二轮补充：[13模块分层工作簿](docs/interview/layered-module-workbook.md)、[市场样本与项目取舍](docs/research/market-2026-09-07/README.md)、[STAR增补卷](docs/interview/market-star-qa.md)。推荐先读本页全景，再按L0产品/L1流程/L2源码/L3故障/L4实验逐层练习。全套Q&A现为25主问、50追问；来源为116篇可见正文/预览，其中22篇社招自述面试，不冒充100篇严格社招。
+
+下列“高频”表示本项目准备优先级，结合少量面经与 JD 推断，不是招聘市场统计。
+
+| 知识点 | 为什么需要 | 本项目位置 | 高频度 |
 |---|---|---|---|
-| Agent Memory 与 RAG 的边界 | 避免把“记忆”简化为向量 TopK | `README.md`、`docs/architecture/01-problem-definition.md` | ★★★★★ |
-| LLM 结构化输出与不信任输入 | 模型只能提案，不能直接控制权威状态 | `modules/materialization`、`modules/governance` | ★★★★★ |
-| 幂等、事务 Outbox、At-least-once | 跨会话记忆异步写入的基本可靠性问题 | `modules/ingestion`、`modules/materialization` | ★★★★★ |
-| Lease、Fencing Token、指数退避 | 解释超时 worker、重复执行和旧拥有者覆盖 | `OutboxWorkerService`、PostgreSQL adapters | ★★★★ |
-| 版本化事实与双时态思维 | 回答“现在是什么”与“过去什么时候是什么” | `modules/memory-domain/.../temporal` | ★★★★★ |
-| PostgreSQL MVCC、唯一约束、行锁 | 不只在 Java 代码中维护不变量 | `modules/adapters/src/main/resources/db/migration` | ★★★★ |
-| pgvector、FTS、结构化与时态召回 | 理解多路候选如何互补 | `modules/retrieval`、`V005__hybrid_retrieval_projection.sql` | ★★★★★ |
-| RRF 与 Rerank | 解释不可直接比较的原始分数如何融合 | `HybridRetrievalService` | ★★★★ |
-| Prompt Injection 的持久化风险 | 记忆会把恶意内容带到未来会话 | `MemoryContextAssembler`、poisoning fixture | ★★★★★ |
-| JWT Scope、RBAC、租户隔离 | 召回相似不等于有权读取 | `applications/memos-api/.../security` | ★★★★ |
-| 可治理删除与复活防护 | 解释为什么删一行远远不够 | `modules/governance`、`V006__governed_erasure.sql` | ★★★★ |
-| 评测污染、基线公平与可复现性 | 避免把 fixture 通过率当成模型质量 | `benchmark/src/memos_benchmark`、`docs/implementation/feature-6.md` | ★★★★★ |
+| HTTP、202、幂等键、ETag | 分清受理、完成、重复与并发修改 | API、ingestion | 高 |
+| Spring DI 与事务边界 | 找到事务在哪开始、外部调用在哪发生 | adapters、API | 高 |
+| PostgreSQL 唯一约束、行锁、条件更新 | 防双写、丢更新、旧 worker 提交 | outbox、authority | 高 |
+| 至少一次、租约、fencing | 理解重复调用与幂等效果的区别 | materialization | 高 |
+| 向量、FTS、TopK、RRF | 解释候选从哪来及怎样比较 | retrieval | 高 |
+| JWT 验签、scope、RBAC | 把身份和模型语义分开 | API security、governance | 高 |
+| 事件时间、有效时间、记录时间 | 防迟到消息覆盖较新的真实状态 | memory-domain | 高 |
+| 数据集切分、误报漏报、消融 | 解释机制通过却质量失败 | benchmark | 高 |
+| JVM、线程池、连接池、超时 | 定位慢请求，不盲目扩容 | worker、provider adapters | 高 |
+| 容器、模型身份与维度 | 复现环境，防索引与查询模型不兼容 | scripts、V007/V009 | 中 |
 
-## 2. 重点亮点与学习顺序（先看这个）
+## 2. 重点亮点与学习顺序
 
-| 亮点标题 | 为什么重要 | 通用技术关键词 | 先看哪些文件 | 建议学习顺序 |
-|---|---|---|---|---:|
-| 受治理的记忆写入 | 体现 AI 应用不是直接信任模型输出 | structured output、schema、trust、sensitivity、policy | `docs/implementation/feature-2.md`、`modules/materialization/src/main/java/dev/memos/materialization/CandidateExtractionService.java`、`modules/governance/src/main/java/dev/memos/governance/DeterministicCandidateWritePolicy.java` | 1 |
-| 异步可靠编排 | 展示外部模型调用下的事务、重试与故障恢复 | outbox、idempotency、lease、fencing、retry | `docs/implementation/feature-1.md`、`SourceIngestionService.java`、`OutboxWorkerService.java` | 2 |
-| 版本化时态状态建模 | 是“记住历史且不乱选真相”的核心 | lineage、append-only、valid time、transaction time、optimistic lock | `docs/implementation/feature-3.md`、`TemporalTransitionPlanner.java`、`V004__temporal_memory_authority.sql` | 3 |
-| 多路检索与证据预算 | 将语义、精确、时间和权威状态分离 | pgvector、FTS、RRF、query gate、token budget | `docs/implementation/feature-4.md`、`HybridRetrievalService.java`、`MemoryContextAssembler.java` | 4 |
-| 安全与删除闭环 | AI 记忆是长期数据和持久投毒面 | JWT、RBAC、immediate hiding、erasure、tombstone | `docs/implementation/feature-5.md`、`GovernedDeletionService.java`、`JdbcDeletionStore.java` | 5 |
-| 可复现评测证据 | 让“做出来”和“比基线好”成为两个独立结论 | frozen dataset、manifest、baseline parity、artifact verification | `docs/implementation/feature-6.md`、`benchmark/src/memos_benchmark/runner.py`、`benchmark/src/memos_benchmark/artifacts.py` | 6 |
+| 亮点 | 为什么重要 | 通用技术关键词 | 先看文件 | 顺序 |
+|---|---|---|---|---|
+| 证据与状态建模 | 说过不等于当前有效 | provenance、version、transition | `modules/memory-domain/src/main/java/dev/memos/domain/temporal/TemporalTransitionPlanner.java` | 1 |
+| 请求可靠性 | 超时重试不能制造不同结果 | outbox、唯一约束、幂等 | `modules/ingestion/src/main/java/dev/memos/ingestion/SourceIngestionService.java` | 2 |
+| 异步恢复 | 外部模型不可放进长事务 | lease、fence、heartbeat | `modules/materialization/src/main/java/dev/memos/materialization/OutboxWorkerService.java` | 3 |
+| 权限与生命周期 | 召回、更新、删除必须同一身份边界 | JWT、RBAC、tombstone | `modules/adapters/src/main/java/dev/memos/adapters/postgres/JdbcDeletionStore.java` | 4 |
+| 投影与检索 | 索引随模型变化，不能成为唯一事实 | generation、RRF、token budget | `modules/adapters/src/main/resources/db/migration/V009__projection_reconciliation.sql` | 5 |
+| 实验与消费合同 | 从“服务能跑”走到“调用方能用” | raw artifacts、conformance | `benchmark/src/memos_benchmark/runner.py` | 6 |
 
-## 3. 必备知识点
+## 3. 必备知识点自检
 
-- [ ] 能用一句话区分 conversation log、evidence、candidate、assertion、projection。
-- [ ] 能画出 ingestion → extraction → policy → authority → projection → retrieval → context 完整链路。
-- [ ] 能说清事务 outbox 解决什么，不解决 provider exactly-once。
-- [ ] 能推导 claim、lease 过期、reclaim、stale completion 的状态。
-- [ ] 能说清模型输出的 schema 正确为什么不等于可写入。
-- [ ] 能用住址变更例子说清 event time、valid time、transaction time。
-- [ ] 能解释 `CURRENT` / `HISTORICAL` / `CONFLICTED` / `INVALIDATED` 的转移边界。
-- [ ] 能说清为什么权限、真值状态和敏感性必须在排序之前硬过滤。
-- [ ] 能手算一个简单 RRF 示例，并说出它的假设与局限。
-- [ ] 能说清投影为什么可重建，以及模型版本变更为什么需要 reconciliation。
-- [ ] 能说清 token budget 是完整渲染上下文的预算，不是文本片段长度估算。
-- [ ] 能说清“立即隐藏 + 异步物理擦除 + 墓碑防复活”的删除契约。
-- [ ] 能区分确定性 fixture、smoke、真实模型实验和生产 SLO。
+- [ ] 能在白板上画写入、读取、删除三条链路，每条标注鉴权点和事务边界。
+- [ ] 能区分 source、candidate、lineage、version、transition、projection、job 七种身份。
+- [ ] 能解释“数据已提交、响应丢失”和“模型返回、提交前崩溃”两个不同故障窗口。
+- [ ] 能用具体乱序例子解释 CURRENT、HISTORICAL、CONFLICTED、INVALIDATED。
+- [ ] 能从 SQL 指出每路候选的 scope、真值状态、模型身份及代次过滤。
+- [ ] 能解释冻结集 0/30 与开发集 3/3 为什么都必须保留，且不能相互替代。
+- [ ] 能解释 Waku 接口测试通过与真实 Agent 任务成功率之间还有什么距离。
+- [ ] 能不看答案修改一个已有小行为，并提出能使错误实现失败的反例。
 
-## 4. 推荐阅读（结合仓库）
+## 4. 推荐阅读与练习产物
 
-| 主题 | 通用技术点 | 建议阅读位置 | 预计时间 | 读完能回答什么 |
-|---|---|---|---:|---|
-| 项目问题与边界 | Memory 生命周期、风险模型 | `README.md`、`docs/architecture/01-problem-definition.md` | 45 分钟 | 为什么不能保存所有聊天？ |
-| 架构选型 | 模块化单体、单库权威 | `docs/architecture/02-architecture-candidates.md`、`docs/architecture/03-recommended-architecture.md` | 60 分钟 | 为什么当前不用 Kafka / OpenSearch / 图数据库？ |
-| 模块边界 | 依赖倒置、端口与适配器 | `docs/implementation/feature-0.md`、`pom.xml`、`architecture-tests/src/test/java/dev/memos/architecture/ModuleBoundaryTest.java` | 45 分钟 | 为什么领域层不依赖 Spring 和 provider SDK？ |
-| 可靠写入 | 事务 outbox、幂等、租约隔离 | `docs/implementation/feature-1.md`、`modules/ingestion/src/main/java/dev/memos/ingestion/SourceIngestionService.java`、`modules/materialization/src/main/java/dev/memos/materialization/OutboxWorkerService.java` | 90 分钟 | 任意崩溃点后数据库会留下什么？ |
-| 结构化提取 | Schema、bounded parsing、provider identity | `docs/implementation/feature-2.md`、`modules/materialization/src/main/java/dev/memos/materialization/StrictCandidateProposalDecoder.java`、`modules/adapters/src/main/resources/providers/openai-compatible` | 75 分钟 | 如何处理超大、嵌套、重复键和漂移输出？ |
-| 写入政策 | trust ceiling、sensitivity union、fail closed | `modules/governance/src/main/java/dev/memos/governance/DeterministicCandidateWritePolicy.java`、`DeterministicSensitivityDetector.java`、`benchmark/fixtures/write-policy/v1` | 60 分钟 | 为什么高 confidence 不能提升写入权限？ |
-| 时态记忆 | append-only、lineage、冲突状态机 | `docs/implementation/feature-3.md`、`modules/memory-domain/src/main/java/dev/memos/domain/temporal/TemporalTransitionPlanner.java`、`benchmark/fixtures/temporal-memory/v1` | 120 分钟 | 如何区分更新、并存、冲突和回填？ |
-| 混合检索 | 多路召回、RRF、时态意图 | `docs/implementation/feature-4.md`、`modules/retrieval/src/main/java/dev/memos/retrieval/HybridRetrievalService.java`、`modules/adapters/src/main/java/dev/memos/adapters/postgres/JdbcRetrievalCandidateStore.java` | 120 分钟 | 精确 ID、语义改写和历史询问各走哪个信号？ |
-| 上下文安全 | 预算、多样性、不信任数据边界 | `modules/context/src/main/java/dev/memos/context/MemoryContextAssembler.java`、`benchmark/fixtures/poisoning/v1` | 45 分钟 | 恶意记忆为什么不能当 system instruction？ |
-| 身份与删除 | JWT、RBAC、事务擦除、墓碑 | `docs/implementation/feature-5.md`、`docs/adr/0005-authentication-governed-erasure.md`、`modules/adapters/src/main/java/dev/memos/adapters/postgres/JdbcDeletionStore.java` | 120 分钟 | 如何证明删除不会被旧 job 复活？ |
-| 评测系统 | frozen split、公平基线、失败计数 | `docs/implementation/feature-6.md`、`benchmark/src/memos_benchmark/runner.py`、`benchmark/src/memos_benchmark/artifacts.py`、`docs/benchmark/results.md` | 150 分钟 | 什么样的结果才能写进简历？ |
+时间是学习预算建议，不是完成时长记录。相对路径以 MemOS 根目录为准。
+
+| 主题 | 技术点 | 建议阅读位置 | 预计时间 | 读完交付什么 |
+|---|---|---|---|---|
+| 入口与运行 | profile、工具链、迁移 | `docs/local-runbook.md`、`scripts/run-local.sh` | 30–45 分钟 | 用自己的话写启动/停止步骤 |
+| 写入事务 | source 与 outbox 原子性 | `modules/adapters/src/main/java/dev/memos/adapters/postgres/JdbcSourceIngestionStore.java` | 45–60 分钟 | 画三个提交/崩溃时序 |
+| 异步状态 | lease 与条件提交 | `modules/materialization/src/test/java/dev/memos/materialization/OutboxWorkerServiceTest.java` | 45–60 分钟 | 解释一条旧 owner 失败断言 |
+| 版本语义 | 单值、集合、乱序 | `modules/memory-domain/src/test/java/dev/memos/domain/temporal/TemporalTransitionPlannerTest.java` | 60–90 分钟 | 手算三条事件的状态变化 |
+| 权威数据库 | 约束与状态派生 | `modules/adapters/src/main/resources/db/migration/V004__temporal_memory_authority.sql` | 60–90 分钟 | 区分权威表与当前视图 |
+| 治理删除 | 隐藏、擦除、防复活 | `modules/adapters/src/test/java/dev/memos/adapters/postgres/JdbcDeletionStoreIntegrationTest.java` | 60–90 分钟 | 画删除与重建交错过程 |
+| 检索与上下文 | 独立候选、预算与引用 | `modules/retrieval/src/main/java/dev/memos/retrieval/HybridRetrievalService.java`、`modules/context/src/main/java/dev/memos/context/MemoryContextAssembler.java` | 60–90 分钟 | 手算 RRF 并找到被预算丢弃的证据 |
+| 真实负结果 | 分母、失败分类与污染 | `docs/evidence/failure-cases.md`、`benchmark/src/memos_benchmark/metrics.py` | 60–90 分钟 | 复述一个失败及证据限制 |
+| 消费适配 | 同步接口与异步服务 | `docs/evidence/waku-integration-2026-09-07.md` | 45–60 分钟 | 解释 update 的非原子窗口 |
 
 ## 5. 自学提醒
 
 若某文件或原理看不懂，请继续追问 AI；本技能负责给学习路径与题目，不提供逐行讲解。
-
-建议每次只学一条链路，并强制产出三样东西：一张状态/时序图、一个失败反例、一段三分钟口播。只读顺利路径很容易会用、不会讲。
+每次只追一个具体输入：例如“这个用户改了主题颜色，哪行保证旧 worker 不能写回旧投影”。
+先写预测，再跑已有测试，最后核对错误预测；不要把朗读文档当作理解。
+本仓库使用 PostgreSQL，准备 MySQL 岗位时要额外学习其隔离与锁行为，不能直接套用名称。
 
 ## 6. 项目技术定位
 
-**AI 应用 / AI Infra 交叉项目。** 它围绕跨会话 Agent 的长期记忆构建完整生命周期：模型负责提取语义候选，确定性代码负责授权、写入策略、时态转移、故障恢复和删除，最终通过混合检索与 token 预算生成可引用的上下文。
+后端与 AI 应用交叉项目：核心是受治理的长期状态、异步可靠性和检索评测；不是模型训练或推理引擎。
+最合适的主叙事是“有 Java 工程基础，能够把模型接进可测、可恢复的业务链路”。
+纯后端岗位看事务、故障和数据库；AI 应用岗位看任务效用、检索和模型边界；Agent 平台岗位还看
+工具执行、取消、恢复和隔离，这些需要由 Waku 或另一已核实消费项目补证据。
 
-## 7. 核心原理解析
+## 7. 核心原理
 
-### 7.1 模型只提案，确定性代码掌握状态
+### 原理一：证据不是断言
 
-**问题 →** LLM 能理解自然语言，但输出可能漂移、越权、夹带敏感数据或把临时消息误判为长期事实。
+问题：用户说过“下周可能搬家”，不能直接变成“当前住址已改变”。机制：保留事件作为证据，
+模型提出候选，确定性政策与状态机决定能否变成事实。落点是 source → candidate → lineage/version。
+一条 source 可以没有候选，也可以形成多个候选；一条断言可以被多份来源支持，不能用一对一假设写删除代码。
 
-**机制 →** 模型输出先通过有界 JSON 解析和严格 schema，再由 trust、sensitivity、confidence、novelty 与 capability 共同决定 `REMEMBER` / `IGNORE` / `REVIEW`。
+### 原理二：持久意图与最终效果分离
 
-**在本项目中的落点 →** `CandidateExtractionService` 协调提取与解码，`DeterministicCandidateWritePolicy` 执行可测试策略；被拒绝或待审核的 proposal 不保留原始内容。
+问题：数据库提交后进程可能立刻崩溃。机制：source 与工作意图在同一事务提交，后续至少一次执行，
+效果以幂等与 fence 收敛。落点是 outbox 和 worker。外部模型可能重复调用，不能由数据库只写一次推导零重复计费。
 
-### 7.2 事务 Outbox 与租约隔离
+### 原理三：真值状态与相似分数分离
 
-**问题 →** 先插入业务数据后发队列会有丢消息窗口；先发队列又可能暴露未提交数据。外部模型调用还会超时、重试或在响应后崩溃。
+问题：旧地址往往比新地址更贴近查询字面。机制：先确定访问范围、有效时间和状态，再做相关性排名。
+落点是 SQL 硬范围与查询意图过滤。不同事实若被模型分到了不同谱系，状态机可能无法自动归并，
+所以“按 CURRENT 过滤”也不能代替对真实语义的评测。
 
-**机制 →** 源事件与工作意图同事务落 PostgreSQL；worker 用 `SKIP LOCKED` 批量领取，以数据库时间的 lease 和新 token 隔离旧执行者，用语义幂等键保证可见效果不重复。
+### 原理四：可重建表示必须有身份
 
-**在本项目中的落点 →** `SourceIngestionService` 构建源事件和 semantic job key，`OutboxWorkerService` 处理 claim、heartbeat、retry、dead 与 stale completion。
+问题：两个 embedding 模型维度相同，向量空间却不同；A→B→A 还会遇到旧任务重新出现。
+机制：模型 digest 与 projection generation 分别回答“用什么模型”和“属于哪次构建”。
+落点是 V009 的维护式切换、旧任务拒绝及重建。当前没有在线双索引无缝切换能力。
 
-### 7.3 时态版本而非原地覆盖
+### 原理五：删除是生命周期变更
 
-**问题 →** “我现在住杭州”不应该把曾经住上海的事实抹掉；无法确定时间顺序时，也不应该随意选一个真相。
+问题：删除向量后，旧 source 或重试任务还可能重建内容。机制：请求事务立即隐藏并阻断旧工作，
+异步清理权威和派生内容，保留非内容墓碑。落点是 V006 和删除 worker。
+数据库内可验证擦除，不等于备份、WAL、provider 全部已擦除。
 
-**机制 →** 稳定 lineage 下保留不可变版本和追加转移，分离 valid time 与 transaction time；单值谓词按时间关系决定更新、回填或冲突，集合值则可并存。
+### 原理六：实验必须能被别人推翻
 
-**在本项目中的落点 →** `TemporalTransitionPlanner` 产生纯转移计划，`JdbcTemporalMemoryAuthority` 以乐观锁和数据库约束提交版本、转移、来源和当前投影。
+问题：只报最终分数无法分辨提示、预算、模型还是记忆机制起作用。机制：锁定数据和配置，保留逐题
+输出、失败、用量与报告重建逻辑。落点是 runner、metrics、artifacts。
+当前冻结集只有 10 个独立问题，重复三次不能把独立样本量变成 30。
 
-### 7.4 多路召回先独立，后融合
+## 8. 逐模块走读
 
-**问题 →** 向量相似擅长语义改写，却不擅长精确编号、时间范围、授权和真值状态。把所有逻辑放在 semantic TopK 之后，候选可能早已丢失。
+每个模块按职责、输入输出、正常路径、不变量、失败和练习六项阅读。所有源码与测试入口以本文件及面经证据索引为准。
 
-**机制 →** 在硬 scope / truth / time 过滤下，独立生成 vector、lexical、structured、temporal 候选，再用 RRF 按名次融合；可选 reranker 必须在超时、身份和候选集完整性检查后才可重排。
+### M01 memory-domain：状态推理
 
-**在本项目中的落点 →** `HybridRetrievalService` 完成 query gate、intent、融合与降级；`JdbcRetrievalCandidateStore` 承担各路 SQL 候选。
+职责：只表达事实、时间区间、基数与状态转移，不连接 Spring 或数据库。输入是已规范化候选与
+既有谱系快照；输出是转移计划，而不是直接更新的数据库行。
+正常路径：相同 scope、subject、predicate 找到事实谱系，再按 SINGLE/SET 与时间关系判断强化、
+并存、替代或冲突。所谓 append-only 是保留期间版本正文与转移历史不被重写，当前派生状态可以变。
+失败边界：自然语言时间和实体归一来自上游；输入错，确定性状态机仍可能忠实执行错误语义。
+练习：列出“喜欢茶”“不再喜欢茶”“曾经喜欢茶”的时间、基数及撤回区别。不能只改变相似度。
+验证入口：`modules/memory-domain/src/test/java/dev/memos/domain/temporal/TemporalTransitionPlannerTest.java`。
 
-### 7.5 记忆以不信任证据进入上下文
+### M02 ingestion：接收、身份与幂等
 
-**问题 →** 外部页面、工具输出或过去聊天可能包含伪造角色、闭合标签或工具命令，一旦持久化，攻击影响会跨会话延续。
+职责：将已鉴权事件规范化，并原子保存 source/outbox。输入包括身份、事件与幂等键；输出稳定的
+受理回执。同键同载荷重试返回原结果，同键异载荷不能假装是新消息。
+不变量：没有 source 成功但 intent 丢失的双写窗口；键不能在每次网络重试时随机变化。
+失败边界：202 不是检索可见保证。原始 payload 在异步候选 policy 前已被保留，因此候选拒绝不是入口 DLP。
+练习：模拟提交成功但响应丢失，说明客户端保留哪个键、服务端靠什么约束处理并发重复。
+入口：`modules/ingestion/src/main/java/dev/memos/ingestion/SourceIngestionService.java`。
 
-**机制 →** 上下文使用单一不信任数据根结构，对内容和元数据做 XML 转义，附上不可伪造的来源 ID，按 lineage 去重，对冲突保留有限备选，并对完整渲染结果计 token。
+### M03 materialization：提取与异步编排
 
-**在本项目中的落点 →** `MemoryContextAssembler` 生成 `<memory-evidence trust="untrusted-data">`，投毒 fixture 检查恶意字符串仍是文本而不是新指令。
+职责：领取任务、续租、调用模型、严格解析、提交效果、记录重试/永久失败。模型在事务外计算，
+提交时重新检查数据库内 owner、lease 和 fence；不能只在调用前检查一次。
+候选有三道门：Schema 形状、语义区间与来源、确定性写政策。模型输出合法 JSON 不代表事实可接受。
+任务执行成功也可能零候选、全部拒绝或全部隔离；必须看 accepted 数和权威版本。
+练习：A 调用模型时停顿，B 接管后成功，A 恢复；标出会重复的调用和必须拒绝的提交。
+入口：`modules/materialization/src/main/java/dev/memos/materialization/OutboxWorkerService.java`。
 
-### 7.6 删除是状态机，不是单表 DELETE
+### M04 governance：信任、权限与删除
 
-**问题 →** 只删权威行会在向量、FTS、缓存、工作队列和审计中留下残留；旧任务还可能在删除后重建数据。
+职责：确定候选可自动接受、拒绝或进入治理流程。模型自述 DIRECT_USER 或 confidence=1
+不能扩大可信来源上限，也不能获得 procedural/project 写权限。
+本次修复曾发现：经过验证的角色没有保存到 source 写能力，下游看到空权限而拒绝项目记忆。
+V010 只保存允许的能力枚举；OPERATOR 的诊断权限不能自动变成写授权。
+练习：分别构造普通用户、项目写用户、诊断操作者，预测同一候选的结果；同时解释 secret 的原始 source
+可能已经进入数据库，拒绝派生记忆并非全面防泄露。
+入口：`modules/governance/src/main/java/dev/memos/governance/DeterministicCandidateWritePolicy.java`。
 
-**机制 →** 请求事务先立即隐藏与终止相关任务，异步 worker 在 lease fence 内原子擦除内容派生数据，保留不含内容的审计事实和不透明墓碑防止重放复活。
+### M05 retrieval：查询与候选排名
 
-**在本项目中的落点 →** `GovernedDeletionService`、`DeletionWorkerService` 与 `JdbcDeletionStore` 共同实现请求、领取、退避、死信、重排和最终擦除。
+职责：query gate → 时间意图 → query embedding → 各通道候选 → 按 version 去重 → RRF → 可选重排。
+默认当前查询使用 vector、lexical、structured；存在历史时间意图时才加入 temporal，不能说每次都跑四路。
+各候选通道独立取候选不等于它们并发执行。RRF 融合排名，不能把其分数当相关概率。
+重排返回集合需与输入候选集合完全一致且无重复，错误就回退原排名；deadline 前后检查并不自动证明
+阻塞调用可被中断，真实 provider 的超时合同仍需验证。当前没有已选择并完成质量消融的真实 reranker。
+练习：k=60，A 排名 1/4，B 排名 2/2，手算 B 略高；解释这仍不能证明 B 内容更正确。
+入口：`modules/retrieval/src/main/java/dev/memos/retrieval/HybridRetrievalService.java`。
 
-## 8. 关键设计决策
+### M06 context：证据预算与信任边界
 
-| 决策 | 备选 | 当前取舍 | 主要风险 | 验证方式 |
+职责：把已选事实变成带来源的不可信证据区域，按完整渲染后的 tokenizer 数量截断。
+候选 TopK 不等于最终进入模型的证据数；标签和 provenance 也消耗 token。
+需要同时核对 retrieval 候选列表与 selectedVersionIds，不能引用被预算剔除的候选。
+失败边界：结构转义防格式逃逸，无法证明模型不会服从字符串中的恶意语义。引用在允许集合内
+也不证明它支持当前答案，支持关系需要独立的 groundedness 检查。
+练习：预算刚好够事实正文但不够来源包装，应删除证据还是偷偷超额？答：按确定合同裁剪并记录。
+入口：`modules/context/src/main/java/dev/memos/context/MemoryContextAssembler.java`。
+
+### M07 adapters：数据库与模型实现
+
+职责：实现消费模块定义的 ports；负责 JDBC、HTTP、序列化、事务和外部错误映射。
+数据库表组：source/outbox 是输入与执行意图；extraction/candidate 是提案与政策证据；
+lineage/version/transition/source 是权威事实与来源；current/search/checkpoint 是派生表示；
+deletion/tombstone 是生命周期记录；usage/audit 提供用量及诊断事实。
+V001–V010 是按时间累积的迁移，不代表十个独立服务。已有迁移不能为了清理历史而改写。
+练习：追踪一个 source 的写权限从 JWT 到 V010 再到提取 store，解释跨语言 fake 为什么容易共同写错。
+入口：`modules/adapters/src/main/resources/db/migration/`。
+
+### M08 audit-observability：诊断与计量
+
+职责：把 trace、job、耗时、失败类别和用量关联起来。业务正文与凭证不应成为默认诊断载荷。
+重要区分：API 受理延迟、排队、模型推理、权威提交、投影、首次可见分别测；日志有 trace ID
+不能自动宣称所有环节已有完整分布式 tracing。数据库内 append-only 审计也不等于外部防篡改系统。
+练习：用户说“记住了却查不到”，先比 source settlement、accepted 数、投影代次和最终 selected IDs，
+而不是直接给模型换大参数。provider 重试、token 计数及后台 embedding 都要进入成本账。
+入口：`modules/audit-observability/pom.xml`、`modules/adapters/src/main/java/dev/memos/adapters/metrics/`。
+
+### M09 memos-api：鉴权与外部合同
+
+职责：验证 JWT 签名、issuer/audience/expiry 和角色，推导可信主体，转换 HTTP 与业务错误。
+scope 来自可信 token，不来自检索语句或任意 body；不同 tenant 下相同 ID 不得借错误信息泄露存在性。
+版本纠正使用 If-Match 防基于旧快照的修改；这与请求幂等是两件事。
+失败边界：本地 HS256 凭据是开发参考；企业 IdP、撤权、轮换及 agent 授予规则仍由部署方定义。
+练习：比较 401、403、版本冲突与后台 DEAD，各自应触发什么客户端动作。
+入口：`applications/memos-api/src/main/java/dev/memos/api/security/JwtActorContextResolver.java`。
+
+### M10 memos-worker：进程生命周期
+
+职责：独立启动轮询和管理健康端点，把持久任务交给应用服务；业务状态机仍在模块里。
+worker 活着、数据库连通、队列可消费和新记忆已投影是四种不同状态。
+失败边界：重启能恢复待执行意图，不代表每次模型请求可恢复到中间 token；重复调用仍可能有成本。
+练习：先停 worker 再写入，观察受理及 pending，然后恢复并等 settlement；只在专用测试 scope
+操作，不删除真实用户记忆或现有原始 benchmark。
+入口：`applications/memos-worker/src/main/java/dev/memos/worker/OutboxPollingWorker.java`。
+
+### M11 architecture-tests：依赖约束
+
+职责：把“domain 不依赖框架、层间关系不能反向”变成可失败的检查。
+它能防架构随开发逐步漂移，不能证明业务没有 bug，也不能代替质量评测。
+练习：在临时改动中给领域类引入 Spring 依赖，预测哪项失败，然后恢复；不要把这种故障注入说成线上事故。
+入口：`architecture-tests/src/test/java/dev/memos/architecture/ModuleBoundaryTest.java`。
+
+### M12 benchmark：从协议完成到效果比较
+
+职责：固定数据、split、模型完整身份、回答 Prompt 与预算，跑四基线并逐样本记录结果。
+分层诊断：源事件是否受理 → 是否提取候选 → 是否接受 → 是否形成正确谱系 → 是否投影 → 是否召回 →
+是否进上下文 → 答案及引用是否正确。每层要有分母；最后 0 分不能直接归罪于检索。
+verifier 重算机械报告并检查覆盖和 hash，但可能与 runner 共享业务假设；它证明包合同，不能证明标注真理。
+当前字段 recall_at_k 是 any-hit rate；complete_recall_at_k 是所有 gold 是否命中，不能按名字误读。
+练习：离线重建已发布包；解释没有调用模型为何仍能验证报告，同时为何不能声称重现了模型输出。
+入口：`benchmark/src/memos_benchmark/metrics.py`、`benchmark/src/memos_benchmark/artifacts.py`。
+
+### M13 Waku 消费适配：同步方法包住异步链路
+
+职责：为 Waku 提供 add/search/search_with_ids/list/update/delete 六方法，附加 settle。
+本地源码在独立 Waku 工作目录，仓库固定入口见 [Waku 适配器](https://github.com/Zhi-Xiang-Guo/waku-agent/blob/b75adf280aab4456d123693dcc3c942ed4f73dcc/waku/memory/semantic/memos_store.py)。
+add 等待 source 的抽取、物化和投影；update 先写替换来源、证明形成版本，再失效旧版本，最后观察旧版本
+退出相关检索；delete 触发受治理擦除。search 只返回进入上下文且满足分数阈值或词项匹配的行。
+必须理解四个尚未被 12 个 conformance case 解决的边界：
+
+- update 包含多个 HTTP 请求，不是跨请求原子替换；新值已写而后续失败时可能部分完成。
+- 用一条旧内容查询观察不可选中，不等于证明任意并发查询与所有 scope 都已完全收敛。
+- 2026-09-07增补：读失败伪装为空集合已由Waku提交`dbcda82615506db89f07d3187d64ba4c7032800a`修复；管理工具强转整数导致UUID更新/删除失败也已修复。630个确定性测试通过，73项外部跳过；旧12/12 live结果仍只属于b75adf2。
+- relevance 阈值和词项重合是开发启发式；中文、同义改写与罕见词的质量仍需单独评测。
+
+练习：在隔离环境让替换来源提交后第二个 HTTP 请求失败，预测方法返回值、库中状态及重试风险。
+这是下一步应测的命名假设，不冒充已经发现了每一种线上失败。
+
+## 9. 关键设计决策与验证
+
+| 决策 | 备选 | 当前取舍 | 风险 | 该用什么验证 |
 |---|---|---|---|---|
-| Java 模块化单体 + Python 评测 | Python 同步单体；微服务集群 | 一个事务边界内保留强领域约束，同时保留 AI 评测生态 | 跨语言工具成本，模块可能退化 | 架构测试、同一 manifest 下四基线运行；后者待执行 |
-| PostgreSQL 同时承担权威与初始检索 | OpenSearch + 专用向量库 + 图库 | 先减少双写、删除和本地复现成本 | OLTP / search 争用，超大规模 ANN 能力未知 | 代表性语料上测 Recall@K、p95/p99、索引体积；待测 |
-| 异步记忆形成 | 请求内同步调模型 | 对话接收延迟与 provider 延迟解耦 | 读写之间有可见性窗口 | 源级 materialization 状态已可观测；代表性 freshness 分布待测 |
-| 追加版本与转移 | 一行原地覆盖；完整事件溯源 | 保留历史和可解释转移，同时使用可重建当前投影加速读 | schema 与擦除复杂度上升 | 时态 fixture、并发与故障测试已过；真实分类质量待测 |
-| RRF 作为初始融合 | 手写权重和；学习排序 | 在没有标注校准数据时不假设分数可比 | 忽略分数幅度，可能不如校准模型 | 开发/测试分割下做融合与 reranker 消融；待测 |
-| 上下文只作不信任证据 | 把 memory 拼到 system prompt | 结构转义可测试，且不让检索内容拥有指令权 | 结构隔离不等于真实模型行为免疫 | 恶意字符串结构 fixture 已过；固定模型红队待测 |
-| 立即隐藏 + 异步原子擦除 | 同步全链路删除；单表删除 | 先给读路径明确不可见契约，再做可恢复工作流 | backup、WAL、外部 provider 不在当前边界 | PostgreSQL 故障/重放/并发测试已过；外部生命周期待补 |
+| 单 PostgreSQL 权威 | 多存储双写 | 一致性边界更小 | OLTP 与检索争资源 | 代表负载下 SQL/队列观测 |
+| 异步提取 | HTTP 同步提取 | 请求受理快、状态可查 | freshness 与用户预期差异 | 写入到首次可见分布 |
+| 确定性转移 | 模型决定最终状态 | 不变量可测试 | 规范化错误仍会污染 | 抽取、实体归并、冲突分层标签 |
+| 多通道融合 | 纯向量/纯词法 | 兼顾不同查询信号 | 噪声与额外调用 | 同候选预算的消融 |
+| 维护式重建 | 在线双代索引 | 可解释和回滚 | 重建期间召回不完整 | A→B→A、删除竞态与恢复测试 |
+| 消费端等待 | 接受最终一致 | 适配同步调用预期 | 超时与部分成功 | Waku 端失败注入、恢复合同 |
 
-## 9. 量化与验证（含待测，建议）
+## 10. 量化与验证：已测和待测
 
-| 要回答的问题 | 建议测量 | 当前证据 | 状态 |
-|---|---|---|---|
-| 写入策略是否少误写 | 真实模型标注集上的分类 precision / recall，按 memory type 和风险分组 | 17 例确定性机制 fixture，不代表模型质量 | **待测** |
-| 时态转移是否符合真实语料 | 更新、冲突、回填、不确定日期的准确率与错误分析 | 14 例确定性状态机 fixture | **待测** |
-| 混合检索是否优于向量检索 | 在冻结 dev/test 上比较 Recall@K、MRR、完整召回、上下文精度 | 6 例手工候选排名 fixture 只验证机制 | **待测** |
-| 异步写入的用户可见延迟 | ingest p50/p95/p99、提取、权威写入、投影、总 freshness 分段耗时 | 链路终态可观测，但没有代表性分布 | **待测** |
-| PostgreSQL 检索是否够用 | 小/中/大语料规模下的 Recall@K、p95/p99、索引体积、写放大 | 迁移、查询和 smoke 已通过 | **待测** |
-| reranker 是否值得 | 无 rerank / 轻量模型 / LLM rerank 的质量-延迟-用量 Pareto | 仅有端口和失败降级 | **待测** |
-| 删除是否真正终止 | 权威、投影、job、replay 、旧 worker 和索引逐层对账，再扩展到 backup / WAL / provider | PostgreSQL 当前边界的迁移、故障和并发测试已远程通过 | 当前边界 **已验证**；外部边界 **待补** |
-| 项目是否比简单基线更好 | 相同问题、模型、token 预算与重复次数下，比较全历史、滚动摘要、原始轮次向量和 MemOS | 数据、运行器、成本与存储证据包已实现，真实模型运行未执行 | **NOT RUN** |
+已测：MemOS 最近全仓 198 Java 测试、70 Python 测试；Waku 12 个本地真实后端合同测试，完整 gate
+619 passed/73 skipped。它们是特定提交下的测试计数，不能换成系统可用率或个人能力分数。
+冻结测试：10 个独立问题×3 重复×4 基线，MemOS 0/30，简单基线各21/30；修复开发 smoke 为3/3。
 
-实验前不要在简历或口播中写“提升 xx%”、“p95 降至 xx ms”、“支持百万用户”。可以讲已验证的机制、远程 CI 和故障测试，并主动说明质量、延迟、成本和规模结论仍待正式实验。
+建议后续测量以 Waku 的一个实际任务为起点：跨会话保留项目约束，收到更正后遵守新约束，删除后不再使用。
+固定用例、模型、工具范围与 token 预算，比较无长期记忆、Waku 默认存储与 MemOS；用户任务验收和底层
+四基线检索实验分别报告。独立未见评测需在开发调参前封存；同一工程师已经看过的旧测试不再充当未见集。
+测量完成前，任务成功率、freshness p95、成本下降和错误恢复时间均是待测。
+
+## 11. 岗位定位与是否还需深入优化
+
+结论（INFERRED）：需要继续深化，但最值得补的是消费合同、未见评测和个人掌握，不是扩功能。
+现有材料足以开始有选择地投递，不应把“所有指标都优秀”设为投递前提。
+
+### 岗位适配
+
+- 主投：Java 后端 / AI 应用后端。讲清事务、并发、SQL、故障恢复，再用模型评测证明能处理不确定输出。
+- 主投或相邻：RAG / Agent 应用工程师。重点补用户任务、检索误差、Prompt 迭代和工具执行边界。
+- 有针对性冲刺：Agent 平台、Memory / 检索基础设施应用侧。需要任务恢复、可观测性、容量与安全场景的更强证据。
+- 暂不把 MemOS 单独定位成模型训练、CUDA/算子、分布式推理或底层推理 Infra 项目；它没有这些实现证据。
+
+Waku 是已核实的消费者；CodeFlow 在早期规划里承担产品叙事，但本次没有审计其代码与业务使用，
+不能把 Waku 结果自动记到 CodeFlow，也不能把 Waku 上游全部功能算成个人贡献。
+
+### 按收益排序的后续工作
+
+P0，继续补消费合同证据：本轮已修读故障与空结果混淆、工具ID合同；对 Waku 的“写失败布尔语义”“更新部分完成”“客户端跨重试身份”继续建立失败矩阵。
+退出条件是每个失败有可观察状态、可解释重试行为及回归；只能做与已测缺口相连的有限修复。
+
+P0，做一个真实任务闭环：用户给出项目约束，跨新会话完成任务，纠正后重做，删除后再问。
+记录实际输出、来源、失败和人工验收。接口 conformance 已通过不替代这一层；不虚构活跃用户。
+
+P1，冻结新评测：按任务族隔离新开发/测试，标注 shouldRemember、时态/冲突、相关证据和预期拒答。
+先声明样本与失败处理，再运行；输出逐层 precision/recall、答案与引用分数。规模由任务覆盖和成本决定，
+不要先承诺漂亮样本数。新测试标签应由独立标注/留出流程封存，自动生成样例本身不证明无污染。
+
+P1，测本机代表负载：声明并发、历史长度、硬件、热/冷状态及保留范围；同时记错误、超时和队列 lag。
+有瓶颈证据才优化。当前 3/3 开发答案和阈值不能作为优化成功率。
+
+P1，若面向企业数据：先界定 source 入口最小化、provider 传输和访问授权；再决定是否需要入口 DLP、
+生产 IdP、密钥轮换或备份恢复屏障。它们由具体部署风险触发，不为了面试把全部治理系统都造一遍。
+
+P2，暂缓：Graph DB、自动反思记忆、更多模型、大规模分布式组件、未测 rerank 优化、微调。
+只有已有测试证明现方案无法满足命名需求，而且替代方案能在预算内被比较时，才进入新 ADR。
+
+### 来源与取样限制
+
+检索日期 2026-09-07；这是定向样例研究，不是薪资/岗位频率统计。
+
+第二轮系统台账见[研究报告](docs/research/market-2026-09-07/README.md)：123个候选、114正文/2预览/7不可读；社招A类22篇来自7个作者分组，其中16篇同作者，严格社招量仍不足100。32条JD分为5官方全文与27BOSS公开摘要；完整BOSS详情受验证限制，不能当完整要求。以下保留首轮来源作为补充，不与新台账重复计数。
+
+- [两年 Java 转 AI 应用社招原帖](https://www.nowcoder.com/discuss/914627656245600256)：作者报告的题目包括项目动机、谁在用、效果与 RAG 路径。不能由一篇面经推断“社招不考基础”。
+- [AI 应用及 Agent 开发职位样例](https://m.zhaopin.com/jobs/CCL1395276590J40906972712.htm)：列表标 1–3 年，正文覆盖编排、Memory、RAG、评估；页面也有无关职称文本，按低置信岗位样例处理，不能推断招聘方统一标准。
+- [企业 Agent 应用职位样例](https://www.zhaopin.com/jobdetail/CC194595610J40874905703.htm)：搜索抓取展示业务需求、部署及 ROI；详情再次打开超时，且列表 1–3 年与正文三年以上有冲突，只作业务闭环方向参考。
+- [Binance 官方 AI Agent Engineer JD](https://jobs.lever.co/binance/3a2ca7e0-e2c9-4248-b8fe-0de5d05dee1c)：强调生产经验、检索/评测、运行时和用户反馈。它是偏研究与平台的冲刺样例，不是所有初级岗位门槛；GraphRAG 被列为加分项不构成给本项目加图数据库的理由。
+- [OWASP 提示注入防护](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html)：支持分层防护与最小权限原则，不提供“结构转义根治注入”的保证。
+
+## 12. 三轮训练与退出条件
+
+第一轮基础：独立讲 source/outbox、事实版本和读取路径；每题先口答，再定位到代码。第二轮故障：
+给重复、迟到、删除、provider 超时四个反例，先预测数据库状态。第三轮取舍：拿已发布负结果解释
+为何保留机制、如何减少复杂度，提出有分母、有失败处理的下一项实验。
+
+真正通过的标准是能解释并局部修改，而不是背出全文。复练只记录在个人会话；不把未经验证的掌握评价发布到飞书。

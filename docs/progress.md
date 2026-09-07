@@ -203,3 +203,9 @@ clarification, a separate synthetic preference passed all three jobs and scoped 
 the real Codex proxy. The database was explicitly reconciled from fake embeddings to the frozen
 Qwen embedding digest (generation 2) without deleting authority. Formal four-baseline scores
 remain NOT RUN until a verified artifact exists. Initial environment failures remain in local logs.
+
+First real dev smoke is now complete and preserved under docs/benchmark/runs: 12 expected rows,
+9 SUCCESS and 3 FAILED, verifier accepted, usage/storage incomplete. Two observed root causes only
+are addressed under ADR 0007; formal testing remains NOT RUN. The environment/reconciliation
+implementation was pushed as d0869fb on feat_evidence-gate. HTTPS credentials were unavailable;
+the existing authenticated SSH identity was used through a repository-local push URL.

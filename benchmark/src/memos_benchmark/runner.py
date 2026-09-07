@@ -477,7 +477,7 @@ class UnifiedBenchmarkRunner:
         expected_version = (
             "sha256:" + self.manifest["selected_models"]["embedding"]["ollama_model_id"]
         )
-        if response.context.token_counter_version != expected_version:
+        if response.context.token_counter_version != "embedding-model:" + expected_version:
             raise RunnerError("TOKENIZER_IDENTITY", "MemOS context tokenizer identity differs")
         query_calls = 0
         if response.trace.embedding_provider != "not-called":

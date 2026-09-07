@@ -1,0 +1,12 @@
+{"baseline":"full_history","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","tracks":["abstention","noise"]}
+{"baseline":"full_history","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","tracks":["project_fact","temporal"]}
+{"baseline":"full_history","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","tracks":["multi_session","preference","update"]}
+{"baseline":"memos","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","tracks":["abstention","noise"]}
+{"baseline":"memos","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","tracks":["project_fact","temporal"]}
+{"baseline":"memos","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","tracks":["multi_session","preference","update"]}
+{"baseline":"raw_turn_vector","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","tracks":["abstention","noise"]}
+{"baseline":"raw_turn_vector","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","tracks":["project_fact","temporal"]}
+{"baseline":"raw_turn_vector","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","tracks":["multi_session","preference","update"]}
+{"baseline":"rolling_summary","question_id":"dev-missing-q1","repetition":1,"scenario_id":"dev-missing-music","tracks":["abstention","noise"]}
+{"baseline":"rolling_summary","question_id":"dev-release-q1","repetition":1,"scenario_id":"dev-release-deadline","tracks":["project_fact","temporal"]}
+{"baseline":"rolling_summary","question_id":"dev-theme-q1","repetition":1,"scenario_id":"dev-theme-update","tracks":["multi_session","preference","update"]}

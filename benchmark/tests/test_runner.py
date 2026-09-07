@@ -122,7 +122,7 @@ class FakeMemosClient:
             context=SimpleNamespace(
                 rendered=rendered,
                 tokens=1,
-                token_counter_version="sha256:" + EMBEDDING_DIGEST,
+                token_counter_version="embedding-model:sha256:" + EMBEDDING_DIGEST,
                 token_count_provider_input_tokens=2,
                 token_count_provider_calls=1,
             ),
@@ -295,3 +295,29 @@ def test_generated_hs256_token_contains_exact_scope_and_roles() -> None:
     assert decoded["tenant_id"] == "tenant"
     assert decoded["roles"] == ["USER", "OPERATOR"]
     assert decoded["exp"] == 1000
+
+
+@pytest.mark.parametrize(
+    "counter_version", ["sha256:" + EMBEDDING_DIGEST, "embedding-model:sha256:" + "c" * 64]
+)
+def test_memos_context_rejects_counter_kind_or_digest_drift(counter_version: str) -> None:
+    class DriftedCounterClient(FakeMemosClient):
+        def retrieval_trace(self, query: str, bearer_token: str, **kwargs: Any) -> Any:
+            response = super().retrieval_trace(query, bearer_token, **kwargs)
+            response.context.token_counter_version = counter_version
+            return response
+
+    runner = UnifiedBenchmarkRunner(
+        runtime=FakeRuntime(),
+        memos=DriftedCounterClient(),
+        dataset_manifest=_manifest(),
+        scenarios=[_scenario()],
+        answer_prompt="answer",
+        answer_schema={"type": "object", "properties": {"citations": {}}},
+        summary_prompt="summary",
+        summary_schema={"type": "object", "properties": {"facts": {}}},
+        settings=_settings(),
+    )
+    with pytest.raises(RunnerError) as failure:
+        runner._memos_context({"query": "Which color?"}, "token", {SOURCE_ID: "event-1"})
+    assert failure.value.kind == "TOKENIZER_IDENTITY"

@@ -155,7 +155,9 @@ public class MaterializationConfiguration {
                   required(properties.schemaVersion(), "memos.extraction.schema-version"),
                   properties.seed(),
                   properties.timeout(),
-                  StructuredExtractionResources.loadV1());
+                  "candidate-extraction-temporal-v2".equals(properties.promptVersion())
+                      ? StructuredExtractionResources.loadTemporalV2()
+                      : StructuredExtractionResources.loadV1());
           default -> throw new IllegalArgumentException("unsupported memos.extraction.provider");
         };
     return new InstrumentedStructuredCandidateExtractionPort(delegate, registry, provider);

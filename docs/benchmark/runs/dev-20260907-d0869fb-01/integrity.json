@@ -1,0 +1,17 @@
+{
+  "files": {
+    "answers.jsonl": "7b0fefb26b934f4bcff27b0a994551454644b8d9e7527d780b2ac5378247e4f0",
+    "cases.jsonl": "bb649fceb3f21ddd224e533c19c0b2933dd2f3baf7553dbcf28ca7b164287469",
+    "costs.json": "f154617daf9df3b912d4aaeb098ba561a3f87afcfaaeb213ecd67c51e99dd931",
+    "failures.md": "b45acd0c6f0b4a2a6f9872cf1777a10bc17c07e424686529a4934ff7609ab844",
+    "manifest.json": "66344cc4490cb556989e676d82afedc740f076132990e8571d25bd3b197eddb8",
+    "metrics.json": "26ccc45a9de2f7d0e45e1906b2ea6af7739417bd1252a09117fafd1700ec656b",
+    "report.md": "5f77b1256f9920d024636faa291072b13a60946d16851170e581289bd9345773",
+    "retrieval.jsonl": "46b1123c52aa0356d3e10cf6e1a917bf2d5744f06d04e7cc7efbe3a3ca83d6a6",
+    "storage.json": "2a1842021aebc1e57555122f66dafbac842ea509210b1b64f48080b0c8b152b7",
+    "timings.jsonl": "88cd2a1b93bf3ec8bde53ee38375a2fa6fbe49f0a03fe2084f69af7e13c02a6f",
+    "writes.jsonl": "59795209a9e82217fcb64842cfc9cbeaaee28ebfd89dbb8467a8d3f6c2a4e98f"
+  },
+  "package_sha256": "70576b00669cdeaae0dbeb16fc55234bee10d024b89e7336b0137591842f2cc5",
+  "schema_version": "memos-benchmark-integrity.v1"
+}

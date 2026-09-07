@@ -132,6 +132,23 @@ freezing a new committed configuration. Formal testing uses the declared test re
 `FROZEN_TEST` campaign mode as supported by the runner. Independently run `memos-benchmark-verify` with
 the package path and dataset manifest. Result summaries remain NOT RUN until these steps succeed.
 
+## Dev-repaired temporal configuration
+
+The first dev run exposed two root causes; see [ADR 0007](adr/0007-dev-failure-freeze.md).
+Keep v1 available for reproduction. To use the separately versioned repair, stop the old Java
+processes and run:
+
+```bash
+./scripts/run-local.sh ollama-temporal-v2
+```
+
+The model identity is unchanged, so no projection reconciliation is needed for this prompt change.
+From a clean committed checkout's `benchmark` directory, supply
+`--dataset-manifest datasets/memos-assistant-smoke/v1/manifest-temporal-v2.json` to the runner and
+verifier. Use a new run ID for dev and then the frozen test; never overwrite the original package.
+All preprocessing, context-counting and answer calls use native Ollama. The existing Codex proxy
+is excluded from these runs. Do not mix a v1 worker with a temporal-v2 manifest.
+
 ## Stop
 
 Ctrl-C the run-local and Ollama terminals. Then:

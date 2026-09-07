@@ -17,3 +17,5 @@ publication and remote CI completed. Each record states its precise boundary.
 - [ADR-0005: Verified scope, role boundaries, and governed erasure](0005-authentication-governed-erasure.md)
 
 - [ADR-0006: Projection identity reconciliation](0006-projection-identity-reconciliation.md) — explicit maintenance model switching and generation fencing.
+
+- [ADR 0007: Two-root-cause dev repair and test freeze](0007-dev-failure-freeze.md)

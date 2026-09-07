@@ -1,0 +1,82 @@
+{
+  "campaign_kind": "SMOKE",
+  "comparison_config_sha256": "234b315fce909bc4560ad576290db2cfe59cfcd8374425f7a4d5b7b4da6095c6",
+  "dataset": {
+    "case_sha256": "fde4a1a8a8d9f5424e2394a12d12f8fada89c9fbf53f5b9fd5f12c661efd8fbb",
+    "manifest_sha256": "d7f37b4db5901b8d1d7286dc1cbd8294d5bcc01ede496898c4d7362e97df3f09",
+    "split_membership_sha256": "11b2c631dbef311c9db71b2357476ffb969cace1f2a7cf2934c7e3e0710d4b9b",
+    "version": "memos-assistant-smoke-v1"
+  },
+  "environment": {
+    "java": "25.0.4.1",
+    "machine": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "ollama": "0.33.3",
+    "pgvector": "0.8.6",
+    "postgres": "18.6",
+    "python": "3.14.7"
+  },
+  "execution": {
+    "baselines": [
+      "full_history",
+      "rolling_summary",
+      "raw_turn_vector",
+      "memos"
+    ],
+    "repetitions": 1,
+    "split": "dev"
+  },
+  "git": {
+    "commit": "d0869fbf7f12685313df17d3f7c49d81f9fea8e3",
+    "dirty_worktree": false
+  },
+  "limits": {
+    "evidence_tokens": 1200,
+    "retrieval_limit": 8,
+    "summary_recent_turns": 2,
+    "vector_top_k": 8
+  },
+  "models": {
+    "answer": {
+      "ollama_model_id": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+      "tag": "qwen3:4b"
+    },
+    "embedding": {
+      "ollama_model_id": "ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d",
+      "tag": "qwen3-embedding:0.6b"
+    },
+    "extractor": {
+      "ollama_model_id": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+      "tag": "qwen3:4b"
+    },
+    "judge": null,
+    "reranker": null,
+    "summary": {
+      "ollama_model_id": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+      "tag": "qwen3:4b"
+    }
+  },
+  "pricing_snapshot": null,
+  "prompts": {
+    "answer_file": "../../../prompts/v1/answer.txt",
+    "answer_schema_file": "../../../schemas/v1/answer.schema.json",
+    "answer_schema_sha256": "3a8b925b8e17978a0348316f94965d3069ed494431fc3e04fad13e57409873d8",
+    "answer_sha256": "7686f1a41e6abca1253775248a36b72db8b032c5058e48ceab2dd6b5079bf50b",
+    "extraction_file": "../../../../modules/adapters/src/main/resources/providers/openai-compatible/candidate-extraction-v1.txt",
+    "extraction_schema_file": "../../../../modules/adapters/src/main/resources/providers/openai-compatible/memory-candidate-v1.schema.json",
+    "extraction_schema_sha256": "5720c64894d28719cfbdf6cd58f59a81ad1b4f1463fc0627badd3c35da103531",
+    "extraction_sha256": "5dc6f02d44ef89e550301bf7645db72d397b8092e4b58c50dead14fb5f54529c",
+    "summary_file": "../../../prompts/v1/summary.txt",
+    "summary_schema_file": "../../../schemas/v1/summary.schema.json",
+    "summary_schema_sha256": "235a9454298b2ed2ec7bb44cfd5c82913c19abea602d3c628f0be0b11a1d1fcc",
+    "summary_sha256": "bee4171f10e480f286ac38662c15063860b07a3b20b693d1f5f783c0a23729aa"
+  },
+  "run_id": "dev-20260907-d0869fb-01",
+  "sampling": {
+    "formal_test_repetitions": 3,
+    "seed": 42,
+    "smoke_repetitions": 1,
+    "temperature": 0
+  },
+  "schema_version": "memos-benchmark-run.v1",
+  "started_at": "2026-09-07T04:42:10.065721Z"
+}

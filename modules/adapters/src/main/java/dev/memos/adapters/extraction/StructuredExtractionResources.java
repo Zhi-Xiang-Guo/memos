@@ -24,6 +24,12 @@ public record StructuredExtractionResources(String prompt, String jsonSchema) {
     return new StructuredExtractionResources(read(PROMPT_RESOURCE), read(SCHEMA_RESOURCE));
   }
 
+  public static StructuredExtractionResources loadTemporalV2() {
+    return new StructuredExtractionResources(
+        read("/providers/openai-compatible/candidate-extraction-temporal-v2.txt"),
+        read(SCHEMA_RESOURCE));
+  }
+
   /** Development compatibility for proxies that do not forward response_format. */
   public static StructuredExtractionResources loadV1WithInlineSchema() {
     StructuredExtractionResources original = loadV1();

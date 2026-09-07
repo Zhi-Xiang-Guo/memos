@@ -701,8 +701,6 @@ def answer_schema_with_citations(
     citations["maxItems"] = min(citations.get("maxItems", 64), len(allowed_citations))
     if allowed_citations:
         citation_items["enum"] = list(allowed_citations)
-    else:
-        citations["items"] = False
     return constrained
 
 

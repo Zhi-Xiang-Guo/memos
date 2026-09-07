@@ -334,7 +334,7 @@ def test_answer_schema_constrains_decoding_to_visible_citations_without_mutating
     assert answer_schema_with_citations(schema, [])["properties"]["citations"] == {
         "type": "array",
         "maxItems": 0,
-        "items": False,
+        "items": {"type": "string", "maxLength": 200},
     }
 
 

@@ -2,6 +2,28 @@
 
 Last updated: 2026-09-07 (Asia/Shanghai)
 
+## September 7 market and interview refinement
+
+- Research register: 123 Nowcoder candidates, 114 public bodies, two previews and seven unavailable;
+  only 22 readable self-reported social-hire interviews (seven author groups, 16 from one group).
+  The requested approximately 100 strict social-hire interviews is **NOT YET MET**. Five official
+  full JDs and 27 BOSS public snippets are separate evidence classes, not verified active headcount.
+  See the [research report](research/market-2026-09-07/README.md).
+- The [layered workbook](interview/layered-module-workbook.md) covers 13 modules at five depths.
+  The base and [market STAR supplement](interview/market-star-qa.md) total 25 main questions and
+  50 follow-ups. `scripts/check_interview_material.py` validates counts, answer structure and
+  source-register limits; generated answers do not prove personal mastery.
+- Waku consumer commit `dbcda82615506db89f07d3187d64ba4c7032800a` is pushed: read failures no longer
+  become successful empty results, and administrative tools preserve opaque/UUID fact IDs.
+  Red/green regression exposed three failure-visibility and six ID cases before the fix;
+  its final deterministic gate is 630 passed / 73 skipped. New-version live conformance was
+  **NOT RUN**; the older 12/12 live result remains attached to `b75adf2`.
+- MemOS Java 25 clean verify and Python format/lint plus 70 tests passed during this refinement.
+  Frozen benchmark artifacts and their negative result are unchanged. Write-failure semantics,
+  partial-update recovery, stable cross-retry identity, settlement deadline composition,
+  cross-session task utility and independent unseen evaluation remain OPEN. This is bounded
+  Feature 6 hardening and interview documentation, not entry into Advanced Memory.
+
 ## Research
 
 Status: `DONE`
@@ -183,7 +205,8 @@ Status: `DOING` — module guide and research-based question bank published in F
 
 ## Next phase
 
-Continue Feature 6 without entering Advanced Memory: the Waku consumer gate is closed; finish
+Continue Feature 6 without entering Advanced Memory: the baseline Waku consumer gate is closed,
+while failure/retry and task-level evidence remain open; finish
 personal interview rehearsal and, only with a newly frozen unseen evaluation contract, test whether
 policy-v3 generalizes. Do not rerun or tune against the already inspected frozen test labels.
 The legacy trusted scope headers and temporary operator key are removed and must not be

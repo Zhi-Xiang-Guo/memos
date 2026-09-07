@@ -1,5 +1,11 @@
 # Benchmark results
 
+September 7 consumer-only refinement: Waku `dbcda82615506db89f07d3187d64ba4c7032800a`
+fixes read-error visibility and opaque fact-ID forwarding, with 630 deterministic tests passed
+and 73 skipped. It does not add a benchmark run or a new live conformance run. The older Waku
+12/12 live result belongs to `b75adf2`; all frozen raw artifacts and negative results below remain
+unchanged. See the [market/claim audit](../research/market-2026-09-07/README.md).
+
 Status: **FROZEN TEST VERIFIED — NEGATIVE RESULT; POST-GATE DEV SMOKE VERIFIED**
 
 A real-model frozen synthetic test now exists; its limited result appears below. Features 0–5 include deterministic

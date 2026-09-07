@@ -1,5 +1,11 @@
 # MemOS evidence gate — 2026-09-07 to 2026-09-27
 
+September 7 follow-up: Waku `dbcda82615506db89f07d3187d64ba4c7032800a` adds tested read-error
+visibility and opaque-ID forwarding (630 passed / 73 skipped), not full task utility. Its live
+conformance was not rerun. Partial update, write-failure and stable retry semantics remain open;
+the original 12/12 live result is limited to `b75adf2`. The market review and layered interview
+workbooks do not change the KEEP-with-weaker-claims decision or extend this phase boundary.
+
 D1 is 2026-09-07, Asia/Shanghai; D21 ends 2026-09-27 23:59:59. This is a calendar-day gate,
 not permission to expand features or silently extend the deadline. The user authorized local
 installation, manual service startup, projection reconciliation, dev → error analysis → frozen

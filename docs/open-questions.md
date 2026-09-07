@@ -64,3 +64,11 @@ convergence. Failure visibility, cross-retry identity and recovery semantics nee
 failure matrix and regression evidence before stronger guarantees. A cross-session task with
 correction and deletion is the next utility experiment. See the [module guide](../导学-MemOS.md)
 for priorities and exit criteria; these are pending work, not new features already delivered.
+
+September 7 refinement: Waku commit `dbcda82615506db89f07d3187d64ba4c7032800a` supersedes only
+the read-failure-as-empty behavior above and preserves opaque/UUID IDs through administrative
+tools. Its deterministic gate is 630 passed / 73 skipped; new-version live conformance was not
+run. Write failures, partial updates, stable cross-retry identity, deadline composition and
+task-level utility remain OPEN. The [market audit](research/market-2026-09-07/README.md) also
+leaves approximately 100 strict social-hire interviews and authenticated BOSS full-JD coverage
+unmet; aggregate candidates and previews must not be presented as completed full-body samples.

@@ -14,6 +14,7 @@ from memos_benchmark.runner import (
     RunnerError,
     RunnerSettings,
     UnifiedBenchmarkRunner,
+    answer_schema_with_citations,
     create_hs256_token,
     memos_roles_for_manifest,
     validate_answer_output,
@@ -216,7 +217,12 @@ def test_unified_runner_emits_every_four_baseline_execution_row() -> None:
         dataset_manifest=_manifest(),
         scenarios=[_scenario()],
         answer_prompt="answer",
-        answer_schema={"type": "object", "properties": {"citations": {}}},
+        answer_schema={
+            "type": "object",
+            "properties": {
+                "citations": {"type": "array", "maxItems": 64, "items": {"type": "string"}}
+            },
+        },
         summary_prompt="summary",
         summary_schema={"type": "object", "properties": {"facts": {}}},
         settings=_settings(),
@@ -305,6 +311,33 @@ def test_answer_validation_maps_selected_memory_and_version_citations_to_provena
     assert mapped["citations"] == ["event-1", "event-2"]
 
 
+def test_answer_schema_constrains_decoding_to_visible_citations_without_mutating_base() -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "citations": {
+                "type": "array",
+                "maxItems": 64,
+                "items": {"type": "string", "maxLength": 200},
+            }
+        },
+    }
+
+    constrained = answer_schema_with_citations(schema, [SOURCE_ID, VERSION_ID])
+
+    assert constrained["properties"]["citations"]["maxItems"] == 2
+    assert constrained["properties"]["citations"]["items"]["enum"] == [
+        SOURCE_ID,
+        VERSION_ID,
+    ]
+    assert "enum" not in schema["properties"]["citations"]["items"]
+    assert answer_schema_with_citations(schema, [])["properties"]["citations"] == {
+        "type": "array",
+        "maxItems": 0,
+        "items": False,
+    }
+
+
 def test_generated_hs256_token_contains_exact_scope_and_roles() -> None:
     token = create_hs256_token(
         tenant="tenant",
@@ -358,7 +391,12 @@ def test_memos_context_rejects_counter_kind_or_digest_drift(counter_version: str
         dataset_manifest=_manifest(),
         scenarios=[_scenario()],
         answer_prompt="answer",
-        answer_schema={"type": "object", "properties": {"citations": {}}},
+        answer_schema={
+            "type": "object",
+            "properties": {
+                "citations": {"type": "array", "maxItems": 64, "items": {"type": "string"}}
+            },
+        },
         summary_prompt="summary",
         summary_schema={"type": "object", "properties": {"facts": {}}},
         settings=_settings(),

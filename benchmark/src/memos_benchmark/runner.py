@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import hashlib
 import hmac
 import json
@@ -562,7 +563,7 @@ class UnifiedBenchmarkRunner:
                         ),
                     },
                 ],
-                schema=self.answer_schema,
+                schema=answer_schema_with_citations(self.answer_schema, context.raw_selected_ids),
                 temperature=self.manifest["sampling"]["temperature"],
                 seed=self.manifest["sampling"]["seed"],
             )
@@ -681,6 +682,28 @@ def validate_answer_output(
             if event_id not in mapped:
                 mapped.append(event_id)
     return {**value, "items": list(items), "citations": mapped}
+
+
+def answer_schema_with_citations(
+    schema: dict[str, Any], allowed_citations: list[str]
+) -> dict[str, Any]:
+    """Constrain structured decoding to citation identifiers visible in this context."""
+    if len(allowed_citations) != len(set(allowed_citations)):
+        raise RunnerError("ANSWER_SCHEMA", "allowed citations are duplicated")
+    constrained = copy.deepcopy(schema)
+    try:
+        citations = constrained["properties"]["citations"]
+        citation_items = citations["items"]
+    except (KeyError, TypeError) as exc:
+        raise RunnerError("ANSWER_SCHEMA", "answer citation schema is invalid") from exc
+    if not isinstance(citations, dict) or not isinstance(citation_items, dict):
+        raise RunnerError("ANSWER_SCHEMA", "answer citation schema is invalid")
+    citations["maxItems"] = min(citations.get("maxItems", 64), len(allowed_citations))
+    if allowed_citations:
+        citation_items["enum"] = list(allowed_citations)
+    else:
+        citations["items"] = False
+    return constrained
 
 
 def create_hs256_token(

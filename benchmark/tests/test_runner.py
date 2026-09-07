@@ -15,6 +15,7 @@ from memos_benchmark.runner import (
     RunnerSettings,
     UnifiedBenchmarkRunner,
     create_hs256_token,
+    memos_roles_for_manifest,
     validate_answer_output,
 )
 
@@ -295,6 +296,22 @@ def test_generated_hs256_token_contains_exact_scope_and_roles() -> None:
     assert decoded["tenant_id"] == "tenant"
     assert decoded["roles"] == ["USER", "OPERATOR"]
     assert decoded["exp"] == 1000
+
+
+def test_manifest_declares_exact_memos_authorization_without_changing_legacy_runs() -> None:
+    assert memos_roles_for_manifest(_manifest()) == ["USER", "OPERATOR"]
+    manifest = _manifest()
+    manifest["memos_authorization"] = {"roles": ["USER", "OPERATOR", "PROJECT_MEMORY_WRITER"]}
+
+    assert memos_roles_for_manifest(manifest) == [
+        "USER",
+        "OPERATOR",
+        "PROJECT_MEMORY_WRITER",
+    ]
+
+    manifest["memos_authorization"] = {"roles": ["USER", "USER"]}
+    with pytest.raises(RunnerError, match="roles"):
+        memos_roles_for_manifest(manifest)
 
 
 @pytest.mark.parametrize(

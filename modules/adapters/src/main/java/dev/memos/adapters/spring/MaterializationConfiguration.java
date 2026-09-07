@@ -155,9 +155,13 @@ public class MaterializationConfiguration {
                   required(properties.schemaVersion(), "memos.extraction.schema-version"),
                   properties.seed(),
                   properties.timeout(),
-                  "candidate-extraction-temporal-v2".equals(properties.promptVersion())
-                      ? StructuredExtractionResources.loadTemporalV2()
-                      : StructuredExtractionResources.loadV1());
+                  switch (properties.promptVersion()) {
+                    case "candidate-extraction-temporal-v2" ->
+                        StructuredExtractionResources.loadTemporalV2();
+                    case "candidate-extraction-policy-v3" ->
+                        StructuredExtractionResources.loadPolicyV3();
+                    default -> StructuredExtractionResources.loadV1();
+                  });
           default -> throw new IllegalArgumentException("unsupported memos.extraction.provider");
         };
     return new InstrumentedStructuredCandidateExtractionPort(delegate, registry, provider);
@@ -342,6 +346,12 @@ public class MaterializationConfiguration {
             "codex-proxy requires distinct inline-schema prompt identity");
       }
       return StructuredExtractionResources.loadV1WithInlineSchema();
+    }
+    if ("candidate-extraction-policy-v3".equals(promptVersion)) {
+      return StructuredExtractionResources.loadPolicyV3();
+    }
+    if ("candidate-extraction-temporal-v2".equals(promptVersion)) {
+      return StructuredExtractionResources.loadTemporalV2();
     }
     return StructuredExtractionResources.loadV1();
   }

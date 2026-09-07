@@ -1,8 +1,10 @@
 package dev.memos.ingestion;
 
 import dev.memos.governance.MemoryScope;
+import dev.memos.governance.WriteCapability;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Set;
 
 public record SourceIngestionCommand(
     MemoryScope scope,
@@ -12,6 +14,7 @@ public record SourceIngestionCommand(
     ActorType actorType,
     SourceType sourceType,
     TrustLevel trustLevel,
+    Set<WriteCapability> writeCapabilities,
     Instant occurredAt,
     String payload,
     String traceId) {
@@ -32,6 +35,8 @@ public record SourceIngestionCommand(
     Objects.requireNonNull(actorType, "actorType must not be null");
     Objects.requireNonNull(sourceType, "sourceType must not be null");
     Objects.requireNonNull(trustLevel, "trustLevel must not be null");
+    writeCapabilities =
+        Set.copyOf(Objects.requireNonNull(writeCapabilities, "writeCapabilities must not be null"));
     Objects.requireNonNull(occurredAt, "occurredAt must not be null");
     payload = TextValidation.requirePayload(payload, MAX_PAYLOAD_BYTES);
     traceId = TextValidation.requireText(traceId, "traceId", MAX_TRACE_ID_LENGTH);

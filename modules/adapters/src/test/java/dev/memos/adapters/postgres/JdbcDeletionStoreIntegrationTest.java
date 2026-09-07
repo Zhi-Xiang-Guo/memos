@@ -502,6 +502,7 @@ class JdbcDeletionStoreIntegrationTest {
         ActorType.USER,
         SourceType.CONVERSATION_MESSAGE,
         TrustLevel.DIRECT_USER,
+        java.util.Set.of(),
         Instant.now(),
         "{\"content\":\"concurrent content\"}",
         "trace-concurrent");

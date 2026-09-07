@@ -48,6 +48,14 @@ from memos_benchmark.metrics import BenchmarkMetricError, execution_key, generat
 from memos_benchmark.ollama import OllamaClient, OllamaError, ProviderUsage
 
 BASELINES = {"full_history", "rolling_summary", "raw_turn_vector", "memos"}
+LEGACY_MEMOS_ROLES = ["USER", "OPERATOR"]
+ALLOWED_MEMOS_ROLES = {
+    "USER",
+    "OPERATOR",
+    "PRIVACY_ADMIN",
+    "PROJECT_MEMORY_WRITER",
+    "PROCEDURAL_MEMORY_WRITER",
+}
 ZERO_USAGE = ProviderUsage()
 
 
@@ -154,6 +162,7 @@ class UnifiedBenchmarkRunner:
         self.summary_prompt = summary_prompt
         self.summary_schema = summary_schema
         self.settings = settings
+        self.memos_roles = memos_roles_for_manifest(dataset_manifest)
         self.monotonic_ns = monotonic_ns
         self.now_seconds = now_seconds
         if set(dataset_manifest["baselines"]) != BASELINES:
@@ -348,7 +357,7 @@ class UnifiedBenchmarkRunner:
             user=scope["user_id"],
             agent=scope["agent_id"],
             subject=f"benchmark-{suffix}",
-            roles=["USER", "OPERATOR"],
+            roles=self.memos_roles,
             issuer=self.settings.jwt_issuer,
             audience=self.settings.jwt_audience,
             secret=self.settings.jwt_secret,
@@ -702,6 +711,26 @@ def create_hs256_token(
         hmac.new(secret, signing_input, hashlib.sha256).digest()
     ).rstrip(b"=")
     return f"{header}.{payload}.{signature.decode('ascii')}"
+
+
+def memos_roles_for_manifest(manifest: dict[str, Any]) -> list[str]:
+    authorization = manifest.get("memos_authorization")
+    if authorization is None:
+        return list(LEGACY_MEMOS_ROLES)
+    roles = authorization.get("roles") if isinstance(authorization, dict) else None
+    if (
+        not isinstance(roles, list)
+        or not roles
+        or any(not isinstance(role, str) or role not in ALLOWED_MEMOS_ROLES for role in roles)
+        or len(roles) != len(set(roles))
+        or "USER" not in roles
+        or "OPERATOR" not in roles
+    ):
+        raise RunnerError(
+            "JWT_CONFIGURATION",
+            "memos_authorization.roles must be unique allowed roles containing USER and OPERATOR",
+        )
+    return list(roles)
 
 
 def run_command(argv: list[str] | None = None) -> int:

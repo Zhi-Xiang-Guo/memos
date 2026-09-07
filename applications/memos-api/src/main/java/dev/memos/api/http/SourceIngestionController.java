@@ -1,5 +1,6 @@
 package dev.memos.api.http;
 
+import dev.memos.api.security.ActorContextResolver;
 import dev.memos.ingestion.ActorType;
 import dev.memos.ingestion.IngestionDisposition;
 import dev.memos.ingestion.SourceIngestionCommand;
@@ -23,13 +24,13 @@ import tools.jackson.databind.ObjectMapper;
 @RequestMapping("/v1/source-events")
 public final class SourceIngestionController {
   private final SourceIngestionService service;
-  private final ScopeContextResolver scopeResolver;
+  private final ActorContextResolver actors;
   private final ObjectMapper mapper;
 
   public SourceIngestionController(
-      SourceIngestionService service, ScopeContextResolver scopeResolver, ObjectMapper mapper) {
+      SourceIngestionService service, ActorContextResolver actors, ObjectMapper mapper) {
     this.service = service;
-    this.scopeResolver = scopeResolver;
+    this.actors = actors;
     this.mapper = mapper;
   }
 
@@ -38,15 +39,17 @@ public final class SourceIngestionController {
       @RequestHeader("Idempotency-Key") String idempotencyKey,
       @Valid @RequestBody SourceEventRequest body,
       HttpServletRequest request) {
+    var actor = actors.resolveActor(request);
     var command =
         new SourceIngestionCommand(
-            scopeResolver.resolve(request),
+            actor.scope(),
             body.sourceId(),
             body.sessionId(),
             idempotencyKey,
             enumValue(ActorType.class, body.actorType(), "actorType"),
             enumValue(SourceType.class, body.sourceType(), "sourceType"),
             enumValue(TrustLevel.class, body.trustLevel(), "trustLevel"),
+            actor.writeCapabilities(),
             body.occurredAt(),
             payloadJson(body),
             MDC.get(TraceIdFilter.TRACE_ID_KEY));

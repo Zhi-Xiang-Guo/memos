@@ -9,9 +9,11 @@ export MEMOS_EXTRACTION_MODEL_VERSION=deterministic-fixture-v1
 export MEMOS_EXTRACTION_PROMPT_VERSION=candidate-extraction-v1
 case "$mode" in
   fake) ;;
-  ollama|ollama-temporal-v2)
+  ollama|ollama-temporal-v2|ollama-policy-v3)
     if [[ "$mode" = ollama-temporal-v2 ]]; then
       export MEMOS_EXTRACTION_PROMPT_VERSION=candidate-extraction-temporal-v2
+    elif [[ "$mode" = ollama-policy-v3 ]]; then
+      export MEMOS_EXTRACTION_PROMPT_VERSION=candidate-extraction-policy-v3
     fi
     export MEMOS_EXTRACTION_PROVIDER=ollama MEMOS_EMBEDDING_PROVIDER=ollama
     export MEMOS_EXTRACTION_BASE_URL=http://127.0.0.1:11434
@@ -35,7 +37,7 @@ case "$mode" in
     export MEMOS_EXTRACTION_MODEL_VERSION=local-codex-proxy-dev-unpinned
     export MEMOS_EXTRACTION_TIMEOUT=300s
     ;;
-  *) echo 'Usage: scripts/run-local.sh [fake|ollama|ollama-temporal-v2|codex]' >&2; exit 2 ;;
+  *) echo 'Usage: scripts/run-local.sh [fake|ollama|ollama-temporal-v2|ollama-policy-v3|codex]' >&2; exit 2 ;;
 esac
 mkdir -p logs
 api_jar=applications/memos-api/target/memos-api-0.1.0-SNAPSHOT-exec.jar

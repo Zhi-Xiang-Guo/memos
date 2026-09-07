@@ -2,6 +2,7 @@ package dev.memos.adapters.postgres;
 
 import dev.memos.domain.candidate.EvidenceTrust;
 import dev.memos.governance.MemoryScope;
+import dev.memos.governance.WriteCapability;
 import dev.memos.materialization.ExtractionActorType;
 import dev.memos.materialization.ExtractionSourceType;
 import dev.memos.materialization.SourceContentState;
@@ -30,7 +31,7 @@ public final class JdbcSourceExtractionStore implements SourceExtractionStore {
         jdbc.query(
             """
             SELECT source_event_id, tenant_id, user_id, agent_id, actor_type, source_type,
-                   trust_level, deletion_state,
+                   trust_level, write_capabilities, deletion_state,
                    CASE WHEN deletion_state = 'ACTIVE' THEN payload ->> 'content' END AS content
               FROM memos.source_event
              WHERE tenant_id = ? AND user_id = ? AND agent_id = ? AND source_event_id = ?
@@ -74,8 +75,18 @@ public final class JdbcSourceExtractionStore implements SourceExtractionStore {
             ? Map.of("actor_type", actorType.name(), "source_type", sourceType.name())
             : Map.of(),
         Map.of(),
-        Set.of(),
+        contentState == SourceContentState.ACTIVE ? capabilities(result) : Set.of(),
         false);
+  }
+
+  private static Set<WriteCapability> capabilities(ResultSet result) throws SQLException {
+    Object[] values = (Object[]) result.getArray("write_capabilities").getArray();
+    java.util.EnumSet<WriteCapability> capabilities =
+        java.util.EnumSet.noneOf(WriteCapability.class);
+    for (Object value : values) {
+      capabilities.add(WriteCapability.valueOf(value.toString()));
+    }
+    return Set.copyOf(capabilities);
   }
 
   private static SourceForExtraction erased(ResultSet result) throws SQLException {

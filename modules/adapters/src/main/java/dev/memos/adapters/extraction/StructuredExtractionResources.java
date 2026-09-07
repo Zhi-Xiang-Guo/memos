@@ -30,6 +30,12 @@ public record StructuredExtractionResources(String prompt, String jsonSchema) {
         read(SCHEMA_RESOURCE));
   }
 
+  public static StructuredExtractionResources loadPolicyV3() {
+    return new StructuredExtractionResources(
+        read("/providers/openai-compatible/candidate-extraction-policy-v3.txt"),
+        read(SCHEMA_RESOURCE));
+  }
+
   /** Development compatibility for proxies that do not forward response_format. */
   public static StructuredExtractionResources loadV1WithInlineSchema() {
     StructuredExtractionResources original = loadV1();

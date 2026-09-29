@@ -2,6 +2,7 @@ package dev.memos.adapters.spring;
 
 import dev.memos.adapters.embedding.EmbeddingAdapter;
 import dev.memos.adapters.embedding.OllamaEmbeddingAdapter;
+import dev.memos.adapters.embedding.OpenAiCompatibleEmbeddingAdapter;
 import dev.memos.adapters.fake.DeterministicEmbeddingAdapter;
 import dev.memos.adapters.fake.FakeStructuredExtractionAdapter;
 import dev.memos.adapters.fake.PassThroughRerankerAdapter;
@@ -53,6 +54,15 @@ public class ProviderConfiguration {
               required(properties.modelTag(), "memos.embedding.model-tag"),
               modelVersion,
               required(properties.modelDigest(), "memos.embedding.model-digest"),
+              properties.dimensions(),
+              properties.timeout());
+      case "openai-compatible" ->
+          new OpenAiCompatibleEmbeddingAdapter(
+              HttpClient.newBuilder().connectTimeout(properties.timeout()).build(),
+              URI.create(required(properties.baseUrl(), "memos.embedding.base-url")),
+              required(properties.apiKey(), "memos.embedding.api-key"),
+              required(properties.modelTag(), "memos.embedding.model-tag"),
+              modelVersion,
               properties.dimensions(),
               properties.timeout());
       default -> throw new IllegalArgumentException("unsupported memos.embedding.provider");

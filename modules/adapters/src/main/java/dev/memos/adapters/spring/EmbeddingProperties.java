@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record EmbeddingProperties(
     String provider,
     String baseUrl,
+    String apiKey,
     String modelTag,
     String modelVersion,
     String modelDigest,

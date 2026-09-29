@@ -61,6 +61,13 @@ remain rebuildable data; no authoritative assertion is rewritten or deleted. Dim
 than 1024 and model-version changes require explicit index migration/reconciliation, and
 representative Recall@K/latency is still `NOT RUN`, so the ADR remains `PROPOSED`.
 
+The 2026-09-29 hosted-API deployment adds an OpenAI-compatible embedding adapter and uses the
+same checked 1024-dimensional projection/index contract for OPAY Qwen3-Embedding-8B. A real
+source-to-projection/vector-search smoke confirms this adapter boundary without introducing a
+second vector database or modifying retained authority. Model-version reconciliation and hosted
+model immutability are still unestablished. See [the deployment evidence](../implementation/docker-opays.md);
+the ADR remains `PROPOSED` and representative evaluation remains `NOT RUN`.
+
 Feature 6 adds an operator-only, content-free storage observation over the exact authenticated
 tenant/user/agent scope. It reports relation row counts and
 `pg_column_size(record)` bytes, while deployment-wide `pg_table_size`/`pg_indexes_size` allocation

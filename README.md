@@ -168,6 +168,10 @@ uv run pytest
 
 See the [Feature 0 implementation note](docs/implementation/feature-0.md) for the module graph, pinned toolchain, local profiles, migration behavior, and operational caveats.
 
+For an all-Docker API + worker + PostgreSQL deployment with hosted API embeddings, see
+[the OPAY deployment guide](docs/implementation/docker-opays.md). Embedding providers now include
+`fake`, `ollama`, and `openai-compatible`; the default remains credential-free `fake`.
+
 To review the design before running it:
 
 1. Read the [problem definition](docs/architecture/01-problem-definition.md).

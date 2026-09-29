@@ -24,6 +24,17 @@ public record StructuredExtractionResources(String prompt, String jsonSchema) {
     return new StructuredExtractionResources(read(PROMPT_RESOURCE), read(SCHEMA_RESOURCE));
   }
 
+  public static StructuredExtractionResources load(String promptVersion) {
+    if ("candidate-extraction-v1".equals(promptVersion)) {
+      return loadV1();
+    }
+    if ("candidate-extraction-v2".equals(promptVersion)) {
+      return new StructuredExtractionResources(
+          read("/providers/openai-compatible/candidate-extraction-v2.txt"), read(SCHEMA_RESOURCE));
+    }
+    throw new IllegalArgumentException("unsupported structured extraction prompt version");
+  }
+
   private static String read(String resource) {
     try (InputStream stream = StructuredExtractionResources.class.getResourceAsStream(resource)) {
       if (stream == null) {

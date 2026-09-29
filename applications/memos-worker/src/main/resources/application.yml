@@ -40,6 +40,7 @@ memos:
   embedding:
     provider: ${MEMOS_EMBEDDING_PROVIDER:fake}
     base-url: ${MEMOS_EMBEDDING_BASE_URL:}
+    api-key: ${MEMOS_EMBEDDING_API_KEY:}
     model-tag: ${MEMOS_EMBEDDING_MODEL_TAG:}
     model-version: ${MEMOS_EMBEDDING_MODEL_VERSION:deterministic-hashing-1024-v1}
     model-digest: ${MEMOS_EMBEDDING_MODEL_DIGEST:}

@@ -366,15 +366,14 @@ public final class OllamaEmbeddingAdapter implements EmbeddingAdapter {
     return new OllamaEmbeddingException(kind, message, cause);
   }
 
-  private static final class BoundedByteArraySubscriber
-      implements HttpResponse.BodySubscriber<byte[]> {
+  static final class BoundedByteArraySubscriber implements HttpResponse.BodySubscriber<byte[]> {
     private final int maximumBytes;
     private final ByteArrayOutputStream output;
     private final CompletableFuture<byte[]> body = new CompletableFuture<>();
     private Flow.Subscription subscription;
     private int receivedBytes;
 
-    private BoundedByteArraySubscriber(int maximumBytes) {
+    BoundedByteArraySubscriber(int maximumBytes) {
       this.maximumBytes = maximumBytes;
       this.output = new ByteArrayOutputStream(Math.min(maximumBytes, 8_192));
     }
@@ -426,7 +425,7 @@ public final class OllamaEmbeddingAdapter implements EmbeddingAdapter {
     }
   }
 
-  private static final class ResponseTooLargeException extends IOException {
+  static final class ResponseTooLargeException extends IOException {
     private static final long serialVersionUID = 1L;
   }
 

@@ -143,7 +143,7 @@ public class MaterializationConfiguration {
                   required(properties.schemaVersion(), "memos.extraction.schema-version"),
                   properties.seed(),
                   properties.timeout(),
-                  StructuredExtractionResources.loadV1());
+                  StructuredExtractionResources.load(properties.promptVersion()));
           case "ollama" ->
               new OllamaStructuredCandidateExtractionAdapter(
                   HttpClient.newBuilder().connectTimeout(properties.timeout()).build(),
@@ -155,7 +155,7 @@ public class MaterializationConfiguration {
                   required(properties.schemaVersion(), "memos.extraction.schema-version"),
                   properties.seed(),
                   properties.timeout(),
-                  StructuredExtractionResources.loadV1());
+                  StructuredExtractionResources.load(properties.promptVersion()));
           default -> throw new IllegalArgumentException("unsupported memos.extraction.provider");
         };
     return new InstrumentedStructuredCandidateExtractionPort(delegate, registry, provider);

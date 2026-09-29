@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-08-30 (Asia/Shanghai)
+Last updated: 2026-09-29 (Asia/Shanghai)
 
 ## Research
 
@@ -117,6 +117,30 @@ Status: `DOING` — Feature 5 is `DONE / PUBLISHED`; Feature 6 evaluation is in 
   extraction version, and mismatched old jobs fail permanently without a provider call. Run #39
   passed Java 25, PostgreSQL integration, Python, documentation, and the complete compose smoke.
   This is not a real-model benchmark result.
+
+## Local API embedding deployment (2026-09-29)
+
+Status: integration `CONFIRMED`; formal model benchmark `NOT RUN`
+
+- Added `openai-compatible` alongside fake/Ollama embeddings, shared by projection, query and
+  complete-context token counting. HTTP failures preserve retry/dead semantics and errors omit
+  provider content and credentials. The OPAY Qwen3-Embedding-8B deployment uses 1024 dimensions
+  matching V007; no separate vector store or authority migration was needed.
+- Docker Desktop now runs the independent `memos` API/worker/PostgreSQL group with persisted data,
+  loopback ports, unprivileged applications, bounded heaps and readiness checks. Secrets remain
+  local in ignored `.env`, outside Docker build context and published examples.
+- The initial real extraction classified a preference as PROCEDURAL and correctly reached review.
+  An explicitly selected `candidate-extraction-v2` adds type definitions; v1 and the frozen
+  benchmark remain unchanged. Write authorization was not relaxed.
+- Real source-to-projection smoke passed duplicate-ingest identity, vector-only retrieval,
+  complete-context usage (one selected memory, 150 tokens), and foreign-user isolation. These are
+  integration observations, not quality, latency, scale or cost claims. Hosted configuration labels
+  do not establish immutable model snapshots.
+- The isolated publication snapshot passed full Java 25/PostgreSQL regression, 65 Python tests
+  with format/lint, and 66-file Markdown link checks; runtime images exclude unrelated concurrent
+  changes. See [the deployment guide](implementation/docker-opays.md).
+- Next step remains projection reconciliation and the declared fixed-model evaluation; answer
+  generation and optional reranking are separate from this embedding deployment.
 
 ## Advanced Memory
 

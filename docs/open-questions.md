@@ -20,6 +20,16 @@ Anything without adequate source or experimental evidence stays here. `HYPOTHESI
 | OQ-014 | What are the initial SLOs and scale envelope? | “Millions of users” is not a useful design input without workload and retention assumptions. | Derive targets from three explicit load profiles before optimization. | Capacity model with QPS, memories/user, write amplification, retention, and cost. | OPEN |
 | OQ-015 | How should multiple agents share memory safely? | Shared stores risk information leakage and concurrent conflicting writes. | Tenant/user/agent scopes plus ACLs and optimistic version checks; no implicit global sharing. | Authorization matrix, concurrency tests, and multi-agent benchmark cases. | OPEN |
 
+## Hosted API deployment boundary (2026-09-29)
+
+The real OPAY pipeline now verifies API extraction, 1024-dimensional API embeddings, token usage,
+idempotency and scoped retrieval. Gateway tags may normalize and do not expose an independently
+attested immutable weight digest. Configuration-version labels are not reproducibility proof.
+The separately versioned extraction prompt fixes the observed smoke classification, not general
+write precision. OQ-002, OQ-006, OQ-012 and OQ-014 remain open; representative model quality,
+cost/latency, drift detection and model-version projection reconciliation are unmeasured.
+See [the deployment guide](implementation/docker-opays.md).
+
 ## Hypothesis registry
 
 Every substantive `HYPOTHESIS` in the Phase 1 documents maps to an open question below. The source text remains the precise claim; this registry prevents an unverified proposal from becoming an untracked decision.

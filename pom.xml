@@ -20,6 +20,7 @@
     <module>modules/materialization</module>
     <module>modules/retrieval</module>
     <module>modules/context</module>
+    <module>modules/answering</module>
     <module>modules/adapters</module>
     <module>applications/memos-api</module>
     <module>applications/memos-worker</module>

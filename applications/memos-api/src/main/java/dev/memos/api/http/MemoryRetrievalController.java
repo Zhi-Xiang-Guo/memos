@@ -6,10 +6,9 @@ import dev.memos.audit.TraceAccessAudit;
 import dev.memos.audit.TraceAccessAuditEvent;
 import dev.memos.context.ContextAssembly;
 import dev.memos.context.ContextBudget;
-import dev.memos.context.MemoryContextAssembler;
+import dev.memos.context.MemoryEvidenceService;
 import dev.memos.domain.temporal.LineageScope;
 import dev.memos.governance.MemoryScope;
-import dev.memos.retrieval.HybridRetrievalService;
 import dev.memos.retrieval.RankedMemory;
 import dev.memos.retrieval.RetrievalMode;
 import dev.memos.retrieval.RetrievalQuery;
@@ -32,8 +31,7 @@ public final class MemoryRetrievalController {
   private static final int DEFAULT_COMPONENT_LIMIT = 40;
   private static final int DEFAULT_CONTEXT_TOKENS = 1_200;
 
-  private final HybridRetrievalService retrieval;
-  private final MemoryContextAssembler contexts;
+  private final MemoryEvidenceService evidence;
   private final ScopeContextResolver scopeResolver;
   private final ActorContextResolver actors;
   private final TraceAccessAudit traceAccessAudit;
@@ -41,15 +39,13 @@ public final class MemoryRetrievalController {
   private final Clock clock;
 
   public MemoryRetrievalController(
-      HybridRetrievalService retrieval,
-      MemoryContextAssembler contexts,
+      MemoryEvidenceService evidence,
       ScopeContextResolver scopeResolver,
       ActorContextResolver actors,
       TraceAccessAudit traceAccessAudit,
       RetrievalProperties properties,
       Clock clock) {
-    this.retrieval = retrieval;
-    this.contexts = contexts;
+    this.evidence = evidence;
     this.scopeResolver = scopeResolver;
     this.actors = actors;
     this.traceAccessAudit = traceAccessAudit;
@@ -92,8 +88,8 @@ public final class MemoryRetrievalController {
     int maxTokens = value(body.maxTokens(), DEFAULT_CONTEXT_TOKENS, 64, 16_384, "maxTokens");
     boolean rerank = Boolean.TRUE.equals(body.rerank()) && properties.rerankingEnabled();
     Instant deadline = rerank ? clock.instant().plus(properties.rerankerTimeout()) : null;
-    RetrievalResult result =
-        retrieval.retrieve(
+    MemoryEvidenceService.Result result =
+        evidence.retrieve(
             new RetrievalQuery(
                 scope(request),
                 body.query(),
@@ -104,9 +100,9 @@ public final class MemoryRetrievalController {
                 body.subjectLabel(),
                 body.at(),
                 rerank,
-                deadline));
-    ContextAssembly context = contexts.assemble(result.memories(), new ContextBudget(maxTokens));
-    return response(result, context, includeTrace);
+                deadline),
+            new ContextBudget(maxTokens));
+    return response(result.retrieval(), result.context(), includeTrace);
   }
 
   private RetrievalResponses.Response response(

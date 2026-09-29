@@ -51,3 +51,11 @@ Every substantive `HYPOTHESIS` in the Phase 1 documents maps to an open question
 | Frozen bilingual personal/project workload and unachieved SLO gates ([problem definition](architecture/01-problem-definition.md#initial-workload), [performance targets](architecture/01-problem-definition.md#performance-targets)) | OQ-001, OQ-014 | OQ-001 is resolved by the Feature 6 v1 smoke contract; explicit load profiles and measured SLOs remain under OQ-014 |
 | Modular/outbox topology and eventual availability ([progress](progress.md#decision-log-snapshot)) | OQ-009, OQ-014 | Fault-injection spike, queue-lag/freshness and DB-load measurements |
 | MemOS target claims in the [competitive matrix](research/08-competitive-matrix.md#memos-competitive-position-and-falsifiable-claims) | OQ-002–OQ-011, OQ-014–OQ-015 | Feature exit gates, equal-budget benchmarks, fault/security tests, and scale profiles |
+
+## RAG practice extension boundary (2026-09-29)
+
+The new answer/rerank adapter checks model tags, not immutable model digests, and its small
+practice evaluator uses exact labels plus optional manual support labels. Real-model tool
+selection, semantic answer support, reranker cost/quality, generation tokenizer budgeting, and
+provider-side cancellation effectiveness still require experiments. This extension does not
+resolve OQ-007, OQ-008, OQ-012, or OQ-014. See [the practice guide](implementation/rag-practice.md).

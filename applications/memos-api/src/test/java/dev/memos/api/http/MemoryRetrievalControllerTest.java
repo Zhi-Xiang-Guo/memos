@@ -8,6 +8,7 @@ import dev.memos.api.security.MemosRoles;
 import dev.memos.audit.TraceAccessAuditEvent;
 import dev.memos.context.CodePointTokenCounter;
 import dev.memos.context.MemoryContextAssembler;
+import dev.memos.context.MemoryEvidenceService;
 import dev.memos.domain.candidate.MemoryType;
 import dev.memos.domain.candidate.SubjectKind;
 import dev.memos.domain.temporal.AssertionStatus;
@@ -77,8 +78,8 @@ class MemoryRetrievalControllerTest {
         new RetrievalProperties("embedding-v1", "reranker-v1", true, Duration.ofMillis(150), 60);
     controller =
         new MemoryRetrievalController(
-            service,
-            new MemoryContextAssembler(new CodePointTokenCounter()),
+            new MemoryEvidenceService(
+                service, new MemoryContextAssembler(new CodePointTokenCounter())),
             ignored -> new MemoryScope("tenant-a", "user-a", "agent-a"),
             ignored ->
                 new AuthenticatedActor(

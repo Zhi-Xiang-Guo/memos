@@ -199,3 +199,18 @@ Continue Feature 6 without entering Advanced Memory: add projection reconciliati
 the predeclared dev smoke against the selected local model snapshots.
 The legacy trusted scope headers and temporary operator key are removed and must not be
 reintroduced.
+
+## User-requested RAG practice extension (2026-09-29)
+
+Status: `IMPLEMENTED / LOCALLY VERIFIED`. The user authorized a runnable AI
+application path and package refactoring. The extension adds a framework-free answering module,
+shared retrieval/context operation, scoped read-only model tools, structured answer/citation
+validation, SSE, bounded retries and admission, an optional Ollama reranker, and a separate
+practice evaluator. It does not enter Advanced Memory or change the frozen Feature 6 campaign.
+See [implementation and exercises](implementation/rag-practice.md) and
+[package governance](architecture/05-package-governance.md). Real-model execution remains `NOT RUN`.
+
+Local verification passed Maven Wrapper clean verify (JDK 26, release 25), PostgreSQL fault/concurrency
+regressions, all nine architecture rules, Python 3.14.7 Ruff and 70 tests, Markdown links, and an
+isolated PostgreSQL/API/worker RAG smoke. Native provider protocol tests use a local HTTP stub;
+no selected real model ran and no formal quality claim was added.

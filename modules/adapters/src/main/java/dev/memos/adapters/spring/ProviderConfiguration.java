@@ -1,5 +1,6 @@
 package dev.memos.adapters.spring;
 
+import dev.memos.adapters.answering.OllamaRerankerAdapter;
 import dev.memos.adapters.embedding.EmbeddingAdapter;
 import dev.memos.adapters.embedding.OllamaEmbeddingAdapter;
 import dev.memos.adapters.embedding.OpenAiCompatibleEmbeddingAdapter;
@@ -70,7 +71,14 @@ public class ProviderConfiguration {
   }
 
   @Bean
-  RerankerPort rerankerPort() {
+  RerankerPort rerankerPort(
+      AnsweringProperties answering, RetrievalProperties retrieval, Clock clock) {
+    if (retrieval.rerankingEnabled() && "ollama".equals(answering.provider())) {
+      if (!retrieval.rerankerModelVersion().equals(answering.model()))
+        throw new IllegalArgumentException(
+            "reranker model version must match configured answering model tag");
+      return new OllamaRerankerAdapter(AnsweringConfiguration.transport(answering, clock));
+    }
     return new PassThroughRerankerAdapter();
   }
 

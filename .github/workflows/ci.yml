@@ -64,5 +64,6 @@ jobs:
       - run: ./scripts/smoke-feature3.sh
       - run: ./scripts/smoke-feature4.sh
       - run: ./scripts/smoke-feature5.sh
+      - run: ./scripts/smoke-rag-practice.sh
       - if: always()
         run: docker compose down --volumes

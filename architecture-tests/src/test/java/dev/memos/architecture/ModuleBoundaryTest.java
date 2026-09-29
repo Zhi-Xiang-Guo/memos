@@ -41,10 +41,65 @@ class ModuleBoundaryTest {
               "dev.memos.ingestion..",
               "dev.memos.materialization..",
               "dev.memos.retrieval..",
-              "dev.memos.context..")
+              "dev.memos.context..",
+              "dev.memos.answering..")
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage("dev.memos.adapters..", "dev.memos.api..", "dev.memos.worker..");
+
+  @ArchTest
+  static final ArchRule ANSWERING_IS_FRAMEWORK_FREE =
+      noClasses()
+          .that()
+          .resideInAPackage("dev.memos.answering..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "org.springframework..",
+              "jakarta..",
+              "java.sql..",
+              "java.net.http..",
+              "tools.jackson..");
+
+  @ArchTest
+  static final ArchRule ANSWER_MODEL_DOES_NOT_DEPEND_ON_ORCHESTRATION =
+      noClasses()
+          .that()
+          .resideInAPackage("dev.memos.answering.model..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage("dev.memos.answering.service..", "dev.memos.answering.port..");
+
+  @ArchTest
+  static final ArchRule ANSWER_PORTS_DO_NOT_DEPEND_ON_SERVICES =
+      noClasses()
+          .that()
+          .resideInAPackage("dev.memos.answering.port..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage("dev.memos.answering.service..");
+
+  @ArchTest
+  static final ArchRule ANSWER_HTTP_DOES_NOT_ACCESS_PROVIDER_OR_DATABASE =
+      noClasses()
+          .that()
+          .resideInAPackage("dev.memos.api.answering..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "dev.memos.adapters.answering..",
+              "dev.memos.adapters.postgres..",
+              "java.net.http..",
+              "java.sql..");
+
+  @ArchTest
+  static final ArchRule ANSWER_ADAPTERS_DO_NOT_OWN_WIRING =
+      noClasses()
+          .that()
+          .resideInAPackage("dev.memos.adapters.answering..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAPackage("dev.memos.adapters.spring..");
 
   @ArchTest
   static final ArchRule APPLICATIONS_ARE_SEPARATE =

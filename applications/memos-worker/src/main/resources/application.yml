@@ -10,6 +10,14 @@ spring:
     clean-disabled: true
     validate-migration-naming: true
 memos:
+  answering:
+    provider: ${MEMOS_ANSWER_PROVIDER:fake}
+    base-url: ${MEMOS_ANSWER_BASE_URL:http://localhost:11434}
+    model: ${MEMOS_ANSWER_MODEL:qwen3:4b}
+    timeout: ${MEMOS_ANSWER_TIMEOUT:60s}
+    request-timeout: ${MEMOS_ANSWER_REQUEST_TIMEOUT:20s}
+    max-attempts: ${MEMOS_ANSWER_MAX_ATTEMPTS:2}
+    max-concurrent: ${MEMOS_ANSWER_MAX_CONCURRENT:8}
   audit:
     policy-version: ${MEMOS_AUDIT_POLICY_VERSION:access-control-v1}
   deletion:

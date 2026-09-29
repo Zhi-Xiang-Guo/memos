@@ -132,6 +132,14 @@ Coverage includes simple and multi-session recall, preference recall, update, te
 - Java strengthens the backend implementation boundary while Python preserves evaluation ergonomics; a multi-language repository adds tooling cost.
 - Deferring specialized infrastructure reduces failure modes now and postpones extreme-scale claims until a workload exists.
 
+## RAG practice
+
+The [Chinese runnable RAG guide](docs/implementation/rag-practice.md) connects the existing
+memory pipeline to scoped tool calling, structured answers, SSE, bounded model retries, an optional
+Ollama reranker, and separate retrieval/answer practice metrics. See
+[package governance](docs/architecture/05-package-governance.md) for the refactored boundaries.
+The default answer provider is a deterministic abstaining fake; formal benchmarks remain `NOT RUN`.
+
 ## Research map
 
 - [半年学习、项目深化与面试路线](docs/learning-roadmap.md)

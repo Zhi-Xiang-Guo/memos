@@ -5,6 +5,7 @@ import dev.memos.adapters.postgres.JdbcRetrievalCandidateStore;
 import dev.memos.context.ContextTokenCounter;
 import dev.memos.context.EmbeddingContextTokenCounter;
 import dev.memos.context.MemoryContextAssembler;
+import dev.memos.context.MemoryEvidenceService;
 import dev.memos.retrieval.DeterministicQueryGate;
 import dev.memos.retrieval.EmbeddingPort;
 import dev.memos.retrieval.HybridRetrievalService;
@@ -79,6 +80,12 @@ public class RetrievalConfiguration {
   @Bean
   MemoryContextAssembler memoryContextAssembler(ContextTokenCounter counter) {
     return new MemoryContextAssembler(counter);
+  }
+
+  @Bean
+  MemoryEvidenceService memoryEvidenceService(
+      HybridRetrievalService retrieval, MemoryContextAssembler contexts) {
+    return new MemoryEvidenceService(retrieval, contexts);
   }
 
   private static String required(String value, String property) {
